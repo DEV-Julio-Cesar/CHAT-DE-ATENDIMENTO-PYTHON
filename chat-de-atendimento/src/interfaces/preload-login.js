@@ -10,5 +10,12 @@ contextBridge.exposeInMainWorld('loginAPI', {
      */
     authenticate: (username, password) => {
         return ipcRenderer.invoke('login-attempt', { username, password });
+    },
+
+    /**
+     * Abre a janela de cadastro de novo usuário.
+     */
+    openCadastroWindow: () => {
+        ipcRenderer.send('open-cadastro-window');
     }
 });

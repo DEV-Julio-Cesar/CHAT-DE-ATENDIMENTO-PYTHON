@@ -54,18 +54,6 @@
                 const username = usernameInput.value;
                 const password = passwordInput.value;
 
-                // Solução 1: Validação pelo localStorage (front-end)
-                let usuarios = JSON.parse(localStorage.getItem('usuarios') || '[]');
-                const usuarioEncontrado = usuarios.find(u => u.usuario === username && u.senha === password);
-                if (usuarioEncontrado) {
-                    // Login bem-sucedido
-                    if (window.electronAPI && typeof window.electronAPI.setFullScreen === 'function') {
-                        window.electronAPI.setFullScreen(true);
-                    }
-                    window.open('index.html', '_self'); // Garante tela principal
-                    return;
-                }
-
                 // Solução 2: Validação pelo backend (IPC)
                 try {
                     if (window.loginAPI && typeof window.loginAPI.authenticate === 'function') {
@@ -88,10 +76,13 @@
                     btnLogin.textContent = 'Entrar';
                     btnLogin.disabled = false;
                 }
-            });
-
-            document.getElementById("btn-cadastrar-usuario").onclick = function() {
-                window.location.href = "cadastro.html";
+            });            document.getElementById("btn-cadastrar-usuario").onclick = function() {
+                if (window.loginAPI && typeof window.loginAPI.openCadastroWindow === 'function') {
+                    window.loginAPI.openCadastroWindow();
+                } else {
+                    // Fallback para caso a API não esteja disponível
+                    window.location.href = "cadastro.html";
+                }
             };
         });
     </script>

@@ -35,30 +35,56 @@
             <a href="login.html" class="block w-full text-center py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition duration-150">Voltar</a>
         </form>
         <p id="cadastro-msg" class="text-green-600 text-sm mt-4 hidden">Cadastro realizado com sucesso!</p>
-    </div>
-    <script>
-        // Array global para armazenar cadastros
-        let usuarios = JSON.parse(localStorage.getItem('usuarios') || '[]');
-        document.getElementById('cadastro-form').onsubmit = function(e) {
-            e.preventDefault();
-            // Coleta os dados do formulário
-            const usuario = document.getElementById('usuario').value;
-            const nome = document.getElementById('nome').value;
-            const nascimento = document.getElementById('nascimento').value;
-            const email = document.getElementById('email').value;
-            const senha = document.getElementById('senha').value;
-            // Adiciona ao array
-            usuarios.push({ usuario, nome, nascimento, email, senha });
-            // Salva no localStorage
-            localStorage.setItem('usuarios', JSON.stringify(usuarios));
-            document.getElementById('cadastro-msg').classList.remove('hidden');
-            setTimeout(function() {
-                if (window.electronAPI && typeof window.electronAPI.setFullScreen === 'function') {
-                    window.electronAPI.setFullScreen(true);
+    </div>    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('cadastro-form');
+            const msgElement = document.getElementById('cadastro-msg');
+            
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Coleta os dados do formulário
+                const newUser = {
+                    usuario: document.getElementById('usuario').value,
+                    nome: document.getElementById('nome').value,
+                    nascimento: document.getElementById('nascimento').value,
+                    email: document.getElementById('email').value,
+                    senha: document.getElementById('senha').value
+                };
+                
+                try {
+                    if (window.cadastroAPI && typeof window.cadastroAPI.registerUser === 'function') {
+                        const result = await window.cadastroAPI.registerUser(newUser);
+                        
+                        if (result.success) {
+                            msgElement.textContent = result.message;
+                            msgElement.classList.remove('hidden');
+                            msgElement.classList.remove('text-red-600');
+                            msgElement.classList.add('text-green-600');
+                            
+                            // Fechar janela após sucesso
+                            setTimeout(() => {
+                                window.close();
+                            }, 1500);
+                        } else {
+                            msgElement.textContent = result.message;
+                            msgElement.classList.remove('hidden');
+                            msgElement.classList.remove('text-green-600');
+                            msgElement.classList.add('text-red-600');
+                        }
+                    } else {
+                        msgElement.textContent = 'Erro: API de cadastro não disponível.';
+                        msgElement.classList.remove('hidden');
+                        msgElement.classList.add('text-red-600');
+                    }
+                } catch (error) {
+                    msgElement.textContent = 'Erro de comunicação. Tente novamente.';
+                    msgElement.classList.remove('hidden');
+                    msgElement.classList.add('text-red-600');
+                    console.error('Erro ao cadastrar usuário:', error);
                 }
-                window.open('login.html', '_self');
-            }, 1200);
-        };
+            });
+        });
     </script>
 </body>
 </html>

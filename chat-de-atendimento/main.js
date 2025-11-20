@@ -1,14 +1,20 @@
 // =========================================================================
-// 1. IMPORTAÇÕES
+// 1. IMPORTAÇÕES E CONFIGURAÇÕES
 // =========================================================================
 const { app, BrowserWindow, ipcMain, dialog, Notification, Menu } = require('electron');
 const path = require('path');
+
+// 🚀 IMPORTAÇÕES DA NOVA ESTRUTURA ORGANIZADAS
+const { configuracoes, obterConfiguracao } = require('./config/configuracoes-principais');
+const { validarCredenciais } = require('./src/autenticacao/validador-credenciais');
+const gerenciadorUsuarios = require('./src/autenticacao/gerenciador-usuarios');
+
+// Importações das bibliotecas necessárias
 const axios = require('axios');
 const WebSocket = require('ws');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const fs = require('fs-extra');
-const { validateCredentials } = require('./auth'); // Importa a função de login
 
 // =========================================================================
 // 2. VARIÁVEIS GLOBAIS
@@ -115,12 +121,12 @@ function createLoginWindow() {
         height: 550,
         resizable: false,
         webPreferences: {
-            preload: path.join(__dirname, 'preload-login.js'), // Preload do Login
+            preload: path.join(__dirname, 'src/interfaces/preload-login.js'),
             nodeIntegration: false,
             contextIsolation: true
         }
     });
-    loginWindow.loadFile('login.html');
+    loginWindow.loadFile('src/interfaces/login.html');
 }
 
 function createMainWindow() {
@@ -130,12 +136,12 @@ function createMainWindow() {
         minWidth: 800,
         minHeight: 600,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'), // Preload Principal
+            preload: path.join(__dirname, 'src/interfaces/preload.js'),
             nodeIntegration: false,
             contextIsolation: true
         }
     });
-    mainWindow.loadFile('index.html');
+    mainWindow.loadFile('src/interfaces/index.html');
     
     if (loginWindow) {
         loginWindow.close();
@@ -152,15 +158,29 @@ function createHistoryWindow() {
         width: 800,
         height: 700,
         webPreferences: {
-            preload: path.join(__dirname, 'preload-history.js'), // Preload do Histórico
+            preload: path.join(__dirname, 'src/interfaces/preload-history.js'),
             nodeIntegration: false,
             contextIsolation: true
         }
     });
-    historyWindow.loadFile('history.html');
+    historyWindow.loadFile('src/interfaces/history.html');
     historyWindow.on('closed', () => {
         historyWindow = null;
     });
+}
+
+function createCadastroWindow() {
+    const cadastroWindow = new BrowserWindow({
+        width: 500,
+        height: 700,
+        resizable: false,
+        webPreferences: {
+            preload: path.join(__dirname, 'src/interfaces/preload-cadastro.js'),
+            nodeIntegration: false,
+            contextIsolation: true
+        }
+    });
+    cadastroWindow.loadFile('src/interfaces/cadastro.html');
 }
 
 // --- FUNÇÃO PARA CRIAR JANELA DE QR CODE MÚLTIPLA ---
@@ -168,21 +188,19 @@ function createQRWindow(clientId) {
     if (qrWindows[clientId]) {
         qrWindows[clientId].focus();
         return;
-    }
-
-    const qrWindow = new BrowserWindow({
+    }    const qrWindow = new BrowserWindow({
         width: 500,
         height: 650,
         title: `WhatsApp QR Code - ${clientId}`,
         resizable: false,
         webPreferences: {
-            preload: path.join(__dirname, 'preload-qr.js'),
+            preload: path.join(__dirname, 'src/interfaces/preload-qr.js'),
             nodeIntegration: false,
             contextIsolation: true
         }
     });
 
-    qrWindow.loadFile('qr-window.html');
+    qrWindow.loadFile('src/interfaces/qr-window.html');
     qrWindows[clientId] = qrWindow;
 
     qrWindow.on('closed', () => {
@@ -317,15 +335,15 @@ app.whenReady().then(() => {
 
     // main.js (Linha 124 aprox.)
 
-// 1) Login
+// 1) Login - Usando o novo sistema de validação organizado
 ipcMain.handle('login-attempt', async (event, { username, password }) => {
-    const isAuthenticated = validateCredentials(username, password);
+    // Usa o validador centralizado da nova estrutura
+    const isValid = validarCredenciais(username, password);
+    
+    if (isValid) {
+        createMainWindow();
 
-    if (isAuthenticated) {
-        // SUCESSO
-        createMainWindow(); 
-
-        // ATIVIDADE SENAC: Mostrar diálogo de sucesso
+        // Diálogo de sucesso
         dialog.showMessageBox(mainWindow, {
             type: 'info',
             title: 'Login Aprovado',
@@ -333,17 +351,41 @@ ipcMain.handle('login-attempt', async (event, { username, password }) => {
         });
 
         return true;
-    } else {
-        // FALHA
-        // ATIVIDADE SENAC: Mostrar diálogo de erro
-        dialog.showMessageBox(loginWindow, { // Mostra o diálogo na janela de login
-            type: 'error',
-            title: 'Falha no Login',
-            message: 'Usuário ou senha inválidos. Tente novamente.'
-        });
-
-        return false;
     }
+
+    // Login falhou - mostrar erro
+    dialog.showMessageBox(loginWindow, {
+        type: 'error',
+        title: 'Falha no Login',
+        message: 'Usuário ou senha inválidos. Tente novamente.'
+    });
+
+    return false;
+});
+
+// 1.1) Cadastrar novo usuário
+ipcMain.handle('register-new-user', (event, newUser) => {
+    return gerenciadorUsuarios.cadastrarUsuario(newUser);
+});
+
+// 1.2) Abrir janela de cadastro
+ipcMain.on('open-cadastro-window', () => {
+    createCadastroWindow();
+});
+
+// 1.3) Listar usuários cadastrados
+ipcMain.handle('list-users', () => {
+    return { success: true, users: gerenciadorUsuarios.listarUsuarios() };
+});
+
+// 1.4) Obter estatísticas de usuários
+ipcMain.handle('get-user-stats', () => {
+    return { success: true, stats: gerenciadorUsuarios.obterEstatisticas() };
+});
+
+// 1.5) Remover usuário
+ipcMain.handle('remove-user', (event, username) => {
+    return gerenciadorUsuarios.removerUsuario(username);
 });
 
     // 2) Abrir Janela de Histórico

@@ -1,23 +1,86 @@
 {
+  "name": "chat-de-atendimento-whatsapp",
+  "version": "2.0.0",
+  "description": "Sistema completo de atendimento ao cliente via WhatsApp com interface Electron",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "NODE_ENV=development electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "test": "node tests/run-tests.js",
+    "servidor-ws": "node src/whatsapp/servidor-websocket.js",
+    "servidor-chat": "node src/whatsapp/servidor-chat-interno.js",
+    "limpar-cache": "rimraf .wwebjs_auth .wwebjs_cache",
+    "limpar-logs": "rimraf logs/*",
+    "backup": "node scripts/backup-dados.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "chat",
+    "atendimento",
+    "electron",
+    "nodejs",
+    "websocket",
+    "customer-service",
+    "comunicacao"
+  ],
+  "author": {
+    "name": "Sistema Chat Atendimento",
+    "email": "suporte@chatwhatsapp.com.br",
+    "url": "https://github.com/seu-usuario/chat-atendimento"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seu-usuario/chat-atendimento-whatsapp.git"
+  },
+  "homepage": "https://chatwhatsapp.com.br",
   "dependencies": {
     "axios": "^1.13.1",
     "electron": "^39.0.0",
-    "electronmon": "^2.0.4",
     "fs-extra": "^11.3.2",
     "puppeteer": "^24.28.0",
     "qrcode": "^1.5.4",
     "whatsapp-web.js": "^1.34.1",
     "ws": "^8.18.3"
   },
-  "name": "chat-de-atendimento",
-  "version": "1.0.0",
-  "description": "",
-  "main": "main.js",
-  "scripts": {
-    "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "devDependencies": {
+    "electronmon": "^2.0.4",
+    "electron-builder": "^24.0.0",
+    "rimraf": "^5.0.0"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "build": {
+    "appId": "com.chatwhatsapp.atendimento",
+    "productName": "Chat de Atendimento WhatsApp",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "src/**/*",
+      "config/**/*",
+      "assets/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png"
+    }
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
 }
