@@ -97,14 +97,14 @@ function testarArquivosObrigatorios() {
         'src/infraestrutura/logger.js': 'Sistema de logs',
         'src/interfaces/login.html': 'Tela de login',
         'src/interfaces/index.html': 'Tela principal',
-        'src/interfaces/qr-window.html': 'Janela QR Code',
+        'src/interfaces/janela-qr.html': 'Janela QR Code',
         'src/interfaces/cadastro.html': 'Tela de cadastro',
-        'src/interfaces/history.html': 'Tela de histórico',
-        'src/interfaces/preload-login.js': 'Preload login',
-        'src/interfaces/preload.js': 'Preload principal',
-        'src/interfaces/preload-qr.js': 'Preload QR',
-        'src/interfaces/preload-cadastro.js': 'Preload cadastro',
-        'src/interfaces/preload-history.js': 'Preload histórico'
+        'src/interfaces/historico.html': 'Tela de histórico',
+        'src/interfaces/pre-carregamento-login.js': 'Preload login',
+        'src/interfaces/pre-carregamento.js': 'Preload principal',
+        'src/interfaces/pre-carregamento-qr.js': 'Preload QR',
+        'src/interfaces/pre-carregamento-cadastro.js': 'Preload cadastro',
+        'src/interfaces/pre-carregamento-historico.js': 'Preload histórico'
     };
     
     let todosOk = true;
@@ -307,11 +307,11 @@ function testarSintaxe() {
         'src/aplicacao/validacao-credenciais.js',
         'src/aplicacao/gerenciador-usuarios.js',
         'src/infraestrutura/logger.js',
-        'src/interfaces/preload-login.js',
-        'src/interfaces/preload.js',
-        'src/interfaces/preload-qr.js',
-        'src/interfaces/preload-cadastro.js',
-        'src/interfaces/preload-history.js'
+        'src/interfaces/pre-carregamento-login.js',
+        'src/interfaces/pre-carregamento.js',
+        'src/interfaces/pre-carregamento-qr.js',
+        'src/interfaces/pre-carregamento-cadastro.js',
+        'src/interfaces/pre-carregamento-historico.js'
     ];
     
     let todosOk = true;

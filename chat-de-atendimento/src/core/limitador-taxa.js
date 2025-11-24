@@ -1,4 +1,4 @@
-// src/core/rate-limiter.js
+// src/core/limitador-taxa.js
 // Rate limiting simples baseado em sliding window
 
 class RateLimiter {

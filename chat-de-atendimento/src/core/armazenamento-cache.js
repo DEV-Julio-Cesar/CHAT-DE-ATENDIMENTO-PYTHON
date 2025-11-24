@@ -1,4 +1,4 @@
-// src/core/cache.js
+// src/core/armazenamento-cache.js
 // Cache simples com TTL (Time-To-Live).
 
 class SimpleCache {

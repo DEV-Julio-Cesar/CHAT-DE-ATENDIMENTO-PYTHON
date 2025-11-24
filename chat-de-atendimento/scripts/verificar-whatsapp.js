@@ -75,23 +75,23 @@ verificarDependencia('ws');
 
 console.log('\n📄 2. VERIFICANDO ARQUIVOS PRINCIPAIS\n');
 verificarArquivo('main.js', 'main.js existe');
-verificarArquivo('src/interfaces/preload-qr.js', 'preload-qr.js existe');
-verificarArquivo('src/interfaces/qr-window.html', 'qr-window.html existe');
+verificarArquivo('src/interfaces/pre-carregamento-qr.js', 'pre-carregamento-qr.js existe');
+verificarArquivo('src/interfaces/janela-qr.html', 'janela-qr.html existe');
 verificarArquivo('src/interfaces/index.html', 'index.html existe');
 
 console.log('\n🔧 3. VERIFICANDO CORREÇÕES APLICADAS\n');
 
-// Correção 1: API Exposure no preload-qr.js
+// Correção 1: API Exposure no pre-carregamento-qr.js
 verificarConteudo(
-    'src/interfaces/preload-qr.js',
+    'src/interfaces/pre-carregamento-qr.js',
     /contextBridge\.exposeInMainWorld\(\s*['"]qrAPI['"]/,
-    "Correção 1: preload-qr.js expõe 'qrAPI' (não 'electronAPI')"
+    "Correção 1: pre-carregamento-qr.js expõe 'qrAPI' (não 'electronAPI')"
 );
 
 verificarConteudo(
-    'src/interfaces/preload-qr.js',
+    'src/interfaces/pre-carregamento-qr.js',
     /startConnection:\s*\([^)]*\)\s*=>\s*ipcRenderer\.invoke\(\s*['"]start-whatsapp-connection['"]/,
-    "Correção 1: método startConnection() existe no preload-qr.js"
+    "Correção 1: método startConnection() existe no pre-carregamento-qr.js"
 );
 
 // Correção 2: QR Code DataURL no main.js
@@ -154,11 +154,11 @@ verificarConteudo(
     'Função abrirNovoQR() chama window.electronAPI.abrirNovaJanelaQR()'
 );
 
-// Verificar preload.js expõe abrirNovaJanelaQR
+// Verificar pre-carregamento.js expõe abrirNovaJanelaQR
 verificarConteudo(
-    'src/interfaces/preload.js',
+    'src/interfaces/pre-carregamento.js',
     /abrirNovaJanelaQR:\s*\(\)\s*=>\s*ipcRenderer\.invoke\(\s*['"]open-new-qr-window['"]/,
-    'preload.js expõe abrirNovaJanelaQR() no electronAPI'
+    'pre-carregamento.js expõe abrirNovaJanelaQR() no electronAPI'
 );
 
 // Verificar handler open-new-qr-window no main.js

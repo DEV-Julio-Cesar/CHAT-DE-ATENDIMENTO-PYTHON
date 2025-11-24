@@ -1,5 +1,5 @@
 /**
- * 🔄 WhatsAppPoolManager
+ * 🔄 GerenciadorPoolWhatsApp
  * 
  * Gerenciador de pool de múltiplas instâncias WhatsApp.
  * Responsável por:
@@ -10,14 +10,14 @@
  * - Limpar instâncias inativas
  */
 
-const WhatsAppClientService = require('./WhatsAppClientService');
+const ServicoClienteWhatsApp = require('./ServicoClienteWhatsApp');
 const logger = require('../infraestrutura/logger');
 const fs = require('fs-extra');
 const path = require('path');
 
-class WhatsAppPoolManager {
+class GerenciadorPoolWhatsApp {
     constructor(options = {}) {
-        // Map de clientes: clientId -> WhatsAppClientService
+        // Map de clientes: clientId -> ServicoClienteWhatsApp
         this.clients = new Map();
         
         // Configurações
@@ -109,7 +109,7 @@ class WhatsAppPoolManager {
             };
 
             // Criar instância do serviço
-            const clientService = new WhatsAppClientService(clientId, {
+            const clientService = new ServicoClienteWhatsApp(clientId, {
                 sessionPath: this.config.sessionPath,
                 ...callbacks
             });
@@ -445,4 +445,4 @@ class WhatsAppPoolManager {
     }
 }
 
-module.exports = WhatsAppPoolManager;
+module.exports = GerenciadorPoolWhatsApp;

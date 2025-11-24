@@ -1,4 +1,4 @@
-// src/core/input-validator.js
+// src/core/validador-entradas.js
 // Validação e sanitização de inputs para segurança
 
 class InputValidator {

@@ -1,5 +1,5 @@
 /**
- * 📱 WhatsAppClientService
+ * 📱 ServicoClienteWhatsApp
  * 
  * Serviço isolado que gerencia um único cliente WhatsApp.
  * Responsável por:
@@ -15,7 +15,7 @@ const qrcode = require('qrcode');
 const logger = require('../infraestrutura/logger');
 const path = require('path');
 
-class WhatsAppClientService {
+class ServicoClienteWhatsApp {
     /**
      * @param {string} clientId - ID único do cliente
      * @param {Object} options - Opções de configuração
@@ -58,7 +58,7 @@ class WhatsAppClientService {
 
     set status(newStatus) {
         if (this._status !== newStatus) {
-            const prometheusMetrics = require('../core/prometheus-metrics');
+            const prometheusMetrics = require('../core/metricas-prometheus');
             prometheusMetrics.incrementCounter('whatsapp_status_changes_total', { 
                 clientId: this.clientId, 
                 from: this._status, 
@@ -160,7 +160,7 @@ class WhatsAppClientService {
 
             // Processar mensagens pendentes na fila para este cliente
             try {
-                const queue = require('../core/message-queue');
+                const queue = require('../core/fila-mensagens');
                 await queue.process(async (msg) => {
                     if (msg.clientId !== this.clientId) return true; // Ignora outras
                     try {
@@ -179,7 +179,7 @@ class WhatsAppClientService {
 
         // Mensagem recebida
         this.client.on('message', async (message) => {
-            const prometheusMetrics = require('../core/prometheus-metrics');
+            const prometheusMetrics = require('../core/metricas-prometheus');
             this.metadata.messageCount++;
             prometheusMetrics.incrementCounter('whatsapp_messages_received_total', { clientId: this.clientId });
             logger.info(`[${this.clientId}] Mensagem recebida de ${message.from}`);
@@ -212,8 +212,8 @@ class WhatsAppClientService {
      * @param {string} text - Texto da mensagem
      */
     async sendMessage(to, text) {
-        const queue = require('../core/message-queue');
-        const prometheusMetrics = require('../core/prometheus-metrics');
+        const queue = require('../core/fila-mensagens');
+        const prometheusMetrics = require('../core/metricas-prometheus');
         
         if (this.status !== 'ready') {
             // Enfileira para tentativa posterior
@@ -281,7 +281,7 @@ class WhatsAppClientService {
             return { success: false, message: 'Cliente não está pronto' };
         }
 
-        const cache = require('../core/cache');
+        const cache = require('../core/armazenamento-cache');
         const cacheKey = `chats:${this.clientId}`;
 
         if (!forceRefresh) {
@@ -381,4 +381,4 @@ class WhatsAppClientService {
     }
 }
 
-module.exports = WhatsAppClientService;
+module.exports = ServicoClienteWhatsApp;

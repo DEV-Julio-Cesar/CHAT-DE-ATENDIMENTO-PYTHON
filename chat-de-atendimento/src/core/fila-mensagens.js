@@ -1,4 +1,4 @@
-// src/core/message-queue.js
+// src/core/fila-mensagens.js
 // Fila simples em memória para mensagens pendentes quando cliente não está pronto.
 
 class MessageQueue {

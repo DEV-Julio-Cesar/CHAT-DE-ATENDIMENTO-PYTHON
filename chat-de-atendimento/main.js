@@ -1,9 +1,9 @@
-// =========================================================================
+﻿// =========================================================================
 // SISTEMA DE ATENDIMENTO WHATSAPP - ARQUIVO PRINCIPAL
 // =========================================================================
 
 // =========================================================================
-// 1. IMPORTAÇÕES
+// 1. IMPORTAÃ‡Ã•ES
 // =========================================================================
 const { app, BrowserWindow, ipcMain, Menu, dialog, Notification } = require('electron');
 const path = require('path');
@@ -12,7 +12,7 @@ const axios = require('axios');
 const WebSocket = require('ws');
 const { MessageMedia } = require('whatsapp-web.js');
 
-// Importações dos módulos internos
+// ImportaÃ§Ãµes dos mÃ³dulos internos
 const iaGemini = require('./src/aplicacao/ia-gemini');
 // Handler IPC para Gemini
 ipcMain.handle('ia:gemini:perguntar', async (_event, { mensagem, contexto }) => {
@@ -21,8 +21,8 @@ ipcMain.handle('ia:gemini:perguntar', async (_event, { mensagem, contexto }) => 
 const { validarCredenciais, obterNivelPermissao, obterDadosUsuario } = require('./src/aplicacao/validacao-credenciais');
 const gerenciadorUsuarios = require('./src/aplicacao/gerenciador-usuarios');
 const logger = require('./src/infraestrutura/logger');
-const WhatsAppPoolManager = require('./src/services/WhatsAppPoolManager');
-const WindowManager = require('./src/services/WindowManager');
+const GerenciadorPoolWhatsApp = require('./src/services/GerenciadorPoolWhatsApp');
+const GerenciadorJanelas = require('./src/services/GerenciadorJanelas');
 const gerenciadorMensagens = require('./src/aplicacao/gerenciador-mensagens');
 const gerenciadorMidia = require('./src/aplicacao/gerenciador-midia');
 const chatbot = require('./src/aplicacao/chatbot');
@@ -35,23 +35,23 @@ const tema = require('./src/aplicacao/tema');
 const { startApi } = require('./src/infraestrutura/api');
 
 // Core Infrastructure
-const configManager = require('./src/core/config-manager');
-const errorHandler = require('./src/core/error-handler');
-const performanceMonitor = require('./src/core/performance-monitor');
-const featureFlags = require('./src/core/feature-flags');
+const gerenciadorConfiguracoes = require('./src/core/gerenciador-configuracoes');
+const tratadorErros = require('./src/core/tratador-erros');
+const monitorDesempenho = require('./src/core/monitor-desempenho');
+const sinalizadoresRecursos = require('./src/core/sinalizadores-recursos');
 
 // =========================================================================
-// 2. VARIÁVEIS GLOBAIS
+// 2. VARIÃVEIS GLOBAIS
 // =========================================================================
 
-// Window Manager (gerencia navegação entre telas)
-let windowManager = null;
+// Window Manager (gerencia navegaÃ§Ã£o entre telas)
+let gerenciadorJanelas = null;
 
 // Pool Manager de Clientes WhatsApp
-let whatsappPool = null;
+let poolWhatsApp = null;
 const qrWindows = new Map();
 
-// Configurações da API Cloud (WhatsApp Business)
+// ConfiguraÃ§Ãµes da API Cloud (WhatsApp Business)
 let WHATSAPP_TOKEN = '';
 let PHONE_NUMBER_ID = '';
 const API_VERSION = 'v19.0';
@@ -62,11 +62,11 @@ let ws = null;
 let internalWS = null;
 let internalChatHistory = [];
 
-// Usuário logado
+// UsuÃ¡rio logado
 let usuarioLogado = null;
 
 // =========================================================================
-// 3. FUNÇÕES DE CONEXÃO WEBSOCKET
+// 3. FUNÃ‡Ã•ES DE CONEXÃƒO WEBSOCKET
 // =========================================================================
 
 /**
@@ -78,7 +78,7 @@ function connectWebSocket() {
     ws = new WebSocket(WS_SERVER_URL);
     
     ws.on('open', () => {
-        logger.info('[WS] Conexão estabelecida');
+        logger.info('[WS] ConexÃ£o estabelecida');
     });
     
     ws.on('message', (data) => {
@@ -93,7 +93,7 @@ function connectWebSocket() {
     });
     
     ws.on('close', () => {
-        logger.info('[WS] Conexão fechada. Reconectando em 5s...');
+        logger.info('[WS] ConexÃ£o fechada. Reconectando em 5s...');
         setTimeout(connectWebSocket, 5000);
     });
     
@@ -136,7 +136,7 @@ function connectInternalChat() {
             logger.erro('[ChatInterno] Erro:', erro.message);
         });
     } catch (erro) {
-        logger.erro('[ChatInterno] Falha na conexão:', erro.message);
+        logger.erro('[ChatInterno] Falha na conexÃ£o:', erro.message);
     }
 }
 
@@ -145,7 +145,7 @@ function connectInternalChat() {
  */
 function sendInternalChatMessage(from, texto) {
     if (!internalWS || internalWS.readyState !== WebSocket.OPEN) {
-        return { sucesso: false, erro: 'WebSocket indisponível' };
+        return { sucesso: false, erro: 'WebSocket indisponÃ­vel' };
     }
     
     const payload = { type: 'internal', from, texto, timestamp: Date.now() };
@@ -155,7 +155,7 @@ function sendInternalChatMessage(from, texto) {
 }
 
 // =========================================================================
-// 4. FUNÇÕES DE API WHATSAPP CLOUD
+// 4. FUNÃ‡Ã•ES DE API WHATSAPP CLOUD
 // =========================================================================
 
 /**
@@ -163,7 +163,7 @@ function sendInternalChatMessage(from, texto) {
  */
 async function enviarMensagemWhatsApp(numeroDestino, mensagem) {
     if (!WHATSAPP_TOKEN || !PHONE_NUMBER_ID) {
-        throw new Error('Credenciais da API não configuradas');
+        throw new Error('Credenciais da API nÃ£o configuradas');
     }
     
     const WHATSAPP_API_URL = `https://graph.facebook.com/${API_VERSION}/${PHONE_NUMBER_ID}/messages`;
@@ -192,7 +192,7 @@ async function enviarMensagemWhatsApp(numeroDestino, mensagem) {
 }
 
 // =========================================================================
-// 5. FUNÇÕES DE CRIAÇÃO DE JANELAS
+// 5. FUNÃ‡Ã•ES DE CRIAÃ‡ÃƒO DE JANELAS
 // =========================================================================
 
 /**
@@ -205,7 +205,7 @@ function createLoginWindow() {
         resizable: false,
         frame: true,
         webPreferences: {
-            preload: path.join(__dirname, 'src/interfaces/preload-login.js'),
+            preload: path.join(__dirname, 'src/interfaces/pre-carregamento-login.js'),
             nodeIntegration: false,
             contextIsolation: true
         }
@@ -239,7 +239,7 @@ function createMainWindow() {
         width: 1200,
         height: 800,
         webPreferences: {
-            preload: path.join(__dirname, 'src/interfaces/preload.js'),
+            preload: path.join(__dirname, 'src/interfaces/pre-carregamento.js'),
             nodeIntegration: false,
             contextIsolation: true
         }
@@ -247,7 +247,7 @@ function createMainWindow() {
 
     mainWindow.loadFile('src/interfaces/index.html');
     
-    // Envia dados do usuário logado
+    // Envia dados do usuÃ¡rio logado
     mainWindow.webContents.on('did-finish-load', () => {
         mainWindow.webContents.send('usuario-logado', usuarioLogado);
     });
@@ -258,7 +258,7 @@ function createMainWindow() {
 }
 
 /**
- * Cria janela de histórico
+ * Cria janela de histÃ³rico
  */
 function createHistoryWindow() {
     if (historyWindow) {
@@ -270,13 +270,13 @@ function createHistoryWindow() {
         width: 800,
         height: 700,
         webPreferences: {
-            preload: path.join(__dirname, 'src/interfaces/preload-history.js'),
+            preload: path.join(__dirname, 'src/interfaces/pre-carregamento-historico.js'),
             nodeIntegration: false,
             contextIsolation: true
         }
     });
     
-    historyWindow.loadFile('src/interfaces/history.html');
+    historyWindow.loadFile('src/interfaces/historico.html');
     historyWindow.on('closed', () => {
         historyWindow = null;
     });
@@ -291,7 +291,7 @@ function createCadastroWindow() {
         height: 650,
         resizable: false,
         webPreferences: {
-            preload: path.join(__dirname, 'src/interfaces/preload-cadastro.js'),
+            preload: path.join(__dirname, 'src/interfaces/pre-carregamento-cadastro.js'),
             nodeIntegration: false,
             contextIsolation: true
         }
@@ -300,7 +300,7 @@ function createCadastroWindow() {
 }
 
 /**
- * Cria janela de QR Code para cliente específico
+ * Cria janela de QR Code para cliente especÃ­fico
  */
 function createQRWindow(clientId) {
     if (qrWindows.has(clientId)) {
@@ -314,13 +314,13 @@ function createQRWindow(clientId) {
         title: `WhatsApp - ${clientId}`,
         resizable: false,
         webPreferences: {
-            preload: path.join(__dirname, 'src/interfaces/preload-qr.js'),
+            preload: path.join(__dirname, 'src/interfaces/pre-carregamento-qr.js'),
             nodeIntegration: false,
             contextIsolation: true
         }
     });
     
-    qrWindow.loadFile('src/interfaces/qr-window.html');
+    qrWindow.loadFile('src/interfaces/janela-qr.html');
     qrWindows.set(clientId, qrWindow);
     
     qrWindow.webContents.once('did-finish-load', () => {
@@ -333,31 +333,31 @@ function createQRWindow(clientId) {
 }
 
 /**
- * Cria janela de gerenciamento de múltiplos clientes WhatsApp
+ * Cria janela de gerenciamento de mÃºltiplos clientes WhatsApp
  */
 function createPoolManagerWindow() {
     const win = new BrowserWindow({
         width: 1200,
         height: 800,
-        title: 'Gerenciador de Conexões WhatsApp',
+        title: 'Gerenciador de ConexÃµes WhatsApp',
         webPreferences: {
-            preload: path.join(__dirname, 'src/interfaces/preload-pool-manager.js'),
+            preload: path.join(__dirname, 'src/interfaces/pre-carregamento-gerenciador-pool.js'),
             nodeIntegration: false,
             contextIsolation: true
         }
     });
-    win.loadFile('src/interfaces/pool-manager.html');
+    win.loadFile('src/interfaces/gerenciador-pool.html');
 }
 
 /**
- * Cria janela de usuários
+ * Cria janela de usuÃ¡rios
  */
 function createUsuariosWindow() {
     const win = new BrowserWindow({
         width: 900,
         height: 650,
         webPreferences: {
-            preload: path.join(__dirname, 'src/interfaces/preload-usuarios.js'),
+            preload: path.join(__dirname, 'src/interfaces/pre-carregamento-usuarios.js'),
             nodeIntegration: false,
             contextIsolation: true
         }
@@ -373,7 +373,7 @@ function createChatWindow(clientId) {
         width: 1200,
         height: 800,
         webPreferences: {
-            preload: path.join(__dirname, 'src/interfaces/preload-chat.js'),
+            preload: path.join(__dirname, 'src/interfaces/pre-carregamento-chat.js'),
             nodeIntegration: false,
             contextIsolation: true
         }
@@ -394,12 +394,12 @@ function createDashboardWindow() {
         width: 1200,
         height: 800,
         webPreferences: {
-            preload: path.join(__dirname, 'src/interfaces/preload-dashboard.js'),
+            preload: path.join(__dirname, 'src/interfaces/pre-carregamento-painel.js'),
             nodeIntegration: false,
             contextIsolation: true
         }
     });
-    win.loadFile('src/interfaces/dashboard.html');
+    win.loadFile('src/interfaces/painel.html');
 }
 
 /**
@@ -410,7 +410,7 @@ function createChatbotWindow() {
         width: 900,
         height: 700,
         webPreferences: {
-            preload: path.join(__dirname, 'src/interfaces/preload-chatbot.js'),
+            preload: path.join(__dirname, 'src/interfaces/pre-carregamento-chatbot.js'),
             nodeIntegration: false,
             contextIsolation: true
         }
@@ -419,7 +419,7 @@ function createChatbotWindow() {
 }
 
 // =========================================================================
-// 6. CONFIGURAÇÃO DE MENU
+// 6. CONFIGURAÃ‡ÃƒO DE MENU
 // =========================================================================
 
 function criarMenuPrincipal() {
@@ -445,7 +445,7 @@ function criarMenuPrincipal() {
             ]
         },
         {
-            label: 'Navegação',
+            label: 'NavegaÃ§Ã£o',
             submenu: [
                 {
                     label: 'Voltar',
@@ -455,7 +455,7 @@ function criarMenuPrincipal() {
                     }
                 },
                 {
-                    label: 'Avançar',
+                    label: 'AvanÃ§ar',
                     accelerator: 'Alt+Right',
                     click: () => {
                         if (mainWindow) mainWindow.webContents.goForward();
@@ -487,13 +487,13 @@ function criarMenuPrincipal() {
                             type: 'info',
                             title: 'Sobre',
                             message: 'Sistema de Atendimento WhatsApp',
-                            detail: 'Versão 1.0\nDesenvolvido com Electron e whatsapp-web.js'
+                            detail: 'VersÃ£o 1.0\nDesenvolvido com Electron e whatsapp-web.js'
                         });
                         
                         if (Notification.isSupported()) {
                             new Notification({
-                                title: 'Informação',
-                                body: 'Você está usando a versão 1.0'
+                                title: 'InformaÃ§Ã£o',
+                                body: 'VocÃª estÃ¡ usando a versÃ£o 1.0'
                             }).show();
                         }
                     }
@@ -514,13 +514,13 @@ function criarMenuPrincipal() {
  * Inicializa cliente WhatsApp com QR Code
  */
 /**
- * Inicializa um cliente WhatsApp através do Pool Manager
- * @deprecated Use whatsappPool.createAndInitialize() diretamente
+ * Inicializa um cliente WhatsApp atravÃ©s do Pool Manager
+ * @deprecated Use poolWhatsApp.createAndInitialize() diretamente
  */
 async function inicializarClienteWhatsApp(clientId) {
     try {
         logger.info(`[${clientId}] Criando cliente no pool...`);
-        return await whatsappPool.createAndInitialize(clientId);
+        return await poolWhatsApp.createAndInitialize(clientId);
     } catch (erro) {
         logger.erro(`[${clientId}] Erro ao inicializar:`, erro.message);
         return { success: false, message: erro.message };
@@ -538,7 +538,7 @@ function configurarManipuladoresIPC() {
             const valido = await validarCredenciais(username, password);
             
             if (!valido) {
-                return { success: false, message: 'Usuário ou senha inválidos' };
+                return { success: false, message: 'UsuÃ¡rio ou senha invÃ¡lidos' };
             }
             
             const role = await obterNivelPermissao(username);
@@ -563,47 +563,47 @@ function configurarManipuladoresIPC() {
     });
 
     ipcMain.on('close-login-window', () => {
-        // Após login bem sucedido definimos 'principal' como raiz
-        if (windowManager) {
-            windowManager.resetHistory('principal');
+        // ApÃ³s login bem sucedido definimos 'principal' como raiz
+        if (gerenciadorJanelas) {
+            gerenciadorJanelas.resetHistory('principal');
         } else {
-            windowManager.navigate('principal');
+            gerenciadorJanelas.navigate('principal');
         }
     });
 
     ipcMain.on('open-register-window', () => {
-        windowManager.navigate('cadastro');
+        gerenciadorJanelas.navigate('cadastro');
     });
 
-    // abrir lista de usuários
-    // Navegação simplificada (mantém compatibilidade)
+    // abrir lista de usuÃ¡rios
+    // NavegaÃ§Ã£o simplificada (mantÃ©m compatibilidade)
     ipcMain.on('open-users-window', () => {
-        windowManager.navigate('usuarios');
+        gerenciadorJanelas.navigate('usuarios');
     });
 
     // abrir gerenciador de pool de clientes
     ipcMain.on('open-pool-manager', () => {
-        windowManager.navigate('pool-manager');
+        gerenciadorJanelas.navigate('pool-manager');
     });
 
     // abrir janela de chat
     ipcMain.on('open-chat-window', (_event, clientId) => {
-        windowManager.navigate('chat', { clientId });
+        gerenciadorJanelas.navigate('chat', { clientId });
     });
 
     // abrir dashboard
     ipcMain.on('open-dashboard', () => {
-        windowManager.navigate('dashboard');
+        gerenciadorJanelas.navigate('dashboard');
     });
 
     // abrir chatbot
     ipcMain.on('open-chatbot', () => {
-        windowManager.navigate('chatbot');
+        gerenciadorJanelas.navigate('chatbot');
     });
     
-    // Restaurar sessões persistidas
+    // Restaurar sessÃµes persistidas
     ipcMain.handle('restore-persisted-sessions', async () => {
-        return await whatsappPool.restorePersistedSessions();
+        return await poolWhatsApp.restorePersistedSessions();
     });
 
     // API de cadastro
@@ -613,7 +613,7 @@ function configurarManipuladoresIPC() {
             return res;
         } catch (erro) {
             logger.erro('[Cadastro] Erro:', erro.message);
-            return { success: false, message: 'Falha ao cadastrar usuário: ' + erro.message };
+            return { success: false, message: 'Falha ao cadastrar usuÃ¡rio: ' + erro.message };
         }
     });
 
@@ -626,7 +626,7 @@ function configurarManipuladoresIPC() {
         }
     });
 
-    // Métricas
+    // MÃ©tricas
     ipcMain.handle('get-metrics', async () => {
         return await metricas.obterMetricas();
     });
@@ -635,13 +635,13 @@ function configurarManipuladoresIPC() {
         return await metricas.resetarMetricas();
     });
 
-    // APIs de usuários
+    // APIs de usuÃ¡rios
     ipcMain.handle('list-users', async () => {
         try {
             const users = await gerenciadorUsuarios.listarUsuarios();
             return { success: true, users };
         } catch (erro) {
-            logger.erro('[Listar Usuários] Erro:', erro.message);
+            logger.erro('[Listar UsuÃ¡rios] Erro:', erro.message);
             return { success: false, users: [], message: erro.message };
         }
     });
@@ -651,7 +651,7 @@ function configurarManipuladoresIPC() {
             const stats = await gerenciadorUsuarios.obterEstatisticas();
             return { success: true, stats };
         } catch (erro) {
-            logger.erro('[Estatísticas] Erro:', erro.message);
+            logger.erro('[EstatÃ­sticas] Erro:', erro.message);
             return { success: false, stats: {}, message: erro.message };
         }
     });
@@ -661,7 +661,7 @@ function configurarManipuladoresIPC() {
             const res = await gerenciadorUsuarios.removerUsuario(username);
             return res;
         } catch (erro) {
-            logger.erro('[Remover Usuário] Erro:', erro.message);
+            logger.erro('[Remover UsuÃ¡rio] Erro:', erro.message);
             return { success: false, message: erro.message };
         }
     });
@@ -671,7 +671,7 @@ function configurarManipuladoresIPC() {
             const res = await gerenciadorUsuarios.definirAtivo(username, ativo);
             return res;
         } catch (erro) {
-            logger.erro('[Ativar/Desativar Usuário] Erro:', erro.message);
+            logger.erro('[Ativar/Desativar UsuÃ¡rio] Erro:', erro.message);
             return { success: false, message: erro.message };
         }
     });
@@ -682,12 +682,12 @@ function configurarManipuladoresIPC() {
         try {
             // Formato novo (chat.html): { clientId, chatId, message }
             if (clientId && chatId && message) {
-                const result = await whatsappPool.sendMessage(clientId, chatId, message);
+                const result = await poolWhatsApp.sendMessage(clientId, chatId, message);
                 if (!result.success) {
                     return result;
                 }
                 
-                // Registra métrica
+                // Registra mÃ©trica
                 await metricas.registrarMensagemEnviada();
                 // Auditoria
                 try { require('./src/infraestrutura/auditoria').logAudit('message.send', { user: usuarioLogado?.username, details: { clientId, chatId }}); } catch(e) {}
@@ -709,7 +709,7 @@ function configurarManipuladoresIPC() {
             
             // Formato antigo (index.html): { numero, mensagem, clientId }
             if (numero && mensagem) {
-                // Se tem clientId, usa cliente específico
+                // Se tem clientId, usa cliente especÃ­fico
                 if (clientId && whatsappClients.has(clientId)) {
                     const client = whatsappClients.get(clientId);
                     if (client.info) {
@@ -719,16 +719,16 @@ function configurarManipuladoresIPC() {
                     }
                 }
                 
-                // Caso contrário, tenta API Cloud
+                // Caso contrÃ¡rio, tenta API Cloud
                 if (WHATSAPP_TOKEN && !WHATSAPP_TOKEN.startsWith('TOKEN_DE_TESTE_')) {
                     const resultado = await enviarMensagemWhatsApp(numero, mensagem);
                     return { sucesso: true, dados: resultado };
                 }
                 
-                return { sucesso: false, erro: 'Nenhum cliente disponível' };
+                return { sucesso: false, erro: 'Nenhum cliente disponÃ­vel' };
             }
             
-            return { success: false, message: 'Parâmetros inválidos' };
+            return { success: false, message: 'ParÃ¢metros invÃ¡lidos' };
             
         } catch (erro) {
             logger.erro('[Enviar Mensagem] Erro:', erro.message);
@@ -736,50 +736,50 @@ function configurarManipuladoresIPC() {
         }
     });
     
-    // Enviar mensagem com mídia
+    // Enviar mensagem com mÃ­dia
     ipcMain.handle('send-whatsapp-media', async (_event, { clientId, chatId, filePath, caption }) => {
         try {
             const client = whatsappClients.get(clientId);
             if (!client) {
-                return { success: false, message: 'Cliente não conectado' };
+                return { success: false, message: 'Cliente nÃ£o conectado' };
             }
 
             const media = MessageMedia.fromFilePath(filePath);
             await client.sendMessage(chatId, media, { caption: caption || '' });
 
-            logger.sucesso(`[${clientId}] Mídia enviada para ${chatId}`);
+            logger.sucesso(`[${clientId}] MÃ­dia enviada para ${chatId}`);
             return { success: true };
 
         } catch (erro) {
-            logger.erro('[Enviar Mídia] Erro:', erro.message);
+            logger.erro('[Enviar MÃ­dia] Erro:', erro.message);
             return { success: false, message: erro.message };
         }
     });
 
-    // Download de mídia recebida
+    // Download de mÃ­dia recebida
     ipcMain.handle('download-whatsapp-media', async (_event, { clientId, messageId }) => {
         try {
             const client = whatsappClients.get(clientId);
             if (!client) {
-                return { success: false, message: 'Cliente não conectado' };
+                return { success: false, message: 'Cliente nÃ£o conectado' };
             }
 
-            // Implemente a lógica de download conforme necessário
+            // Implemente a lÃ³gica de download conforme necessÃ¡rio
             return { success: true };
 
         } catch (erro) {
-            logger.erro('[Download Mídia] Erro:', erro.message);
+            logger.erro('[Download MÃ­dia] Erro:', erro.message);
             return { success: false, message: erro.message };
         }
     });
 
-    // --- CHATS E HISTÓRICO ---
+    // --- CHATS E HISTÃ“RICO ---
     
     ipcMain.handle('list-whatsapp-chats', async (_event, clientId) => {
         try {
             const client = whatsappClients.get(clientId);
             if (!client) {
-                return { success: false, message: 'Cliente não conectado', chats: [] };
+                return { success: false, message: 'Cliente nÃ£o conectado', chats: [] };
             }
 
             const chats = await client.getChats();
@@ -803,25 +803,25 @@ function configurarManipuladoresIPC() {
         }
     });
 
-    // Carregar histórico de mensagens
+    // Carregar histÃ³rico de mensagens
     ipcMain.handle('load-chat-history', async (_event, { clientId, chatId }) => {
         try {
             const result = await gerenciadorMensagens.carregarHistorico(clientId, chatId);
             return result;
         } catch (erro) {
-            logger.erro('[Carregar Histórico] Erro:', erro.message);
+            logger.erro('[Carregar HistÃ³rico] Erro:', erro.message);
             return { success: false, mensagens: [], message: erro.message };
         }
     });
 
-    // --- MENSAGENS RÁPIDAS ---
+    // --- MENSAGENS RÃPIDAS ---
     const mensagensRapidas = require('./src/aplicacao/mensagens-rapidas');
     ipcMain.handle('quick-messages-list', async () => {
         return { success: true, mensagens: await mensagensRapidas.carregarTodas() };
     });
     ipcMain.handle('quick-messages-get', async (_e, codigo) => {
         const msg = await mensagensRapidas.obterPorCodigo(codigo);
-        return msg ? { success: true, mensagem: msg } : { success: false, message: 'Não encontrada' };
+        return msg ? { success: true, mensagem: msg } : { success: false, message: 'NÃ£o encontrada' };
     });
     ipcMain.handle('quick-messages-add', async (_e, { codigo, texto }) => {
         return await mensagensRapidas.adicionarMensagem(codigo, texto);
@@ -843,7 +843,7 @@ function configurarManipuladoresIPC() {
         const client = clientId ? whatsappClients.get(clientId) : Array.from(whatsappClients.values())[0];
         
         if (!client || !client.info) {
-            return { sucesso: false, erro: 'Cliente não conectado' };
+            return { sucesso: false, erro: 'Cliente nÃ£o conectado' };
         }
         
         try {
@@ -887,7 +887,7 @@ function configurarManipuladoresIPC() {
         const client = clientId ? whatsappClients.get(clientId) : Array.from(whatsappClients.values())[0];
         
         if (!client || !client.info) {
-            return { sucesso: false, erro: 'Cliente não conectado' };
+            return { sucesso: false, erro: 'Cliente nÃ£o conectado' };
         }
         
         try {
@@ -895,7 +895,7 @@ function configurarManipuladoresIPC() {
             const chat = await client.getChatById(chatId);
             
             if (!chat) {
-                return { sucesso: false, erro: 'Chat não encontrado' };
+                return { sucesso: false, erro: 'Chat nÃ£o encontrado' };
             }
             
             const messages = await chat.fetchMessages({ limit: 50 });
@@ -918,14 +918,14 @@ function configurarManipuladoresIPC() {
     });
     
     ipcMain.handle('search-chat-history', async (event, filters) => {
-        // Implementação futura com banco de dados
+        // ImplementaÃ§Ã£o futura com banco de dados
         return { 
             sucesso: false, 
-            erro: 'Busca de histórico requer banco de dados' 
+            erro: 'Busca de histÃ³rico requer banco de dados' 
         };
     });
     
-    // --- CONFIGURAÇÕES ---
+    // --- CONFIGURAÃ‡Ã•ES ---
     
     ipcMain.handle('config-whatsapp-credentials', (event, { token, id }) => {
         WHATSAPP_TOKEN = token;
@@ -955,7 +955,7 @@ function configurarManipuladoresIPC() {
         }
     });
 
-    // Controle de notificações
+    // Controle de notificaÃ§Ãµes
     ipcMain.handle('toggle-notifications', async (_event, ativo) => {
         notificacoes.setAtivo(ativo);
         return { success: true, ativo };
@@ -973,7 +973,7 @@ function configurarManipuladoresIPC() {
     ipcMain.handle('attend:get', async (_e, { clientId, chatId }) => atend.obterAtendimento(clientId, chatId));
     ipcMain.handle('attend:list', async () => atend.listarAtendimentos());
 
-    // Relatórios
+    // RelatÃ³rios
     ipcMain.handle('report:export', async (_e, tipo) => relatorios.exportar(tipo));
 
     // Tema
@@ -987,51 +987,51 @@ function configurarManipuladoresIPC() {
         return { success: true, clientId };
     });
 
-    // Iniciar conexão WhatsApp
+    // Iniciar conexÃ£o WhatsApp
     ipcMain.handle('start-whatsapp-connection', async (_event, clientId) => {
         try {
             const result = await inicializarClienteWhatsApp(clientId);
             return result;
         } catch (erro) {
-            logger.erro('[WhatsApp] Erro ao iniciar conexão:', erro.message);
+            logger.erro('[WhatsApp] Erro ao iniciar conexÃ£o:', erro.message);
             return { success: false, message: erro.message };
         }
     });
 
     // Listar clientes conectados
     ipcMain.handle('list-connected-clients', async () => {
-        return whatsappPool.getReadyClients();
+        return poolWhatsApp.getReadyClients();
     });
 
-    // Listar todos os clientes com informações detalhadas
+    // Listar todos os clientes com informaÃ§Ãµes detalhadas
     ipcMain.handle('list-all-clients-info', async () => {
-        return whatsappPool.getAllClientsInfo();
+        return poolWhatsApp.getAllClientsInfo();
     });
 
-    // Obter estatísticas do pool
+    // Obter estatÃ­sticas do pool
     ipcMain.handle('get-pool-stats', async () => {
-        return whatsappPool.getStats();
+        return poolWhatsApp.getStats();
     });
 
     // Desconectar cliente
     ipcMain.handle('disconnect-client', async (_event, clientId) => {
-        return await whatsappPool.removeClient(clientId);
+        return await poolWhatsApp.removeClient(clientId);
     });
 
     // Reconectar cliente
     ipcMain.handle('reconnect-client', async (_event, clientId) => {
-        return await whatsappPool.reconnectClient(clientId);
+        return await poolWhatsApp.reconnectClient(clientId);
     });
 
-    // Fazer logout de cliente (remove sessão)
+    // Fazer logout de cliente (remove sessÃ£o)
     ipcMain.handle('logout-client', async (_event, clientId) => {
-        const client = whatsappPool.clients.get(clientId);
+        const client = poolWhatsApp.clients.get(clientId);
         if (!client) {
-            return { success: false, message: 'Cliente não encontrado' };
+            return { success: false, message: 'Cliente nÃ£o encontrado' };
         }
         const result = await client.logout();
         if (result.success) {
-            await whatsappPool.removeClient(clientId);
+            await poolWhatsApp.removeClient(clientId);
         }
         return result;
     });
@@ -1060,15 +1060,15 @@ function configurarManipuladoresIPC() {
     // Health Status
     ipcMain.handle('health:get-status', async () => {
         try {
-            const messageQueue = require('./src/core/message-queue');
-            const poolStats = whatsappPool.getStats();
+            const messageQueue = require('./src/core/fila-mensagens');
+            const poolStats = poolWhatsApp.getStats();
             const memUsage = process.memoryUsage();
             const uptimeSec = process.uptime();
             const uptimeStr = uptimeSec < 60 ? `${Math.floor(uptimeSec)}s` : 
                               uptimeSec < 3600 ? `${Math.floor(uptimeSec / 60)}m` : 
                               `${Math.floor(uptimeSec / 3600)}h`;
             
-            const clientsInfo = whatsappPool.getAllClientsInfo().map(c => ({
+            const clientsInfo = poolWhatsApp.getAllClientsInfo().map(c => ({
                 clientId: c.clientId,
                 status: c.status,
                 phoneNumber: c.phoneNumber
@@ -1096,35 +1096,35 @@ function configurarManipuladoresIPC() {
 }
 
 // =========================================================================
-// 9. HANDLERS DE NAVEGAÇÃO
+// 9. HANDLERS DE NAVEGAÃ‡ÃƒO
 // =========================================================================
 
 function setupNavigationHandlers() {
     // Navegar para uma rota
     ipcMain.handle('navigate-to', async (_event, route, params = {}) => {
         logger.info(`[Navigation] Navegando para: ${route}`);
-        windowManager.navigate(route, params);
+        gerenciadorJanelas.navigate(route, params);
         return { success: true };
     });
 
     // Voltar
     ipcMain.handle('navigate-back', async () => {
-        const success = windowManager.goBack();
+        const success = gerenciadorJanelas.goBack();
         return { success };
     });
 
-    // Avançar
+    // AvanÃ§ar
     ipcMain.handle('navigate-forward', async () => {
-        const success = windowManager.goForward();
+        const success = gerenciadorJanelas.goForward();
         return { success };
     });
 
-    // Obter estado de navegação
+    // Obter estado de navegaÃ§Ã£o
     ipcMain.handle('navigation-get-state', async () => {
         return {
-            canGoBack: windowManager.canGoBack(),
-            canGoForward: windowManager.canGoForward(),
-            currentRoute: windowManager.getCurrentRoute()
+            canGoBack: gerenciadorJanelas.canGoBack(),
+            canGoForward: gerenciadorJanelas.canGoForward(),
+            currentRoute: gerenciadorJanelas.getCurrentRoute()
         };
     });
 
@@ -1132,7 +1132,7 @@ function setupNavigationHandlers() {
 }
 
 // =========================================================================
-// 10. INICIALIZAÇÃO DO APLICATIVO
+// 10. INICIALIZAÃ‡ÃƒO DO APLICATIVO
 // =========================================================================
 
 app.whenReady().then(async () => {
@@ -1140,44 +1140,44 @@ app.whenReady().then(async () => {
     // CORE INFRASTRUCTURE SETUP
     // ========================================
     
-    // 1. Carregar configuração
+    // 1. Carregar configuraÃ§Ã£o
     try {
-        configManager.load();
-        logger.sucesso('[Config] Configuração carregada com sucesso');
+        gerenciadorConfiguracoes.load();
+        logger.sucesso('[Config] ConfiguraÃ§Ã£o carregada com sucesso');
     } catch (error) {
-        logger.erro('[Config] Falha ao carregar configuração:', error.message);
+        logger.erro('[Config] Falha ao carregar configuraÃ§Ã£o:', error.message);
     }
 
     // 2. Configurar error handler global
     try {
-        errorHandler.setupGlobalHandlers();
-        logger.sucesso('[ErrorHandler] Handlers globais configurados');
+        tratadorErros.setupGlobalHandlers();
+        logger.sucesso('[tratadorErros] Handlers globais configurados');
     } catch (error) {
-        logger.erro('[ErrorHandler] Falha na configuração:', error.message);
+        logger.erro('[tratadorErros] Falha na configuraÃ§Ã£o:', error.message);
     }
 
     // 3. Iniciar performance monitoring
     try {
-        if (configManager.get('monitoring.performanceMonitoring', true)) {
-            performanceMonitor.startEventLoopMonitoring();
+        if (gerenciadorConfiguracoes.get('monitoring.monitorDesempenhoing', true)) {
+            monitorDesempenho.startEventLoopMonitoring();
             logger.sucesso('[PerfMonitor] Monitoramento de performance iniciado');
         }
     } catch (error) {
-        logger.erro('[PerfMonitor] Falha na inicialização:', error.message);
+        logger.erro('[PerfMonitor] Falha na inicializaÃ§Ã£o:', error.message);
     }
 
     // 4. Carregar feature flags
     try {
-        const enabledFlags = featureFlags.getAllFlags()
+        const enabledFlags = sinalizadoresRecursos.getAllFlags()
             .filter(f => f.enabled)
             .map(f => f.name);
-        logger.info(`[FeatureFlags] ${enabledFlags.length} flags habilitadas`);
+        logger.info(`[sinalizadoresRecursos] ${enabledFlags.length} flags habilitadas`);
         
-        if (featureFlags.hasExperimentalEnabled()) {
-            logger.alerta('[FeatureFlags] ⚠️ Features experimentais ativadas');
+        if (sinalizadoresRecursos.hasExperimentalEnabled()) {
+            logger.alerta('[sinalizadoresRecursos] âš ï¸ Features experimentais ativadas');
         }
     } catch (error) {
-        logger.erro('[FeatureFlags] Falha ao carregar flags:', error.message);
+        logger.erro('[sinalizadoresRecursos] Falha ao carregar flags:', error.message);
     }
 
     // ========================================
@@ -1185,30 +1185,30 @@ app.whenReady().then(async () => {
     // ========================================
     
     // Inicializar Window Manager
-    windowManager = new WindowManager();
+    gerenciadorJanelas = new GerenciadorJanelas();
     logger.info('[App] Window Manager inicializado');
     
-    // Registrar logger e windowManager no DI
+    // Registrar logger e gerenciadorJanelas no DI
     try {
-        const di = require('./src/core/di');
+        const di = require('./src/core/injecao-dependencias');
         di.register('logger', logger);
-        di.register('windowManager', windowManager);
-        di.register('configManager', configManager);
-        di.register('errorHandler', errorHandler);
-        di.register('performanceMonitor', performanceMonitor);
-        di.register('featureFlags', featureFlags);
+        di.register('gerenciadorJanelas', gerenciadorJanelas);
+        di.register('gerenciadorConfiguracoes', gerenciadorConfiguracoes);
+        di.register('tratadorErros', tratadorErros);
+        di.register('monitorDesempenho', monitorDesempenho);
+        di.register('sinalizadoresRecursos', sinalizadoresRecursos);
         logger.sucesso('[DI] Core modules registrados no DI Container');
     } catch(e) {
         logger.erro('[DI] Falha ao registrar modules:', e.message);
     }
     
     // Inicializar Pool Manager de WhatsApp
-    const whatsappConfig = configManager.get('whatsapp', {});
-    whatsappPool = new WhatsAppPoolManager({
+    const whatsappConfig = gerenciadorConfiguracoes.get('whatsapp', {});
+    poolWhatsApp = new GerenciadorPoolWhatsApp({
         maxClients: whatsappConfig.maxClients || 10,
         sessionPath: path.join(__dirname, whatsappConfig.sessionPath || '.wwebjs_auth'),
         persistencePath: path.join(__dirname, 'dados', 'whatsapp-sessions.json'),
-        autoReconnect: featureFlags.isEnabled('whatsapp.auto-reconnect'),
+        autoReconnect: sinalizadoresRecursos.isEnabled('whatsapp.auto-reconnect'),
         reconnectDelay: 5000,
         healthCheckInterval: 60000,
         
@@ -1223,10 +1223,10 @@ app.whenReady().then(async () => {
         onReady: (clientId, phoneNumber) => {
             logger.sucesso(`[Pool] Cliente ${clientId} pronto - Telefone: ${phoneNumber || 'N/A'}`);
             
-            // Notificação
+            // NotificaÃ§Ã£o
             notificacoes.notificarClienteConectado(clientId);
             
-            // Notifica janela QR específica
+            // Notifica janela QR especÃ­fica
             const qrWindow = qrWindows.get(clientId);
             if (qrWindow && !qrWindow.isDestroyed()) {
                 qrWindow.webContents.send('whatsapp-ready', clientId);
@@ -1245,11 +1245,11 @@ app.whenReady().then(async () => {
             
             logger.info(`[${clientId}] Nova mensagem de ${message.from}: ${message.body}`);
             
-            // Notificação
+            // NotificaÃ§Ã£o
             const chat = await message.getChat();
             notificacoes.notificarNovaMensagem(chat.name || message.from, message.body);
             
-            // Salva no histórico
+            // Salva no histÃ³rico
             await gerenciadorMensagens.salvarMensagem(clientId, message.from, {
                 id: message.id,
                 timestamp: message.timestamp * 1000,
@@ -1265,25 +1265,25 @@ app.whenReady().then(async () => {
             // Processa com chatbot
             const resposta = await chatbot.processarMensagem(message.body, message.from, clientId);
             if (resposta.devResponder) {
-                await whatsappPool.sendMessage(clientId, message.from, resposta.resposta);
+                await poolWhatsApp.sendMessage(clientId, message.from, resposta.resposta);
                 logger.info(`[${clientId}] Chatbot respondeu: ${resposta.resposta}`);
             } else {
-                // Se chatbot não souber, aciona Gemini
-                const prompt = `Você é um agente virtual de atendimento de provedor de internet. Responda de forma clara, cordial e objetiva. Mensagem do cliente: "${message.body}"`;
+                // Se chatbot nÃ£o souber, aciona Gemini
+                const prompt = `VocÃª Ã© um agente virtual de atendimento de provedor de internet. Responda de forma clara, cordial e objetiva. Mensagem do cliente: "${message.body}"`;
                 try {
                     const iaResp = await iaGemini.enviarPerguntaGemini({ mensagem: prompt });
                     if (iaResp.success && iaResp.resposta) {
-                        await whatsappPool.sendMessage(clientId, message.from, iaResp.resposta);
+                        await poolWhatsApp.sendMessage(clientId, message.from, iaResp.resposta);
                         logger.info(`[${clientId}] Gemini respondeu: ${iaResp.resposta}`);
                     } else {
-                        logger.info(`[${clientId}] Gemini não respondeu: ${iaResp.message}`);
+                        logger.info(`[${clientId}] Gemini nÃ£o respondeu: ${iaResp.message}`);
                     }
                 } catch (e) {
                     logger.erro(`[${clientId}] Erro ao acionar Gemini:`, e.message);
                 }
             }
             
-            // Registra métrica
+            // Registra mÃ©trica
             await metricas.registrarMensagemRecebida();
             
             // Notifica todas as janelas
@@ -1309,19 +1309,19 @@ app.whenReady().then(async () => {
         },
         
         onAuthFailure: (clientId, message) => {
-            logger.erro(`[Pool] Falha de autenticação ${clientId}: ${message}`);
+            logger.erro(`[Pool] Falha de autenticaÃ§Ã£o ${clientId}: ${message}`);
         }
     });
     // Registrar pool no DI
     try {
-        const di = require('./src/core/di');
-        di.register('whatsappPool', whatsappPool);
+        const di = require('./src/core/injecao-dependencias');
+        di.register('poolWhatsApp', poolWhatsApp);
     } catch(e) {
-        logger.erro('[DI] Falha ao registrar whatsappPool:', e.message);
+        logger.erro('[DI] Falha ao registrar poolWhatsApp:', e.message);
     }
     
-    // Iniciar health check periódico
-    whatsappPool.startHealthCheck();
+    // Iniciar health check periÃ³dico
+    poolWhatsApp.startHealthCheck();
     
     logger.info('[Pool] WhatsApp Pool Manager inicializado');
     
@@ -1332,25 +1332,25 @@ app.whenReady().then(async () => {
     createLoginWindow();
     
     // Configura backups e API
-    if (featureFlags.isEnabled('backup.auto')) {
+    if (sinalizadoresRecursos.isEnabled('backup.auto')) {
         backups.scheduleBackups();
-        logger.info('[Backup] Backup automático agendado');
+        logger.info('[Backup] Backup automÃ¡tico agendado');
     }
     
-    const apiConfig = configManager.get('api', {});
-    if (apiConfig.enabled !== false && featureFlags.isEnabled('monitoring.metrics')) {
+    const apiConfig = gerenciadorConfiguracoes.get('api', {});
+    if (apiConfig.enabled !== false && sinalizadoresRecursos.isEnabled('monitoring.metrics')) {
         startApi({
-        getClients: () => whatsappPool.getReadyClients(),
-        getStats: () => whatsappPool.getStats(),
-        getAllClientsInfo: () => whatsappPool.getAllClientsInfo(),
+        getClients: () => poolWhatsApp.getReadyClients(),
+        getStats: () => poolWhatsApp.getStats(),
+        getAllClientsInfo: () => poolWhatsApp.getAllClientsInfo(),
         listChats: async (clientId) => {
             try {
-                const clientInfo = whatsappPool.getClientInfo(clientId);
+                const clientInfo = poolWhatsApp.getClientInfo(clientId);
                 if (!clientInfo || clientInfo.status !== 'ready') {
-                    return { success: false, chats: [], message: 'Cliente não conectado' };
+                    return { success: false, chats: [], message: 'Cliente nÃ£o conectado' };
                 }
                 
-                const client = whatsappPool.clients.get(clientId).client;
+                const client = poolWhatsApp.clients.get(clientId).client;
                 const chats = await client.getChats();
                 return {
                     success: true,
@@ -1361,19 +1361,19 @@ app.whenReady().then(async () => {
             }
         },
         sendMessage: async ({ clientId, chatId, message }) => {
-            return await whatsappPool.sendMessage(clientId, chatId, message);
+            return await poolWhatsApp.sendMessage(clientId, chatId, message);
         }
         });
         logger.sucesso(`[API] Servidor iniciado na porta ${apiConfig.port || 3333}`);
     } else {
-        logger.info('[API] API desabilitada por configuração');
+        logger.info('[API] API desabilitada por configuraÃ§Ã£o');
     }
     
-    // Configurar handlers de navegação
+    // Configurar handlers de navegaÃ§Ã£o
     setupNavigationHandlers();
     
     // Iniciar com tela de login
-    windowManager.navigate('login');
+    gerenciadorJanelas.navigate('login');
 });
 
 app.on('window-all-closed', () => {
@@ -1384,7 +1384,7 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-        windowManager.navigate('login');
+        gerenciadorJanelas.navigate('login');
     }
 });
 
@@ -1393,31 +1393,31 @@ app.on('before-quit', async () => {
     
     // Performance report
     try {
-        if (configManager.get('monitoring.performanceMonitoring', true)) {
-            performanceMonitor.report();
+        if (gerenciadorConfiguracoes.get('monitoring.monitorDesempenhoing', true)) {
+            monitorDesempenho.report();
         }
     } catch (error) {
-        logger.erro('[PerfMonitor] Erro ao gerar relatório:', error.message);
+        logger.erro('[PerfMonitor] Erro ao gerar relatÃ³rio:', error.message);
     }
     
-    // Salvar configuração
+    // Salvar configuraÃ§Ã£o
     try {
-        configManager.save();
-        logger.info('[Config] Configuração salva');
+        gerenciadorConfiguracoes.save();
+        logger.info('[Config] ConfiguraÃ§Ã£o salva');
     } catch (error) {
         logger.erro('[Config] Erro ao salvar:', error.message);
     }
     
     // Shutdown gracioso do pool
-    if (whatsappPool) {
-        await whatsappPool.shutdown();
+    if (poolWhatsApp) {
+        await poolWhatsApp.shutdown();
     }
     
-    // Notificação de saída
+    // NotificaÃ§Ã£o de saÃ­da
     if (Notification.isSupported()) {
         new Notification({
             title: 'Encerrando...',
-            body: 'Salvando dados. Até logo!',
+            body: 'Salvando dados. AtÃ© logo!',
             silent: true
         }).show();
     }
@@ -1430,3 +1430,4 @@ app.on('before-quit', async () => {
 // =========================================================================
 // FIM DO ARQUIVO
 // =========================================================================
+

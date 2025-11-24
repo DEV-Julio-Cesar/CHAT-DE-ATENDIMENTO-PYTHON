@@ -1,4 +1,4 @@
-// src/core/config-manager.js
+// src/core/gerenciador-configuracoes.js
 // Gerenciador centralizado de configurações com validação
 
 const fs = require('fs');

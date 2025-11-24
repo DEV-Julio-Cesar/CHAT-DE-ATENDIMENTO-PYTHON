@@ -5,8 +5,8 @@ const metricas = require('../aplicacao/metricas');
 const usuarios = require('../aplicacao/gerenciador-usuarios');
 const backups = require('../aplicacao/backup');
 const logger = require('./logger');
-const prometheusMetrics = require('../core/prometheus-metrics');
-const { apiLimiter } = require('../core/rate-limiter');
+const prometheusMetrics = require('../core/metricas-prometheus');
+const { apiLimiter } = require('../core/limitador-taxa');
 
 function startApi(providers, port = process.env.PORT || 3333) {
   const app = express();
@@ -68,9 +68,9 @@ function startApi(providers, port = process.env.PORT || 3333) {
   app.get('/metrics', async (req, res) => {
     try {
       // Atualiza métricas do sistema
-      const DI = require('../core/di');
+      const DI = require('../core/injecao-dependencias');
       const whatsappPool = DI.get('whatsappPool');
-      const messageQueue = require('../core/message-queue');
+      const messageQueue = require('../core/fila-mensagens');
       
       if (whatsappPool) {
         const stats = whatsappPool.getStats();

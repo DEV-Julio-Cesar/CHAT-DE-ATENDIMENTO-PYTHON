@@ -37,14 +37,14 @@ const estruturaEsperada = {
                 children: {
                     'login.html': { type: 'file', required: true },
                     'index.html': { type: 'file', required: true },
-                    'qr-window.html': { type: 'file', required: true },
+                    'janela-qr.html': { type: 'file', required: true },
                     'cadastro.html': { type: 'file', required: true },
-                    'history.html': { type: 'file', required: true },
-                    'preload-login.js': { type: 'file', required: true },
-                    'preload.js': { type: 'file', required: true },
-                    'preload-qr.js': { type: 'file', required: true },
-                    'preload-cadastro.js': { type: 'file', required: true },
-                    'preload-history.js': { type: 'file', required: true }
+                    'historico.html': { type: 'file', required: true },
+                    'pre-carregamento-login.js': { type: 'file', required: true },
+                    'pre-carregamento.js': { type: 'file', required: true },
+                    'pre-carregamento-qr.js': { type: 'file', required: true },
+                    'pre-carregamento-cadastro.js': { type: 'file', required: true },
+                    'pre-carregamento-historico.js': { type: 'file', required: true }
                 }
             }
         }

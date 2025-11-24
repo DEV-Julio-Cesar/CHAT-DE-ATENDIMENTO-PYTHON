@@ -1,11 +1,11 @@
-// src/core/performance-monitor.js
+// src/core/monitor-desempenho.js
 // Monitor de performance para identificar gargalos
 
 class PerformanceMonitor {
   constructor() {
     this.metrics = new Map();
     this.logger = require('../infraestrutura/logger');
-    this.prometheus = require('./prometheus-metrics');
+    this.prometheus = require('./metricas-prometheus');
   }
 
   /**

@@ -1,4 +1,4 @@
-// src/core/circuit-breaker.js
+// src/core/disjuntor-circuito.js
 // Circuit Breaker pattern para proteger contra falhas em cascata
 
 class CircuitBreaker {

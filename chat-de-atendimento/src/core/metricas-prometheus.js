@@ -1,4 +1,4 @@
-// src/core/prometheus-metrics.js
+// src/core/metricas-prometheus.js
 // Métricas no formato Prometheus para observabilidade
 
 class PrometheusMetrics {

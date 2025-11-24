@@ -1,4 +1,4 @@
-// src/core/feature-flags.js
+// src/core/sinalizadores-recursos.js
 // Sistema de feature flags para habilitar/desabilitar funcionalidades
 
 const fs = require('fs');
@@ -7,7 +7,7 @@ const path = require('path');
 class FeatureFlags {
   constructor() {
     this.flags = new Map();
-    this.flagsPath = path.join(process.cwd(), 'dados', 'feature-flags.json');
+    this.flagsPath = path.join(process.cwd(), 'dados', 'sinalizadores-recursos.json');
     this.logger = null;
     this.defaultFlags = {
       // Features de desenvolvimento

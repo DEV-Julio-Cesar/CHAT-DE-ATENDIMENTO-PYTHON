@@ -1,7 +1,7 @@
-// src/core/di.js
+// src/core/injecao-dependencias.js
 // Contêiner simples de Injeção de Dependências
 // Uso:
-//   const di = require('./src/core/di');
+//   const di = require('./src/core/injecao-dependencias');
 //   di.register('logger', loggerInstance);
 //   const logger = di.get('logger');
 

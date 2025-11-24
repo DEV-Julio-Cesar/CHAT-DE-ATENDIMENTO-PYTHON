@@ -1,4 +1,4 @@
-// src/core/retry-policy.js
+// src/core/politica-retentativas.js
 // Retry policy configurável com backoff exponencial
 
 class RetryPolicy {

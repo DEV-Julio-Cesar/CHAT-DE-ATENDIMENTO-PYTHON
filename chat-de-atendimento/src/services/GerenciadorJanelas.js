@@ -1,5 +1,5 @@
 /**
- * 🪟 WindowManager
+ * 🪟 GerenciadorJanelas
  * 
  * Gerenciador centralizado de janelas do Electron.
  * Garante que apenas UMA janela principal esteja aberta por vez,
@@ -10,7 +10,7 @@ const { BrowserWindow } = require('electron');
 const path = require('path');
 const logger = require('../infraestrutura/logger');
 
-class WindowManager {
+class GerenciadorJanelas {
     constructor() {
         this.currentWindow = null;
         this.navigationHistory = [];
@@ -20,7 +20,7 @@ class WindowManager {
         this.windowConfigs = {
             'login': {
                 file: 'src/interfaces/login.html',
-                preload: 'src/interfaces/preload-login.js',
+                preload: 'src/interfaces/pre-carregamento-login.js',
                 width: 450,
                 height: 600,
                 resizable: false,
@@ -28,15 +28,15 @@ class WindowManager {
             },
             'principal': {
                 file: 'src/interfaces/index.html',
-                preload: 'src/interfaces/preload.js',
+                preload: 'src/interfaces/pre-carregamento.js',
                 width: 1000,
                 height: 700,
                 resizable: true,
                 title: 'Sistema de Atendimento WhatsApp'
             },
             'pool-manager': {
-                file: 'src/interfaces/pool-manager.html',
-                preload: 'src/interfaces/preload-pool-manager.js',
+                file: 'src/interfaces/gerenciador-pool.html',
+                preload: 'src/interfaces/pre-carregamento-gerenciador-pool.js',
                 width: 1200,
                 height: 800,
                 resizable: true,
@@ -44,15 +44,15 @@ class WindowManager {
             },
             'chat': {
                 file: 'src/interfaces/chat.html',
-                preload: 'src/interfaces/preload-chat.js',
+                preload: 'src/interfaces/pre-carregamento-chat.js',
                 width: 1000,
                 height: 700,
                 resizable: true,
                 title: 'Chat WhatsApp'
             },
             'dashboard': {
-                file: 'src/interfaces/dashboard.html',
-                preload: 'src/interfaces/preload-dashboard.js',
+                file: 'src/interfaces/painel.html',
+                preload: 'src/interfaces/pre-carregamento-painel.js',
                 width: 1200,
                 height: 800,
                 resizable: true,
@@ -60,7 +60,7 @@ class WindowManager {
             },
             'chatbot': {
                 file: 'src/interfaces/chatbot.html',
-                preload: 'src/interfaces/preload-chatbot.js',
+                preload: 'src/interfaces/pre-carregamento-chatbot.js',
                 width: 900,
                 height: 700,
                 resizable: true,
@@ -68,15 +68,15 @@ class WindowManager {
             },
             'usuarios': {
                 file: 'src/interfaces/usuarios.html',
-                preload: 'src/interfaces/preload-usuarios.js',
+                preload: 'src/interfaces/pre-carregamento-usuarios.js',
                 width: 900,
                 height: 650,
                 resizable: true,
                 title: 'Gerenciar Usuários'
             },
             'history': {
-                file: 'src/interfaces/history.html',
-                preload: 'src/interfaces/preload-history.js',
+                file: 'src/interfaces/historico.html',
+                preload: 'src/interfaces/pre-carregamento-historico.js',
                 width: 1000,
                 height: 700,
                 resizable: true,
@@ -84,15 +84,15 @@ class WindowManager {
             },
             'cadastro': {
                 file: 'src/interfaces/cadastro.html',
-                preload: 'src/interfaces/preload-cadastro.js',
+                preload: 'src/interfaces/pre-carregamento-cadastro.js',
                 width: 500,
                 height: 650,
                 resizable: false,
                 title: 'Cadastro de Usuário'
             },
             'health': {
-                file: 'src/interfaces/health.html',
-                preload: 'src/interfaces/preload-health.js',
+                file: 'src/interfaces/saude.html',
+                preload: 'src/interfaces/pre-carregamento-saude.js',
                 width: 1200,
                 height: 800,
                 resizable: true,
@@ -111,11 +111,11 @@ class WindowManager {
         const config = this.windowConfigs[route];
         
         if (!config) {
-            logger.erro(`[WindowManager] Rota desconhecida: ${route}`);
+            logger.erro(`[GerenciadorJanelas] Rota desconhecida: ${route}`);
             return null;
         }
 
-        logger.info(`[WindowManager] Navegando para: ${route}`);
+        logger.info(`[GerenciadorJanelas] Navegando para: ${route}`);
 
         // Fechar janela atual se existir
         if (this.currentWindow && !this.currentWindow.isDestroyed()) {
@@ -156,7 +156,7 @@ class WindowManager {
             if (this.currentIndex >= 0) {
                 const last = this.navigationHistory[this.currentIndex];
                 if (last.route === route && JSON.stringify(last.params) === JSON.stringify(params)) {
-                    logger.info(`[WindowManager] Ignorando empilhamento duplicado da rota: ${route}`);
+                    logger.info(`[GerenciadorJanelas] Ignorando empilhamento duplicado da rota: ${route}`);
                     addToHistory = false;
                 }
             }
@@ -184,14 +184,14 @@ class WindowManager {
      */
     goBack() {
         if (!this.canGoBack()) {
-            logger.aviso('[WindowManager] Não há histórico anterior');
+            logger.aviso('[GerenciadorJanelas] Não há histórico anterior');
             return false;
         }
 
         this.currentIndex--;
         const previous = this.navigationHistory[this.currentIndex];
         
-        logger.info(`[WindowManager] Voltando para: ${previous.route}`);
+        logger.info(`[GerenciadorJanelas] Voltando para: ${previous.route}`);
         this.navigate(previous.route, previous.params, false);
         
         return true;
@@ -202,14 +202,14 @@ class WindowManager {
      */
     goForward() {
         if (!this.canGoForward()) {
-            logger.aviso('[WindowManager] Não há histórico futuro');
+            logger.aviso('[GerenciadorJanelas] Não há histórico futuro');
             return false;
         }
 
         this.currentIndex++;
         const next = this.navigationHistory[this.currentIndex];
         
-        logger.info(`[WindowManager] Avançando para: ${next.route}`);
+        logger.info(`[GerenciadorJanelas] Avançando para: ${next.route}`);
         this.navigate(next.route, next.params, false);
         
         return true;
@@ -245,7 +245,7 @@ class WindowManager {
     clearHistory() {
         this.navigationHistory = [];
         this.currentIndex = -1;
-        logger.info('[WindowManager] Histórico de navegação limpo');
+        logger.info('[GerenciadorJanelas] Histórico de navegação limpo');
     }
 
     /**
@@ -255,7 +255,7 @@ class WindowManager {
      * @param {Object} params
      */
     resetHistory(route, params = {}) {
-        logger.info(`[WindowManager] Resetando histórico. Nova raiz: ${route}`);
+        logger.info(`[GerenciadorJanelas] Resetando histórico. Nova raiz: ${route}`);
         this.navigationHistory = [{ route, params }];
         this.currentIndex = 0;
         // Navega sem adicionar ao histórico (já definido manualmente)
@@ -290,7 +290,7 @@ class WindowManager {
      */
     registerWindowConfig(route, config) {
         this.windowConfigs[route] = config;
-        logger.info(`[WindowManager] Configuração registrada para rota: ${route}`);
+        logger.info(`[GerenciadorJanelas] Configuração registrada para rota: ${route}`);
     }
 
     /**
@@ -301,11 +301,11 @@ class WindowManager {
         const config = this.windowConfigs[route];
         
         if (!config) {
-            logger.erro(`[WindowManager] Rota desconhecida: ${route}`);
+            logger.erro(`[GerenciadorJanelas] Rota desconhecida: ${route}`);
             return null;
         }
 
-        logger.info(`[WindowManager] Abrindo janela secundária: ${route}`);
+        logger.info(`[GerenciadorJanelas] Abrindo janela secundária: ${route}`);
 
         const secondaryWindow = new BrowserWindow({
             width: config.width,
@@ -334,4 +334,4 @@ class WindowManager {
     }
 }
 
-module.exports = WindowManager;
+module.exports = GerenciadorJanelas;

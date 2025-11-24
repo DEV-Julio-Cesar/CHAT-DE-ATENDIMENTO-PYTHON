@@ -1,10 +1,10 @@
-// src/core/error-handler.js
+// src/core/tratador-erros.js
 // Centralizador de tratamento de erros com categorização
 
 class ErrorHandler {
   constructor() {
     this.logger = require('../infraestrutura/logger');
-    this.prometheus = require('./prometheus-metrics');
+    this.prometheus = require('./metricas-prometheus');
     this.auditoria = require('../infraestrutura/auditoria');
     this.errorCategories = {
       NETWORK: 'network',

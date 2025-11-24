@@ -1,0 +1,98 @@
+{
+  "dev.debug-mode": {
+    "enabled": false,
+    "description": "Modo debug avançado"
+  },
+  "dev.performance-logs": {
+    "enabled": false,
+    "description": "Logs de performance detalhados"
+  },
+  "whatsapp.multi-device": {
+    "enabled": true,
+    "description": "Suporte a múltiplos dispositivos"
+  },
+  "whatsapp.auto-reconnect": {
+    "enabled": true,
+    "description": "Reconexão automática"
+  },
+  "whatsapp.message-queue": {
+    "enabled": true,
+    "description": "Fila de mensagens"
+  },
+  "whatsapp.media-support": {
+    "enabled": true,
+    "description": "Suporte a mídia"
+  },
+  "security.rate-limiting": {
+    "enabled": true,
+    "description": "Rate limiting na API"
+  },
+  "security.audit-log": {
+    "enabled": true,
+    "description": "Log de auditoria"
+  },
+  "security.2fa": {
+    "enabled": false,
+    "description": "Autenticação de 2 fatores"
+  },
+  "ux.toast-notifications": {
+    "enabled": true,
+    "description": "Notificações toast"
+  },
+  "ux.loading-states": {
+    "enabled": true,
+    "description": "Estados de loading"
+  },
+  "ux.dark-mode": {
+    "enabled": true,
+    "description": "Tema escuro"
+  },
+  "ux.keyboard-shortcuts": {
+    "enabled": false,
+    "description": "Atalhos de teclado"
+  },
+  "monitoring.metrics": {
+    "enabled": true,
+    "description": "Métricas Prometheus"
+  },
+  "monitoring.health-check": {
+    "enabled": true,
+    "description": "Health check endpoint"
+  },
+  "monitoring.performance": {
+    "enabled": true,
+    "description": "Performance monitoring"
+  },
+  "experimental.ai-chatbot": {
+    "enabled": false,
+    "description": "Chatbot com IA"
+  },
+  "experimental.voice-messages": {
+    "enabled": false,
+    "description": "Mensagens de voz"
+  },
+  "experimental.message-scheduler": {
+    "enabled": false,
+    "description": "Agendamento de mensagens"
+  },
+  "cache.chats": {
+    "enabled": true,
+    "description": "Cache de conversas"
+  },
+  "cache.contacts": {
+    "enabled": true,
+    "description": "Cache de contatos"
+  },
+  "cache.messages": {
+    "enabled": false,
+    "description": "Cache de mensagens"
+  },
+  "backup.auto": {
+    "enabled": true,
+    "description": "Backup automático"
+  },
+  "backup.cloud": {
+    "enabled": false,
+    "description": "Backup em nuvem"
+  }
+}
