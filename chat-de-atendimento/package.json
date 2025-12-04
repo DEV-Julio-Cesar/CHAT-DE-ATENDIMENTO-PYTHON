@@ -20,7 +20,9 @@
     "help": "node scripts/print-help.js",
     "clean": "node -e \"require('fs-extra').emptyDirSync('dados/logs')\"",
     "diagnostico": "node teste-completo.js",
-    "api": "node src/infraestrutura/api.js"
+    "api": "node src/infraestrutura/api.js",
+    "build": "electron-builder",
+    "make": "electron-forge make"
   },
   "keywords": [
     "whatsapp",
@@ -28,14 +30,13 @@
     "atendimento",
     "chatbot"
   ],
-  "author": "",
+  "author": "DEV-Julio-Cesar",
   "license": "MIT",
   "dependencies": {
     "archiver": "^5.3.2",
     "axios": "^1.7.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "electron": "^33.0.0",
     "exceljs": "^4.4.0",
     "express": "^4.19.2",
     "fs-extra": "^11.2.0",
@@ -51,8 +52,33 @@
     "npm": ">=9.0.0"
   },
   "devDependencies": {
+    "electron": "^33.4.11",
+    "@electron-forge/cli": "^7.10.2",
+    "@electron-forge/maker-squirrel": "^7.10.2",
+    "@electron-forge/maker-zip": "^7.10.2",
     "@types/node": "^24.10.1",
+    "electron-builder": "^26.0.12",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
+  },
+  "config": {
+    "forge": {
+      "packagerConfig": {},
+      "makers": [
+        {
+          "name": "@electron-forge/maker-squirrel",
+          "config": {
+            "name": "chat_de_atendimento"
+          }
+        },
+        {
+          "name": "@electron-forge/maker-zip",
+          "platforms": [
+            "darwin",
+            "win32"
+          ]
+        }
+      ]
+    }
   }
 }
