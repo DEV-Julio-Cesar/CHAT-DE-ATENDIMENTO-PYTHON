@@ -10,7 +10,8 @@ contextBridge.exposeInMainWorld('poolAPI', {
     // Criar nova janela QR
     openNewQRWindow: () => ipcRenderer.invoke('open-new-qr-window'),
     
-    // Abrir chat com cliente específico
+    // Abrir interface de conexão por número
+    openConexaoPorNumeroWindow: () => ipcRenderer.invoke('open-conexao-por-numero-window'),
     openChat: (clientId) => ipcRenderer.send('open-chat-window', clientId),
     
     // Desconectar cliente
@@ -19,8 +20,17 @@ contextBridge.exposeInMainWorld('poolAPI', {
     // Reconectar cliente
     reconnectClient: (clientId) => ipcRenderer.invoke('reconnect-client', clientId),
     
-    // Logout de cliente (remove sessão)
-    logoutClient: (clientId) => ipcRenderer.invoke('logout-client', clientId),
+    // Logout de cliente (remove sessão) com auditoria de origem
+    logoutClient: async (clientId) => {
+        try {
+            const state = await ipcRenderer.invoke('navigation-get-state');
+            const origin = state?.currentRoute || 'unknown';
+            return await ipcRenderer.invoke('logout-client', { clientId, origin });
+        } catch (e) {
+            // fallback padrão
+            return await ipcRenderer.invoke('logout-client', clientId);
+        }
+    },
     
     // Restaurar sessões persistidas
     restorePersistedSessions: () => ipcRenderer.invoke('restore-persisted-sessions'),
@@ -36,4 +46,10 @@ contextBridge.exposeInMainWorld('navigationAPI', {
     getState: () => ipcRenderer.invoke('navigation-get-state'),
     onNavigationStateUpdate: (callback) => ipcRenderer.on('navigation-state', (_, state) => callback(state)),
     onParams: (callback) => ipcRenderer.on('navigation-params', (_, params) => callback(params))
+});
+
+// API para eventos de QR Code
+contextBridge.exposeInMainWorld('electronAPI', {
+    onQRCode: (callback) => ipcRenderer.on('qr-code-gerado', (_, qrDataURL) => callback(qrDataURL)),
+    onClienteProntoQR: (callback) => ipcRenderer.on('cliente-pronto-qr', (_, clientId) => callback(clientId))
 });

@@ -1,0 +1,36 @@
+{
+  "chatId": "status@broadcast",
+  "mensagens": [
+    {
+      "id": "ACAFB02BB109463D8D19C22A9F7C50D1",
+      "timestamp": 1768037565000,
+      "from": "status@broadcast",
+      "to": "558488986845@c.us",
+      "body": "",
+      "type": "image",
+      "fromMe": false,
+      "hasMedia": true,
+      "mediaUrl": null
+    },
+    {
+      "id": "ACA08C946D5D6B26CE497569443F85FD",
+      "timestamp": 1768039314000,
+      "from": "status@broadcast",
+      "to": "558488986845@c.us",
+      "body": "🙌",
+      "type": "image",
+      "fromMe": false,
+      "hasMedia": true,
+      "mediaUrl": null
+    }
+  ]
+}
+]
+}
+,
+      "mediaUrl": null
+    }
+  ]
+}
+]
+}

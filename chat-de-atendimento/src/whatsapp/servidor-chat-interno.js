@@ -55,36 +55,59 @@ let estatisticas = {
 // CRIAÇÃO DO SERVIDOR
 // =========================================================================
 
-const servidorChatInterno = new WebSocket.Server({ port: PORTA_CHAT_INTERNO });
+let servidorChatInterno;
+let portaUsada = PORTA_CHAT_INTERNO;
 
-console.log('💬 =======================================================');
-console.log('👥 SERVIDOR CHAT INTERNO - COMUNICAÇÃO ATENDENTES');
-console.log('💬 =======================================================');
-console.log(`📍 Servidor iniciado na porta: ${PORTA_CHAT_INTERNO}`);
-console.log(`🔗 URL de conexão: ws://localhost:${PORTA_CHAT_INTERNO}`);
-console.log('👤 Aguardando conexões dos atendentes...');
-console.log('💬 =======================================================\n');
-
-// =========================================================================
-// FUNÇÕES UTILITÁRIAS
-// =========================================================================
-
-/**
- * Envia mensagem para todos os clientes conectados
- * 
- * @param {Object} mensagem - Mensagem a ser enviada
- */
-function enviarParaTodosClientes(mensagem) {
-    const mensagemJson = JSON.stringify(mensagem);
-    
-    clientesConectados.forEach(cliente => {
-        if (cliente.readyState === WebSocket.OPEN) {
-            cliente.send(mensagemJson);
+// Tentar iniciar o servidor com fallback de porta
+const tentarIniciarServidor = async (porta, maxTentativas = 10) => {
+    for (let i = 0; i < maxTentativas; i++) {
+        try {
+            const server = new WebSocket.Server({ port: porta });
+            portaUsada = porta;
+            return server;
+        } catch (erro) {
+            if (erro.code === 'EADDRINUSE') {
+                console.log(`⚠️  Porta ${porta} em uso. Tentando ${porta + 1}...`);
+                porta++;
+            } else {
+                throw erro;
+            }
         }
-    });
+    }
+    throw new Error(`Não foi possível iniciar o servidor após ${maxTentativas} tentativas`);
+};
+
+tentarIniciarServidor(PORTA_CHAT_INTERNO).then(server => {
+    servidorChatInterno = server;
     
-    console.log(`📤 Mensagem enviada para ${clientesConectados.size} cliente(s)`);
-}
+    console.log('💬 =======================================================');
+    console.log('👥 SERVIDOR CHAT INTERNO - COMUNICAÇÃO ATENDENTES');
+    console.log('💬 =======================================================');
+    console.log(`📍 Servidor iniciado na porta: ${portaUsada}`);
+    console.log(`🔗 URL de conexão: ws://localhost:${portaUsada}`);
+    console.log('👤 Aguardando conexões dos atendentes...');
+    console.log('💬 =======================================================\n');
+
+    // =========================================================================
+    // FUNÇÕES UTILITÁRIAS
+    // =========================================================================
+
+    /**
+     * Envia mensagem para todos os clientes conectados
+     * 
+     * @param {Object} mensagem - Mensagem a ser enviada
+     */
+    function enviarParaTodosClientes(mensagem) {
+        const mensagemJson = JSON.stringify(mensagem);
+        
+        clientesConectados.forEach(cliente => {
+            if (cliente.readyState === WebSocket.OPEN) {
+                cliente.send(mensagemJson);
+            }
+        });
+        
+        console.log(`📤 Mensagem enviada para ${clientesConectados.size} cliente(s)`);
+    }
 
 /**
  * Remove conexão inválida
@@ -109,17 +132,17 @@ function gerarIdMensagem() {
 // GERENCIAMENTO DE CONEXÕES
 // =========================================================================
 
-/**
- * Manipula novas conexões
- */
-servidorChatInterno.on('connection', websocket => {
-    // Adiciona cliente à lista
-    clientesConectados.add(websocket);
-    estatisticas.totalConexoes++;
-    
-    console.log(`🎯 [NOVA CONEXÃO] Atendente conectado!`);
-    console.log(`👥 Total de atendentes online: ${clientesConectados.size}`);
-    console.log(`📊 Total de conexões desde o início: ${estatisticas.totalConexoes}`);
+    /**
+     * Manipula novas conexões
+     */
+    servidorChatInterno.on('connection', websocket => {
+        // Adiciona cliente à lista
+        clientesConectados.add(websocket);
+        estatisticas.totalConexoes++;
+        
+        console.log(`🎯 [NOVA CONEXÃO] Atendente conectado!`);
+        console.log(`👥 Total de atendentes online: ${clientesConectados.size}`);
+        console.log(`📊 Total de conexões desde o início: ${estatisticas.totalConexoes}`);
     console.log(`🕒 Horário: ${new Date().toLocaleString('pt-BR')}\n`);
 
     // Envia mensagem de boas-vindas
@@ -336,19 +359,23 @@ process.on('SIGINT', () => {
 // INFORMAÇÕES DO SERVIDOR
 // =========================================================================
 
-console.log('📋 INFORMAÇÕES DO SERVIDOR:');
-console.log(`📡 Porta: ${PORTA_CHAT_INTERNO}`);
-console.log(`💾 Histórico: Últimas 100 mensagens`);
-console.log(`📊 Estatísticas: A cada 5 minutos`);
-console.log(`🔄 Reconexão: Automática`);
-console.log('📝 Para parar o servidor: Ctrl+C\n');
+    console.log('📋 INFORMAÇÕES DO SERVIDOR:');
+    console.log(`📡 Porta: ${portaUsada}`);
+    console.log(`💾 Histórico: Últimas 100 mensagens`);
+    console.log(`📊 Estatísticas: A cada 5 minutos`);
+    console.log(`🔄 Reconexão: Automática`);
+    console.log('📝 Para parar o servidor: Ctrl+C\n');
 
-// =========================================================================
-// EXPORTAÇÃO
-// =========================================================================
+    // =========================================================================
+    // EXPORTAÇÃO
+    // =========================================================================
 
-module.exports = {
-    servidorChatInterno,
-    obterEstatisticas,
-    PORTA_CHAT_INTERNO
-};
+    module.exports = {
+        servidorChatInterno,
+        obterEstatisticas,
+        PORTA_CHAT_INTERNO: portaUsada
+    };
+}).catch(erro => {
+    console.error('💥 [ERRO DO SERVIDOR]:', erro);
+    process.exit(1);
+});

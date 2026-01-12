@@ -5,17 +5,31 @@ const logger = require('../infraestrutura/logger');
 const FILE = path.join(__dirname, '../../dados/atendimentos.json');
 
 async function ensureFile() {
+  await fs.ensureDir(path.dirname(FILE));
   await fs.ensureFile(FILE);
   try {
-    await fs.readJson(FILE);
+    const data = await fs.readJson(FILE);
+    // Valida estrutura
+    if (!data.atendentes || typeof data.atendentes !== 'object') {
+      data.atendentes = {};
+    }
+    if (!Array.isArray(data.chats)) {
+      data.chats = [];
+    }
+    await fs.writeJson(FILE, data, { spaces: 2 });
   } catch {
-    await fs.writeJson(FILE, { atendentes: {}, chats: [] }, { spaces: 2 });
+    const inicial = { atendentes: {}, chats: [] };
+    await fs.writeJson(FILE, inicial, { spaces: 2 });
   }
 }
 
 async function load() {
   await ensureFile();
-  return fs.readJson(FILE);
+  const data = await fs.readJson(FILE);
+  // Garante estrutura correta
+  if (!data.atendentes) data.atendentes = {};
+  if (!data.chats) data.chats = [];
+  return data;
 }
 
 async function save(data) {

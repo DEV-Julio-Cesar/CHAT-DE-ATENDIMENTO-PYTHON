@@ -1,0 +1,4 @@
+2026/01/11-21:33:48.578 8410 Creating DB C:\Users\MASTER\Documents\Chat-de-atendimento-whats\chat-de-atendimento\.wwebjs_auth\session-client_1768177895463_qnbmbrswi\Default\Local Storage\leveldb since it was missing.
+2026/01/11-21:33:48.590 8410 Reusing MANIFEST C:\Users\MASTER\Documents\Chat-de-atendimento-whats\chat-de-atendimento\.wwebjs_auth\session-client_1768177895463_qnbmbrswi\Default\Local Storage\leveldb/MANIFEST-000001
+2026/01/11-21:33:48.592 8410 Recovering log #3
+2026/01/11-21:33:48.593 8410 Reusing old log C:\Users\MASTER\Documents\Chat-de-atendimento-whats\chat-de-atendimento\.wwebjs_auth\session-client_1768177895463_qnbmbrswi\Default\Local Storage\leveldb/000003.log 

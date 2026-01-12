@@ -303,6 +303,10 @@ function createCadastroWindow() {
  * Cria janela de QR Code para cliente especÃ­fico
  */
 function createQRWindow(clientId) {
+    // DESABILITADO - QR exibido via modal inline na janela principal
+    logger.info(`[QR] createQRWindow DESABILITADO - usando modal inline para ${clientId}`);
+    return;
+    
     if (qrWindows.has(clientId)) {
         qrWindows.get(clientId).focus();
         return;
@@ -980,11 +984,37 @@ function configurarManipuladoresIPC() {
     ipcMain.handle('theme:get', async () => ({ success: true, theme: await tema.getTheme() }));
     ipcMain.handle('theme:set', async (_e, themeName) => tema.setTheme(themeName));
 
-    // Abrir nova janela QR
+    // Abrir nova conexão via QR (inline, sem nova janela)
     ipcMain.handle('open-new-qr-window', async () => {
-        const clientId = `client_${Date.now()}`;
-        createQRWindow(clientId);
+        const clientId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        logger.info(`[IPC] Iniciando conexão WhatsApp inline (sem nova janela) para ${clientId}`);
+
+        const resultado = await poolWhatsApp.createAndInitialize(clientId);
+        if (!resultado.success) {
+            return { success: false, clientId, message: resultado.message };
+        }
+
         return { success: true, clientId };
+    });
+    
+    // Abrir janela de conexão por número
+    ipcMain.handle('open-conexao-por-numero-window', async () => {
+        createConexaoPorNumeroWindow();
+        return { success: true };
+    });
+    
+    // Iniciar nova conexão (cria cliente e inicia conexão WhatsApp)
+    ipcMain.handle('iniciar-nova-conexao', async (_event) => {
+        try {
+            const clientId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            logger.info(`[IPC] Iniciando nova conexão para ${clientId}`);
+            
+            const result = await poolWhatsApp.createAndInitialize(clientId);
+            return result;
+        } catch (erro) {
+            logger.erro('[IPC] Erro ao iniciar nova conexão:', erro.message);
+            return { success: false, message: erro.message };
+        }
     });
 
     // Iniciar conexÃ£o WhatsApp
@@ -1218,6 +1248,14 @@ app.whenReady().then(async () => {
             if (qrWindow && !qrWindow.isDestroyed()) {
                 qrWindow.webContents.send('qr-code-data', qrDataURL);
             }
+            
+            // Enviar QR para todas as janelas (especialmente pool-manager)
+            logger.info(`[QR] Enviando QR Code para todas as janelas - ${clientId}`);
+            BrowserWindow.getAllWindows().forEach(win => {
+                if (!win.isDestroyed()) {
+                    win.webContents.send('qr-code-gerado', qrDataURL);
+                }
+            });
         },
         
         onReady: (clientId, phoneNumber) => {
@@ -1236,6 +1274,7 @@ app.whenReady().then(async () => {
             BrowserWindow.getAllWindows().forEach(win => {
                 if (!win.isDestroyed()) {
                     win.webContents.send('new-client-ready', { clientId, phoneNumber, timestamp: Date.now() });
+                    win.webContents.send('cliente-pronto-qr', clientId); // Fechar modal QR
                 }
             });
         },

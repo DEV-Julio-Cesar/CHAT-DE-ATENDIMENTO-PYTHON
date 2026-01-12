@@ -199,6 +199,44 @@ class ErrorHandler {
     });
 
     process.on('unhandledRejection', (reason, promise) => {
+      // Filtrar erros benignos de sessão fechada do puppeteer/whatsapp-web
+      let isBenignError = false;
+      let errorMsg = '';
+      
+      if (reason && typeof reason === 'object') {
+        // Tentar extrair mensagem de erro de várias formas
+        errorMsg = reason.message || reason.error || String(reason);
+        
+        // Verificar stack trace também
+        const stack = reason.stack || String(reason);
+        
+        // Filtros para erros benignos
+        const benignPatterns = [
+          'Session closed',
+          'Protocol error',
+          'Browser closed',
+          'page has been closed',
+          'Runtime.callFunctionOn' // Erro de protocolo Puppeteer
+        ];
+        
+        isBenignError = benignPatterns.some(pattern => 
+          errorMsg.includes(pattern) || stack.includes(pattern)
+        );
+        
+        // Também verificar se é categoria 'internal'
+        if (reason.category === 'internal') {
+          isBenignError = true;
+        }
+      }
+      
+      // Se for erro benigno, apenas registrar como INFO
+      if (isBenignError) {
+        const shortMsg = errorMsg.substring(0, 100);
+        this.logger.info(`[WhatsApp] Sessão/Browser: ${shortMsg || 'Error sem mensagem'}`);
+        return; // Não processar como erro crítico
+      }
+      
+      // Para erros reais, processar normalmente
       this.logger.erro('🔥 UNHANDLED REJECTION:', reason);
       this.handle(reason instanceof Error ? reason : new Error(String(reason)), {
         source: 'unhandledRejection'
@@ -221,3 +259,4 @@ class ErrorHandler {
 }
 
 module.exports = new ErrorHandler();
+

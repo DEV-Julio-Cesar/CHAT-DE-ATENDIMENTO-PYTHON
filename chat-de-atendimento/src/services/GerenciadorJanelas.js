@@ -50,6 +50,14 @@ class GerenciadorJanelas {
                 resizable: true,
                 title: 'Chat WhatsApp'
             },
+            'chat-filas': {
+                file: 'src/interfaces/chat-filas.html',
+                preload: 'src/interfaces/pre-carregamento-chat.js',
+                width: 1400,
+                height: 800,
+                resizable: true,
+                title: 'Chat WhatsApp - Sistema de Filas'
+            },
             'dashboard': {
                 file: 'src/interfaces/painel.html',
                 preload: 'src/interfaces/pre-carregamento-painel.js',
@@ -119,7 +127,14 @@ class GerenciadorJanelas {
 
         // Fechar janela atual se existir
         if (this.currentWindow && !this.currentWindow.isDestroyed()) {
-            this.currentWindow.close();
+            try {
+                this.currentWindow.close();
+                // Aguarda janela fechar antes de criar nova
+                this.currentWindow = null;
+            } catch (erro) {
+                logger.aviso(`[GerenciadorJanelas] Erro ao fechar janela anterior: ${erro.message}`);
+                this.currentWindow = null;
+            }
         }
 
         // Criar nova janela
@@ -141,7 +156,10 @@ class GerenciadorJanelas {
         // Enviar parâmetros após carregar
         if (Object.keys(params).length > 0) {
             this.currentWindow.webContents.once('did-finish-load', () => {
-                this.currentWindow.webContents.send('navigation-params', params);
+                // Verifica se a janela ainda existe
+                if (this.currentWindow && !this.currentWindow.isDestroyed()) {
+                    this.currentWindow.webContents.send('navigation-params', params);
+                }
             });
         }
 

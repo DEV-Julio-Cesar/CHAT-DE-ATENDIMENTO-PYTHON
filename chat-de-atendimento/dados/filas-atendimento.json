@@ -1,0 +1,30 @@
+{
+  "conversas": [
+    {
+      "id": "test-client-5511999999999@c.us-1768131959201",
+      "clientId": "test-client",
+      "chatId": "5511999999999@c.us",
+      "estado": "espera",
+      "atendente": null,
+      "criadoEm": "2026-01-11T11:45:59.201Z",
+      "atualizadoEm": "2026-01-11T11:46:29.790Z",
+      "tentativasBot": 5,
+      "historicoEstados": [
+        {
+          "estado": "automacao",
+          "timestamp": "2026-01-11T11:45:59.201Z"
+        },
+        {
+          "estado": "espera",
+          "timestamp": "2026-01-11T11:45:59.211Z",
+          "motivo": "max_tentativas"
+        }
+      ],
+      "metadata": {
+        "nomeContato": "Teste Cliente",
+        "ultimaMensagem": "Olá, preciso de ajuda",
+        "mensagensNaoLidas": 0
+      }
+    }
+  ]
+}

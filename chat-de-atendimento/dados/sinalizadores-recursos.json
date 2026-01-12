@@ -1,6 +1,6 @@
 {
   "dev.debug-mode": {
-    "enabled": false,
+    "enabled": true,
     "description": "Modo debug avançado"
   },
   "dev.performance-logs": {

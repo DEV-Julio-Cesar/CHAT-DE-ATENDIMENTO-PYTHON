@@ -82,12 +82,23 @@ contextBridge.exposeInMainWorld('internalChatAPI', {
 });
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  abrirNovaJanelaQR: () => ipcRenderer.invoke('open-new-qr-window'),
+  iniciarNovaConexao: () => ipcRenderer.invoke('iniciar-nova-conexao'),
+  verificarSessao: () => ipcRenderer.invoke('verificar-sessao'),
+    getApiBase: async () => {
+        try {
+            const res = await ipcRenderer.invoke('api:get-base');
+            return res?.baseUrl || 'http://localhost:3333';
+        } catch {
+            return 'http://localhost:3333';
+        }
+    },
   listarClientesConectados: () => ipcRenderer.invoke('list-connected-clients'),
   desconectarCliente: (clientId) => ipcRenderer.invoke('disconnect-client', clientId),
   enviarMensagem: (dados) => ipcRenderer.invoke('send-whatsapp-message', dados),
   aoClientePronto: (callback) => ipcRenderer.on('new-client-ready', (_, data) => callback(data)),
   aoNovaMensagem: (callback) => ipcRenderer.on('nova-mensagem-recebida', (_, data) => callback(data)),
+  aoQRGerado: (callback) => ipcRenderer.on('qr-code-gerado', (_, qrDataURL) => callback(qrDataURL)),
+  aoClienteProntoQR: (callback) => ipcRenderer.on('cliente-pronto-qr', (_, clientId) => callback(clientId)),
   abrirUsuarios: () => ipcRenderer.send('open-users-window'),
   abrirPoolManager: () => ipcRenderer.send('open-pool-manager'),
   abrirChat: (clientId) => ipcRenderer.send('open-chat-window', clientId),

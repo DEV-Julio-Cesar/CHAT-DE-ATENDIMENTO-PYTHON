@@ -53,6 +53,8 @@
         window.qrAPI.onSetClientId((clientId) => {
             currentClientId = clientId;
             document.getElementById('client-id-display').textContent = `ID: ${clientId}`;
+            // Auto-iniciar conexão ao abrir a janela
+            document.getElementById('btn-start-connection').click();
         });
 
         // Botão Iniciar Conexão
@@ -86,6 +88,23 @@
         document.getElementById('btn-close').addEventListener('click', () => {
             window.close();
         });
+
+        // Adiciona botão Regerar QR se algo der errado
+        (function addRetryButton(){
+            const container = document.querySelector('.mt-6.space-y-3');
+            const btn = document.createElement('button');
+            btn.id = 'btn-regenerate-qr';
+            btn.className = 'w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-lg transition';
+            btn.textContent = 'Regerar QR';
+            btn.addEventListener('click', async () => {
+                if (!currentClientId) return;
+                document.getElementById('loading').classList.remove('hidden');
+                document.getElementById('qr-image').classList.add('hidden');
+                document.getElementById('qr-instructions').classList.add('hidden');
+                await window.qrAPI.startConnection(currentClientId);
+            });
+            container.insertBefore(btn, document.getElementById('btn-close'));
+        })();
     </script>
 </body>
 </html>

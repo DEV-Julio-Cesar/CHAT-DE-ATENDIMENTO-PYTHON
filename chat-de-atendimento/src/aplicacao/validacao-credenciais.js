@@ -16,10 +16,17 @@ function hashPassword(password) {
 }
 
 async function garantirArquivo() {
-    await fs.ensureFile(USERS_FILE);
     try {
+        await fs.ensureDir(path.dirname(USERS_FILE));
+        await fs.ensureFile(USERS_FILE);
+        
+        const conteudo = await fs.readFile(USERS_FILE, 'utf-8');
+        if (!conteudo.trim()) {
+            throw new Error('Arquivo vazio');
+        }
+        
         await fs.readJson(USERS_FILE);
-    } catch {
+    } catch (erro) {
         // Cria usuário admin padrão
         const adminHash = hashPassword('admin');
         const inicial = {
@@ -35,8 +42,9 @@ async function garantirArquivo() {
                 }
             ]
         };
+        await fs.ensureDir(path.dirname(USERS_FILE));
         await fs.writeJson(USERS_FILE, inicial, { spaces: 2 });
-        logger.info('[ValidacaoCredenciais] Usuário admin criado (senha: admin)');
+        logger.info('[ValidacaoCredenciais] Arquivo de usuários inicializado com admin');
     }
 }
 

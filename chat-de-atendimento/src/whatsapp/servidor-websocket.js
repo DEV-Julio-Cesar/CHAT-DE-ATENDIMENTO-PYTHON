@@ -84,30 +84,53 @@ const mensagensSimuladas = [
 // CRIAÇÃO E CONFIGURAÇÃO DO SERVIDOR
 // =========================================================================
 
-const servidorWebSocket = new WebSocket.Server({ port: PORTA_SERVIDOR });
+let servidorWebSocket;
+let portaUsada = PORTA_SERVIDOR;
 
-console.log('🚀 =======================================================');
-console.log('📡 SERVIDOR WEBSOCKET - CHAT WHATSAPP');
-console.log('🚀 =======================================================');
-console.log(`📍 Servidor iniciado na porta: ${PORTA_SERVIDOR}`);
-console.log(`🔗 URL de conexão: ws://localhost:${PORTA_SERVIDOR}`);
-console.log('⏳ Aguardando conexão do aplicativo Electron...');
-console.log('🚀 =======================================================\n');
+// Tentar iniciar o servidor com fallback de porta
+const tentarIniciarServidor = async (porta, maxTentativas = 10) => {
+    for (let i = 0; i < maxTentativas; i++) {
+        try {
+            const server = new WebSocket.Server({ port: porta });
+            portaUsada = porta;
+            return server;
+        } catch (erro) {
+            if (erro.code === 'EADDRINUSE') {
+                console.log(`⚠️  Porta ${porta} em uso. Tentando ${porta + 1}...`);
+                porta++;
+            } else {
+                throw erro;
+            }
+        }
+    }
+    throw new Error(`Não foi possível iniciar o servidor após ${maxTentativas} tentativas`);
+};
 
-// =========================================================================
-// GERENCIAMENTO DE CONEXÕES
-// =========================================================================
-
-/**
- * Gerencia novas conexões WebSocket
- */
-servidorWebSocket.on('connection', function connection(websocket, request) {
-    console.log('🎯 [NOVA CONEXÃO] Cliente Electron conectado!');
-    console.log(`📊 IP do cliente: ${request.socket.remoteAddress}`);
-    console.log(`🕒 Horário: ${new Date().toLocaleString('pt-BR')}\n`);
+tentarIniciarServidor(PORTA_SERVIDOR).then(server => {
+    servidorWebSocket = server;
     
-    let indiceMensagem = 0;
-    let intervalEnvioMensagens = null;
+    console.log('🚀 =======================================================');
+    console.log('📡 SERVIDOR WEBSOCKET - CHAT WHATSAPP');
+    console.log('🚀 =======================================================');
+    console.log(`📍 Servidor iniciado na porta: ${portaUsada}`);
+    console.log(`🔗 URL de conexão: ws://localhost:${portaUsada}`);
+    console.log('⏳ Aguardando conexão do aplicativo Electron...');
+    console.log('🚀 =======================================================\n');
+
+    // =========================================================================
+    // GERENCIAMENTO DE CONEXÕES
+    // =========================================================================
+
+    /**
+     * Gerencia novas conexões WebSocket
+     */
+    servidorWebSocket.on('connection', function connection(websocket, request) {
+        console.log('🎯 [NOVA CONEXÃO] Cliente Electron conectado!');
+        console.log(`📊 IP do cliente: ${request.socket.remoteAddress}`);
+        console.log(`🕒 Horário: ${new Date().toLocaleString('pt-BR')}\n`);
+        
+        let indiceMensagem = 0;
+        let intervalEnvioMensagens = null;
 
     /**
      * Função para enviar uma mensagem simulada
@@ -275,19 +298,23 @@ process.on('SIGINT', () => {
 // INFORMAÇÕES ÚTEIS
 // =========================================================================
 
-console.log('📋 INFORMAÇÕES DO SERVIDOR:');
-console.log(`📡 Porta: ${PORTA_SERVIDOR}`);
-console.log(`⏱️ Intervalo entre mensagens: ${INTERVALO_MENSAGENS}ms`);
-console.log(`📨 Total de mensagens simuladas: ${mensagensSimuladas.length}`);
-console.log(`🔄 Reconexão automática: Suportada`);
-console.log('📝 Para parar o servidor: Ctrl+C\n');
+    console.log('📋 INFORMAÇÕES DO SERVIDOR:');
+    console.log(`📡 Porta: ${portaUsada}`);
+    console.log(`⏱️ Intervalo entre mensagens: ${INTERVALO_MENSAGENS}ms`);
+    console.log(`📨 Total de mensagens simuladas: ${mensagensSimuladas.length}`);
+    console.log(`🔄 Reconexão automática: Suportada`);
+    console.log('📝 Para parar o servidor: Ctrl+C\n');
 
-// =========================================================================
-// EXPORTAÇÃO (SE USADO COMO MÓDULO)
-// =========================================================================
+    // =========================================================================
+    // EXPORTAÇÃO (SE USADO COMO MÓDULO)
+    // =========================================================================
 
-module.exports = {
-    servidorWebSocket,
-    mensagensSimuladas,
-    PORTA_SERVIDOR
-};
+    module.exports = {
+        servidorWebSocket,
+        mensagensSimuladas,
+        PORTA_SERVIDOR: portaUsada
+    };
+}).catch(erro => {
+    console.error('💥 [ERRO DO SERVIDOR]:', erro);
+    process.exit(1);
+});

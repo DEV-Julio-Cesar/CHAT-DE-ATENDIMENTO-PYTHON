@@ -7,11 +7,17 @@ const backups = require('../aplicacao/backup');
 const logger = require('./logger');
 const prometheusMetrics = require('../core/metricas-prometheus');
 const { apiLimiter } = require('../core/limitador-taxa');
+const baseConhecimentoApi = require('../rotas/base-conhecimento-api');
+const rotasWhatsAppSincronizacao = require('../rotas/rotasWhatsAppSincronizacao');
 
-function startApi(providers, port = process.env.PORT || 3333) {
+async function startApi(providers, port = process.env.PORT || 3333) {
   const app = express();
   app.use(cors());
   app.use(bodyParser.json({ limit: '5mb' }));
+
+  // Servir arquivos estáticos (interfaces HTML)
+  const path = require('path');
+  app.use(express.static(path.join(__dirname, '../interfaces')));
 
   // Middleware de rate limiting
   app.use((req, res, next) => {
@@ -119,7 +125,46 @@ function startApi(providers, port = process.env.PORT || 3333) {
     res.json(result);
   });
 
-  app.listen(port, () => logger.info(`[API] REST ouvindo em http://localhost:${port}`));
+  // Registrar rotas de base de conhecimento
+  app.use(baseConhecimentoApi);
+
+  // Registrar rotas de sincronização WhatsApp
+  try {
+    app.use('/api/whatsapp', rotasWhatsAppSincronizacao);
+    logger.sucesso('[API] Rotas de sincronização WhatsApp registradas');
+  } catch (erro) {
+    logger.erro('[API] Erro ao registrar rotas de sincronização:', erro.message);
+  }
+
+  // Tentativa resiliente de bind de porta, com fallback incremental
+  const maxAttempts = 10;
+  let attempt = 0;
+  let usedPort = port;
+
+  while (attempt <= maxAttempts) {
+    try {
+      await new Promise((resolve, reject) => {
+        const server = app.listen(usedPort, () => resolve(server));
+        server.on('error', reject);
+      });
+      logger.info(`[API] REST ouvindo em http://localhost:${usedPort}`);
+      // Disponibiliza porta usada globalmente
+      try { global.__API_PORT = usedPort; } catch {}
+      return usedPort;
+    } catch (err) {
+      if (err && (err.code === 'EADDRINUSE' || String(err).includes('EADDRINUSE'))) {
+        logger.aviso(`[API] Porta ${usedPort} em uso. Tentando próxima...`);
+        usedPort += 1;
+        attempt += 1;
+        continue;
+      }
+      logger.erro('[API] Erro ao iniciar servidor:', err.message || String(err));
+      break;
+    }
+  }
+
+  logger.erro(`[API] Não foi possível iniciar o servidor após ${maxAttempts + 1} tentativas.`);
+  return null;
 }
 
 module.exports = { startApi };
