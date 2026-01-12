@@ -108,23 +108,10 @@ class GerenciadorPoolWhatsApp {
                     this.stats.totalDisconnected++;
                     logger.info(`[Pool] Cliente ${id} desconectado (motivo: ${reason})`);
 
-                    // 🔄 Tentativa automática apenas para LOGOUT (gera novo QR inline)
-                    if (reason === 'LOGOUT') {
-                        const client = this.clients.get(id);
-                        if (client) {
-                            logger.info(`[Pool] ${id} recebeu LOGOUT - reiniciando cliente para emitir novo QR`);
-                            try {
-                                const cleaned = await client.limparSessaoLocal?.();
-                                if (cleaned === false) {
-                                    logger.aviso(`[Pool] ${id} não pôde limpar sessão; abortando reinit`);
-                                    return;
-                                }
-                                await client.initialize();
-                            } catch (err) {
-                                logger.aviso(`[Pool] Falha ao reinicializar ${id} após LOGOUT: ${err.message}`);
-                            }
-                        }
-                    }
+                    // 🔒 REMOVED: Não reinicializar automaticamente em caso de LOGOUT.
+                    // Antes o pool tentava limpar sessão e reiniciar o cliente quando recebia 'LOGOUT',
+                    // isso pode causar remoção de arquivos em uso e problemas (EBUSY). Agora apenas
+                    // registramos o evento e deixamos a decisão de reautenticação ao usuário manual.
 
                     (customCallbacks.onDisconnected || this.globalCallbacks.onDisconnected)(id, reason);
                 },
@@ -377,20 +364,9 @@ class GerenciadorPoolWhatsApp {
                         }
                     }
 
-                    // ✅ NOVA LÓGICA: Se o motivo for LOGOUT não solicitado, tentar reabrir sessão
-                    // Isso dispara novo QR inline (sem janela extra) para recuperar a conexão automaticamente
-                    if (info.status === 'disconnected' && motivo === 'LOGOUT') {
-                        logger.info(`[Pool] ${clientId} em LOGOUT não solicitado - reabrindo sessão para novo QR`);
-                        try {
-                            const reinitResult = await client.initialize();
-                            if (reinitResult.success) {
-                                logger.sucesso(`[Pool] ${clientId} reinicializado após LOGOUT - aguardando scan do QR`);
-                                results[results.length - 1].isHealthy = false; // ainda precisa do scan
-                            }
-                        } catch (e) {
-                            logger.aviso(`[Pool] Falha ao reinicializar ${clientId} após LOGOUT: ${e.message}`);
-                        }
-                    }
+                    // REMOVED: Não tentar reabrir sessão automaticamente em caso de LOGOUT.
+                    // Reautenticação/remoção de sessão deve ser feita manualmente pelo usuário para evitar
+                    // condições de corrida com arquivos de sessão (EBUSY) e perda inesperada da sessão.
                 }
             } catch (erro) {
                 logger.erro(`[Pool] Erro no health check de ${clientId}:`, erro.message);

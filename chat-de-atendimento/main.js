@@ -23,6 +23,18 @@ const gerenciadorUsuarios = require('./src/aplicacao/gerenciador-usuarios');
 const logger = require('./src/infraestrutura/logger');
 const GerenciadorPoolWhatsApp = require('./src/services/GerenciadorPoolWhatsApp');
 const GerenciadorJanelas = require('./src/services/GerenciadorJanelas');
+
+// Instalar handler global de unhandledRejection para mitigar EBUSY originados por LocalAuth
+try {
+  const WhatsAppClientService = require('./src/services/WhatsAppClientService').default || require('./src/services/WhatsAppClientService');
+  if (WhatsAppClientService && typeof WhatsAppClientService.ensureGlobalUnhandledRejectionHandler === 'function') {
+    WhatsAppClientService.ensureGlobalUnhandledRejectionHandler();
+  }
+} catch (e) {
+  // Se falhar, apenas logar e prosseguir — não deve impedir a inicialização do app
+  try { const logger = require('./src/infraestrutura/logger'); logger.aviso('[BOOT] Não foi possível instalar handler global de unhandledRejection: ' + (e && e.message ? e.message : e)); } catch(_) { console.warn('[BOOT] Não foi possível instalar handler global de unhandledRejection:', e); }
+}
+
 const gerenciadorMensagens = require('./src/aplicacao/gerenciador-mensagens');
 const gerenciadorMidia = require('./src/aplicacao/gerenciador-midia');
 const chatbot = require('./src/aplicacao/chatbot');
@@ -1363,12 +1375,8 @@ app.whenReady().then(async () => {
     poolWhatsApp.startHealthCheck();
     
     logger.info('[Pool] WhatsApp Pool Manager inicializado');
-    
-    configurarManipuladoresIPC();
+      configurarManipuladoresIPC();
     criarMenuPrincipal();
-    
-    // Inicia com tela de login
-    createLoginWindow();
     
     // Configura backups e API
     if (sinalizadoresRecursos.isEnabled('backup.auto')) {

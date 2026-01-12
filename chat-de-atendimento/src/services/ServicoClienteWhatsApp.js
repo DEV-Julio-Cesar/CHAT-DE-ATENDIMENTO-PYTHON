@@ -10,7 +10,8 @@
  * - Desconexão segura
  */
 
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client } = require('whatsapp-web.js');
+const LocalAuthPersistent = require('./LocalAuthPersistent');
 const qrcode = require('qrcode');
 const fs = require('fs-extra');
 const path = require('path');
@@ -52,6 +53,9 @@ class ServicoClienteWhatsApp {
         this.qrCode = null;
         this.phoneNumber = null;
         this.sessionPath = options.sessionPath || path.join(process.cwd(), '.wwebjs_auth');
+        
+        // Referência à estratégia de autenticação (será definida em initialize())
+        this._authStrategy = null;
         
         // Callbacks
         this.callbacks = {
@@ -112,28 +116,48 @@ class ServicoClienteWhatsApp {
             this.status = 'initializing';
             logger.info(`[${this.clientId}] Iniciando cliente WhatsApp...`);
 
-            // Criar instância do cliente com LocalAuth isolado por clientId
-            // Forçar headless para não abrir janela do Chromium (evitar popup extra)
-            const headless = true;
-
+            // Criar instância do cliente com LocalAuthPersistent (preserva sessão em logout automático)
+            // TESTE: headless=false para verificar se é detecção de automação
+            const headless = false; // Mudar para true após teste
+            
+            // Guardar referência ao authStrategy para poder habilitar cleanup quando necessário
+            this._authStrategy = new LocalAuthPersistent({
+                clientId: this.clientId,
+                dataPath: this.sessionPath
+            });
+            
             this.client = new Client({
-                authStrategy: new LocalAuth({
-                    clientId: this.clientId,
-                    dataPath: this.sessionPath
-                }),
+                authStrategy: this._authStrategy,
                 puppeteer: {
                     headless,
                     args: [
-                        '--headless=new',
                         '--no-sandbox',
                         '--disable-setuid-sandbox',
                         '--disable-dev-shm-usage',
                         '--disable-accelerated-2d-canvas',
                         '--no-first-run',
                         '--no-zygote',
-                        '--disable-gpu'
+                        '--disable-gpu',
+                        // Argumentos adicionais para evitar detecção e melhorar estabilidade
+                        '--disable-blink-features=AutomationControlled',
+                        '--disable-features=VizDisplayCompositor',
+                        '--disable-infobars',
+                        '--window-size=1920,1080',
+                        '--disable-background-timer-throttling',
+                        '--disable-backgrounding-occluded-windows',
+                        '--disable-renderer-backgrounding',
+                        // User agent para evitar detecção
+                        '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                     ]
-                }
+                },// Configurações adicionais para manter sessão estável
+                webVersionCache: {
+                    type: 'local'
+                },
+                // Intervalo de QR mais longo para evitar renovação frequente
+                qrMaxRetries: 10,
+                // Permitir tomar controle da sessão se houver conflito (outra instância conectada)
+                takeoverOnConflict: true,
+                takeoverTimeoutMs: 5000
             });
 
             // Registrar listeners de eventos ANTES de inicializar
@@ -188,10 +212,25 @@ class ServicoClienteWhatsApp {
         if (this.client && this.client.pupBrowser) {
             this.client.pupBrowser.removeAllListeners('disconnected');
         }
-        
-        // QR Code gerado
+          // QR Code gerado
+        // IMPORTANTE: Ignorar QR codes quando já está autenticado/pronto para evitar desconexões indevidas
         this.client.on('qr', async (qr) => {
             try {
+                // Se já está autenticado ou pronto, ignorar novo QR (pode ser tentativa de re-auth do WhatsApp)
+                if (this.status === 'authenticated' || this.status === 'ready') {
+                    logger.aviso(`[${this.clientId}] QR Code recebido mas cliente já está ${this.status} - IGNORANDO para evitar desconexão`);
+                    return;
+                }
+                
+                // Proteção adicional: se conectou recentemente (menos de 30s), ignorar QR
+                if (this.metadata.connectedAt) {
+                    const timeSinceConnect = Date.now() - new Date(this.metadata.connectedAt).getTime();
+                    if (timeSinceConnect < 30000) {
+                        logger.aviso(`[${this.clientId}] QR Code recebido ${Math.round(timeSinceConnect/1000)}s após conexão - IGNORANDO`);
+                        return;
+                    }
+                }
+                
                 this.status = 'qr_ready';
                 this.metadata.lastQRAt = new Date().toISOString();
                 
@@ -261,22 +300,35 @@ class ServicoClienteWhatsApp {
             prometheusMetrics.incrementCounter('whatsapp_messages_received_total', { clientId: this.clientId });
             logger.info(`[${this.clientId}] Mensagem recebida de ${message.from}`);
             this.callbacks.onMessage(this.clientId, message);
-        });
-
-        // Desconectado (MUDADO DE .once() PARA .on() PARA CAPTURAR MÚLTIPLAS DESCONEXÕES)
+        });        // Desconectado - Protegido contra múltiplos disparos
         this.client.on('disconnected', async (reason) => {
+            // Evitar processar múltiplas vezes se já desconectado
+            if (this.status === 'disconnected' || this.status === 'idle') {
+                logger.aviso(`[${this.clientId}] Evento disconnected recebido mas já está ${this.status} - IGNORANDO duplicata`);
+                return;
+            }
+            
+            // Proteção contra LOGOUT "fantasma" que chega logo após conexão bem-sucedida
+            // Isso pode acontecer quando o WhatsApp Web emite eventos de logout inválidos
+            if (reason === 'LOGOUT' && this.metadata.connectedAt) {
+                const timeSinceConnect = Date.now() - new Date(this.metadata.connectedAt).getTime();
+                if (timeSinceConnect < 60000) { // Menos de 60 segundos desde a conexão
+                    logger.aviso(`[${this.clientId}] LOGOUT recebido apenas ${Math.round(timeSinceConnect/1000)}s após conexão - IGNORANDO como falso positivo`);
+                    // Não mudar status, manter conexão
+                    return;
+                }
+            }
+            
             const previousStatus = this.status;
             this.status = 'disconnected';
             this.lastDisconnectReason = reason;
             logger.aviso(`[${this.clientId}] Desconectado: ${reason}`);
 
-            // Se foi LOGOUT, limpar sessão local para evitar loop e forçar novo QR limpo
+            // Antes: limpava sessão automaticamente em caso de LOGOUT.
+            // Alteração: não executar limpeza automática aqui — manter sessão para permitir reconexão automática
+            // A limpeza/remoção da sessão só ocorrerá com logout() explícito.
             if (reason === 'LOGOUT') {
-                try {
-                    await this.limparSessaoLocal();
-                } catch (erro) {
-                    logger.aviso(`[${this.clientId}] Falha ao limpar sessão após LOGOUT: ${erro.message}`);
-                }
+                logger.aviso(`[${this.clientId}] Recebido motivo LOGOUT — sessão mantida. Use logout() para remover sessão explicitamente.`);
             }
 
             // Auditoria de desconexão
@@ -347,7 +399,6 @@ class ServicoClienteWhatsApp {
                 
                 // NÃO destruir - deixar a reconexão acontecer naturalmente
                 // Destruição será feita apenas se o usuário fizer logout explícito
-                this.client = null;
             });
         }
     }
@@ -493,40 +544,58 @@ class ServicoClienteWhatsApp {
 
     /**
      * Desconecta o cliente de forma segura
+     * Por padrão realiza um "soft-disconnect" (preserva a instância para possibilidade de reconexão).
+     * Se `forceDestroy` for true ou `reason` indicar LOGOUT, destrói a instância e limpa referência.
      */
-    async disconnect() {
+    async disconnect(forceDestroy = false, reason = undefined) {
         if (!this.client) {
             return { success: true, message: 'Cliente já estava desconectado' };
         }
 
         try {
-            logger.info(`[${this.clientId}] Desconectando cliente...`);
-            // Parar heartbeat antes de desconectar
+            // Determinar se devemos destruir a instância
+            const remoteLogout = typeof reason === 'string' && /logout|remote_logout|LOGOUT/i.test(reason);
+            const shouldDestroy = forceDestroy || remoteLogout;
+
+            if (shouldDestroy) {
+                logger.info(`[${this.clientId}] Desconectando e destruindo instância (forceDestroy=${forceDestroy}, reason=${reason})...`);
+
+                // Parar heartbeat antes de desconectar
+                this.pararHeartbeat();
+
+                // Adicionar timeout e proteção contra erros de protocolo
+                const destroyPromise = Promise.race([
+                    this.client.destroy(),
+                    new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Timeout ao desconectar')), 5000)
+                    )
+                ]);
+
+                await destroyPromise.catch(err => {
+                    // Erros de protocolo durante destroy são normais
+                    if (!err.message.includes('Protocol error') && !err.message.includes('page has been closed')) {
+                        throw err;
+                    }
+                    logger.info(`[${this.clientId}] Erro de protocolo durante destroy (esperado)`);
+                });
+
+                this.status = 'disconnected';
+                this.client = null;
+                logger.sucesso(`[${this.clientId}] Cliente desconectado e destruído com sucesso`);
+                return { success: true };
+            }
+
+            // Soft-disconnect: marca estado e para heartbeat, preservando a instância para tentativa de reconexão
+            logger.info(`[${this.clientId}] Executando soft-disconnect (instância preservada). Reason=${reason || 'none'}`);
             this.pararHeartbeat();
-            
-            // Adicionar timeout e proteção contra erros de protocolo
-            const destroyPromise = Promise.race([
-                this.client.destroy(),
-                new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Timeout ao desconectar')), 5000)
-                )
-            ]);
-            
-            await destroyPromise.catch(err => {
-                // Erros de protocolo durante destroy são normais
-                if (!err.message.includes('Protocol error') && !err.message.includes('page has been closed')) {
-                    throw err;
-                }
-                logger.info(`[${this.clientId}] Erro de protocolo durante destroy (esperado)`);
-            });
-            
             this.status = 'disconnected';
-            this.client = null;
-            logger.sucesso(`[${this.clientId}] Cliente desconectado com sucesso`);
+            // Não zera this.client para permitir reconexão/inspeção
+            logger.sucesso(`[${this.clientId}] Soft-disconnect concluído (instância preservada)`);
             return { success: true };
         } catch (erro) {
             logger.erro(`[${this.clientId}] Erro ao desconectar:`, erro.message);
-            this.client = null;
+            // Ao erro, tentar remover referência para evitar estados inconsistentes
+            try { this.client = null; } catch {}
             this.status = 'disconnected';
             return { success: false, message: erro.message };
         }
@@ -590,7 +659,8 @@ class ServicoClienteWhatsApp {
         }
 
         this._limpandoSessaoPromise = (async () => {
-            await this.disconnect();
+            // Forçar destruição da instância antes de remover arquivos
+            await this.disconnect(true, 'CLEANUP');
             const removed = await limparSessao(this.sessionPath, this.clientId);
             return removed;
         })();
@@ -600,10 +670,8 @@ class ServicoClienteWhatsApp {
         } finally {
             this._limpandoSessaoPromise = null;
         }
-    }
-
-    /**
-     * Logout e remove sessão
+    }    /**
+     * Logout e remove sessão (SOMENTE quando explicitamente solicitado pelo usuário)
      */
     async logout() {
         if (!this.client) {
@@ -611,10 +679,21 @@ class ServicoClienteWhatsApp {
         }
 
         try {
-            logger.info(`[${this.clientId}] Fazendo logout e removendo sessão...`);
+            logger.info(`[${this.clientId}] Fazendo logout EXPLÍCITO e removendo sessão...`);
             const stack = new Error().stack || 'stack indisponível';
             logger.info(`[${this.clientId}] Origem do logout: ${stack}`);
+            
+            // IMPORTANTE: Habilitar limpeza de sessão antes do logout explícito
+            if (this._authStrategy && typeof this._authStrategy.enableSessionCleanup === 'function') {
+                this._authStrategy.enableSessionCleanup();
+            }
+            
             await this.client.logout();
+
+            // Forçar destruição e remover arquivos da sessão
+            await this.disconnect(true, 'LOGOUT');
+            await limparSessao(this.sessionPath, this.clientId);
+
             this.status = 'idle';
             this.phoneNumber = null;
             this.qrCode = null;

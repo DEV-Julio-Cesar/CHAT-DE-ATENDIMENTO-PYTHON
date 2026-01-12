@@ -1,4 +1,16 @@
 {
-  "updatedAt": "2026-01-12T16:25:11.571Z",
-  "sessions": []
+  "updatedAt": "2026-01-12T23:53:11.981Z",
+  "sessions": [
+    {
+      "clientId": "client_1768261973827_1wkt4d3ac",
+      "status": "ready",
+      "phoneNumber": "5584920024786",
+      "metadata": {
+        "createdAt": "2026-01-12T23:52:53.828Z",
+        "lastQRAt": "2026-01-12T23:53:01.868Z",
+        "connectedAt": "2026-01-12T23:53:11.980Z",
+        "messageCount": 0
+      }
+    }
+  ]
 }

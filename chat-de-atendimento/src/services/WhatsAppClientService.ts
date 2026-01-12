@@ -138,9 +138,7 @@ export class WhatsAppClientService {
 
     try {
       this.status = 'initializing';
-      this.logger.info(`[${this.clientId}] Iniciando cliente WhatsApp...`);
-
-      this.client = new Client({
+      this.logger.info(`[${this.clientId}] Iniciando cliente WhatsApp...`);      this.client = new Client({
         authStrategy: new LocalAuth({
           clientId: this.clientId,
           dataPath: this.sessionPath
@@ -154,10 +152,30 @@ export class WhatsAppClientService {
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
-            '--disable-gpu'
+            '--disable-gpu',
+            // Argumentos adicionais para evitar detecção e melhorar estabilidade
+            '--disable-blink-features=AutomationControlled',
+            '--disable-features=VizDisplayCompositor',
+            '--disable-infobars',
+            '--window-size=1920,1080',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+            // User agent para evitar detecção
+            '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
           ]
-        }
-      });
+        },
+        // Configurações adicionais para manter sessão estável
+        webVersionCache: {
+          type: 'remote',
+          remotePath: 'https://raw.githubusercontent.com/AzizHasanli/AHweb.js/main/AHWeb2132024.json'
+        },
+        // Intervalo de QR mais longo para evitar renovação frequente
+        qrMaxRetries: 5,
+        // Manter conexão ativa
+        takeoverOnConflict: false,
+        takeoverTimeoutMs: 0
+      } as any);
 
       this.setupEventListeners();
       await this.client.initialize();
@@ -173,11 +191,16 @@ export class WhatsAppClientService {
    * Configura os listeners de eventos do cliente
    */
   private setupEventListeners(): void {
-    if (!this.client) return;
-
-    // QR Code gerado
+    if (!this.client) return;    // QR Code gerado
+    // IMPORTANTE: Ignorar QR codes quando já está autenticado/pronto para evitar desconexões indevidas
     this.client.on('qr', async (qr: string) => {
       try {
+        // Se já está autenticado ou pronto, ignorar novo QR (pode ser tentativa de re-auth do WhatsApp)
+        if (this.status === 'authenticated' || this.status === 'ready') {
+          this.logger.aviso(`[${this.clientId}] QR Code recebido mas cliente já está ${this.status} - IGNORANDO para evitar desconexão`);
+          return;
+        }
+        
         this.status = 'qr_ready';
         this.qrCode = await qrcode.toDataURL(qr);
         this.metadata.lastQRAt = new Date().toISOString();
@@ -238,10 +261,14 @@ export class WhatsAppClientService {
       prometheusMetrics.incrementCounter('whatsapp_messages_received_total', { clientId: this.clientId });
       this.logger.info(`[${this.clientId}] Mensagem recebida de ${message.from}`);
       this.callbacks.onMessage(this.clientId, message);
-    });
-
-    // Desconectado
+    });    // Desconectado - Protegido contra múltiplos disparos
     this.client.on('disconnected', (reason: string) => {
+      // Evitar processar múltiplas vezes se já desconectado
+      if (this.status === 'disconnected' || this.status === 'idle') {
+        this.logger.aviso(`[${this.clientId}] Evento disconnected recebido mas já está ${this.status} - IGNORANDO duplicata`);
+        return;
+      }
+      
       this.status = 'disconnected';
       this.logger.aviso(`[${this.clientId}] Desconectado: ${reason}`);
       this.callbacks.onDisconnected(this.clientId, reason);
@@ -360,24 +387,98 @@ export class WhatsAppClientService {
   }
 
   /**
-   * Desconecta e destrói o cliente
+   * Desconecta o cliente. Por padrão faz "soft-disconnect" (preserva a instância).
+   * Se `forceDestroy` for true, destrói a instância e remove sessão.
    */
-  async disconnect(): Promise<void> {
+  async disconnect(forceDestroy: boolean = false, reason?: string): Promise<void> {
     if (!this.client) {
       this.logger.aviso(`[${this.clientId}] Cliente já está desconectado`);
       return;
     }
 
     try {
-      this.logger.info(`[${this.clientId}] Desconectando cliente...`);
-      await this.client.destroy();
-      this.client = null;
+      // Antes: destruía automaticamente se reason sugerisse LOGOUT.
+      // Agora: destruir somente quando forceDestroy for true (ação explícita).
+      const shouldDestroy = !!forceDestroy;
+
+      if (shouldDestroy) {
+        this.logger.info(`[${this.clientId}] Desconectando e destruindo instância (forceDestroy=${forceDestroy}, reason=${reason})...`);
+
+        // Proteção: tentar destroy com timeout e tratar erros de protocolo como não-fatais
+        const destroyPromise = Promise.race([
+          this.client.destroy(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout ao destruir cliente')), 10000))
+        ]);
+
+        await destroyPromise.catch(err => {
+          if (err && err.message && (err.message.includes('Protocol error') || err.message.includes('page has been closed'))) {
+            this.logger.info(`[${this.clientId}] Erro de protocolo durante destroy (ignorado): ${err.message}`);
+          } else {
+            throw err;
+          }
+        });
+
+        // Remover referência e marcar status
+        this.client = null;
+        this.status = 'disconnected';
+        this.logger.sucesso(`[${this.clientId}] Instância destruída e desconectada`);
+        return;
+      }
+
+      // Soft-disconnect: marca estado e para heartbeat, preservando a instância para tentativa de reconexão
+      this.logger.info(`[${this.clientId}] Executando soft-disconnect (instância preservada). Reason=${reason || 'none'}`);
       this.status = 'disconnected';
-      this.logger.sucesso(`[${this.clientId}] Cliente desconectado com sucesso`);
+      // Não zera this.client para permitir reconexão/inspeção
+      this.logger.sucesso(`[${this.clientId}] Soft-disconnect concluído (instância preservada)`);
     } catch (erro: any) {
-      this.logger.erro(`[${this.clientId}] Erro ao desconectar:`, erro);
+      this.logger.erro(`[${this.clientId}] Erro ao executar disconnect:`, erro);
       throw erro;
     }
+  }
+
+  // Métodos auxiliares para retry/backoff de logout
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private async safeClientLogout(retries: number = 5, initialDelayMs: number = 200): Promise<void> {
+    if (!this.client) return;
+
+    let attempt = 0;
+    let delay = initialDelayMs;
+
+    while (attempt < retries) {
+      try {
+        await this.client.logout();
+        return;
+      } catch (err: any) {
+        const message = err && (err.message || err.toString()) || '';
+        const code = err && err.code;
+
+        // Detectar EBUSY ou tentativa de unlink em arquivos de sessão do LocalAuth
+        const isEBusy = code === 'EBUSY' || message.includes('EBUSY') || message.includes('resource busy');
+        const isLocalAuthPath = message.includes('.wwebjs_auth') || message.includes('session-');
+
+        if (isEBusy && isLocalAuthPath) {
+          // Log e retry com backoff
+          try {
+            const logger = this.logger || console;
+            logger.aviso ? logger.aviso(`[${this.clientId}] LocalAuth logout falhou com EBUSY (tentativa ${attempt + 1}/${retries}). Re-tentando em ${delay}ms`) : console.warn(`[${this.clientId}] LocalAuth logout EBUSY (tentativa ${attempt + 1}/${retries}). Re-tentando em ${delay}ms`);
+          } catch (_) {}
+
+          await this.sleep(delay);
+          attempt++;
+          delay *= 2;
+          continue;
+        }
+
+        // Erro diferente: propagar
+        throw err;
+      }
+    }
+
+    // Se chegou aqui, todas as tentativas falharam — lançar último erro
+    throw new Error(`safeClientLogout: falha após ${retries} tentativas (provável EBUSY)`);
   }
 
   /**
@@ -391,16 +492,66 @@ export class WhatsAppClientService {
 
     try {
       this.logger.info(`[${this.clientId}] Fazendo logout...`);
-      await this.client.logout();
-      await this.disconnect();
+
+      // Tentar logout com retry/backoff para mitigar EBUSY ao remover arquivos do LocalAuth
+      await this.safeClientLogout();
+
+      // Forçar destruição/removal da sessão
+      await this.disconnect(true, 'LOGOUT');
       this.status = 'idle';
       this.phoneNumber = null;
       this.qrCode = null;
       this.logger.sucesso(`[${this.clientId}] Logout realizado com sucesso`);
     } catch (erro: any) {
+      // Se for erro EBUSY, logar como aviso (evitar unhandled rejection ruidoso)
+      const msg = erro && (erro.message || erro.toString()) || '';
+      if (msg.includes('EBUSY') || msg.includes('resource busy')) {
+        this.logger.aviso(`[${this.clientId}] Logout encontrou EBUSY ao tentar remover arquivos de sessão. Marcar sessão como idle e preservar arquivos. Erro: ${msg}`);
+        // Ainda assim, forçar disconnect sem destruir instância para evitar perda de handles
+        try {
+          await this.disconnect(false, 'LOGOUT_EBUSY');
+        } catch (_) {}
+        return;
+      }
+
       this.logger.erro(`[${this.clientId}] Erro no logout:`, erro);
       throw erro;
     }
+  }
+
+  // Instalar um handler global protegido para unhandledRejection (registrar apenas uma vez)
+  // Isso ajuda a capturar erros de LocalAuth.unlink originados dentro de whatsapp-web.js que não são tratados pela lib.
+  public static ensureGlobalUnhandledRejectionHandler(): void {
+    const globalAny: any = global as any;
+    if (globalAny.__wajs_unhandled_rejection_handler_installed) return;
+
+    process.on('unhandledRejection', (reason: any) => {
+      try {
+        const message = reason && (reason.message || reason.toString()) || '';
+        if (message.includes('EBUSY') && message.includes('.wwebjs_auth')) {
+          // Suprimir/transformar em aviso para não poluir logs
+          try {
+            const logger = require('../infraestrutura/logger');
+            logger.aviso(`[GLOBAL] Capturado unhandledRejection EBUSY em LocalAuth: ${message}`);
+          } catch (_) {
+            console.warn(`[GLOBAL] Capturado unhandledRejection EBUSY em LocalAuth: ${message}`);
+          }
+          return;
+        }
+
+        // Re-throw para o logger padrão (manter visibilidade de outros erros)
+        try {
+          const logger = require('../infraestrutura/logger');
+          logger.erro('[GLOBAL] UNHANDLED REJECTION:', reason);
+        } catch (_) {
+          console.error('[GLOBAL] UNHANDLED REJECTION:', reason);
+        }
+      } catch (e) {
+        console.error('Erro no handler global de unhandledRejection:', e);
+      }
+    });
+
+    globalAny.__wajs_unhandled_rejection_handler_installed = true;
   }
 
   /**
