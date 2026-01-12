@@ -25,9 +25,10 @@ class GerenciadorPoolWhatsApp {
             maxClients: options.maxClients || 10,
             sessionPath: options.sessionPath || path.join(process.cwd(), '.wwebjs_auth'),
             persistencePath: options.persistencePath || path.join(process.cwd(), 'dados', 'whatsapp-sessions.json'),
-            autoReconnect: options.autoReconnect !== false,
+            autoReconnect: false,  // SEMPRE DESABILITADO - evita desconexões involuntárias
             reconnectDelay: options.reconnectDelay || 5000,
-            healthCheckInterval: options.healthCheckInterval || 60000 // 1 minuto
+            // ✅ AUMENTADO: de 60s para 30s para detectar/recuperar desconexões mais rápido
+            healthCheckInterval: options.healthCheckInterval || 30000 // 30 segundos
         };
 
         // Callbacks globais (podem ser sobrescritos por cliente)
@@ -49,6 +50,15 @@ class GerenciadorPoolWhatsApp {
 
         // Health check interval
         this.healthCheckTimer = null;
+
+        // Circuit breaker para reconexões
+        const CircuitBreaker = require('../core/disjuntor-circuito');
+        this._circuitBreaker = new CircuitBreaker({
+            failureThreshold: 3,
+            successThreshold: 1,
+            timeout: 20000,
+            resetTimeout: 30000
+        });
 
         // Carregar sessões persistidas
         this._loadPersistedSessions();
@@ -94,12 +104,28 @@ class GerenciadorPoolWhatsApp {
                     this.stats.totalMessages++;
                     (customCallbacks.onMessage || this.globalCallbacks.onMessage)(id, message);
                 },
-                onDisconnected: (id, reason) => {
+                onDisconnected: async (id, reason) => {
                     this.stats.totalDisconnected++;
-                    if (this.config.autoReconnect) {
-                        logger.info(`[Pool] Agendando reconexão de ${id} em ${this.config.reconnectDelay}ms`);
-                        setTimeout(() => this.reconnectClient(id), this.config.reconnectDelay);
+                    logger.info(`[Pool] Cliente ${id} desconectado (motivo: ${reason})`);
+
+                    // 🔄 Tentativa automática apenas para LOGOUT (gera novo QR inline)
+                    if (reason === 'LOGOUT') {
+                        const client = this.clients.get(id);
+                        if (client) {
+                            logger.info(`[Pool] ${id} recebeu LOGOUT - reiniciando cliente para emitir novo QR`);
+                            try {
+                                const cleaned = await client.limparSessaoLocal?.();
+                                if (cleaned === false) {
+                                    logger.aviso(`[Pool] ${id} não pôde limpar sessão; abortando reinit`);
+                                    return;
+                                }
+                                await client.initialize();
+                            } catch (err) {
+                                logger.aviso(`[Pool] Falha ao reinicializar ${id} após LOGOUT: ${err.message}`);
+                            }
+                        }
                     }
+
                     (customCallbacks.onDisconnected || this.globalCallbacks.onDisconnected)(id, reason);
                 },
                 onAuthFailure: (id, message) => {
@@ -186,7 +212,26 @@ class GerenciadorPoolWhatsApp {
         }
 
         logger.info(`[Pool] Reconectando cliente ${clientId}...`);
-        return await client.reconnect();
+
+        const RetryPolicy = require('../core/politica-retentativas');
+        const retry = RetryPolicy.whatsapp();
+
+        try {
+            const result = await this._circuitBreaker.execute(() => 
+                retry.execute(async (attempt) => {
+                    logger.info(`[Pool] Tentativa de reconexão ${attempt} para ${clientId}`);
+                    return await client.reconnect();
+                }, {
+                    onRetry: (_err, attempt, delay) => {
+                        logger.aviso(`[Pool] Reconexão ${clientId} retry ${attempt}, aguardando ${delay}ms`);
+                    }
+                })
+            );
+            return result;
+        } catch (erro) {
+            logger.erro(`[Pool] Falha ao reconectar ${clientId}: ${erro.message}`);
+            return { success: false, message: erro.message };
+        }
     }
 
     /**
@@ -253,6 +298,14 @@ class GerenciadorPoolWhatsApp {
     }
 
     /**
+     * Lista clientes com informações básicas (compatibilidade com rotas)
+     * Equivalente a getAllClientsInfo()
+     */
+    listarClientes() {
+        return this.getAllClientsInfo();
+    }
+
+    /**
      * Obtém informações de um cliente específico
      */
     getClientInfo(clientId) {
@@ -284,28 +337,69 @@ class GerenciadorPoolWhatsApp {
 
     /**
      * Health check de todos os clientes
+     * ✅ MELHORADO: Agora tenta reconectar clientes desconectados
      */
     async healthCheck() {
         logger.info('[Pool] Executando health check...');
         
         const results = [];
         for (const [clientId, client] of this.clients.entries()) {
-            const state = await client.getState();
-            const info = client.getInfo();
-            
-            results.push({
-                clientId,
-                status: info.status,
-                state,
-                isHealthy: info.status === 'ready' && state === 'CONNECTED'
-            });
+            try {
+                const state = await client.getState();
+                const info = client.getInfo();
+                const isHealthy = info.status === 'ready' && state === 'CONNECTED';
+                
+                results.push({
+                    clientId,
+                    status: info.status,
+                    state,
+                    isHealthy
+                });
 
-            // Tentar reconectar se não estiver saudável e auto-reconnect estiver ativo
-            if (!results[results.length - 1].isHealthy && this.config.autoReconnect) {
-                if (info.status === 'disconnected' || info.status === 'error') {
-                    logger.aviso(`[Pool] Cliente ${clientId} não saudável, tentando reconectar...`);
-                    await this.reconnectClient(clientId);
+                // ✅ NOVO: Tentar reconectar se não saudável
+                if (!isHealthy) {
+                    const motivo = info.lastDisconnectReason;
+                    logger.info(`[Pool] ${clientId} não saudável (status: ${info.status}, state: ${state}, motivo: ${motivo || 'N/A'})`);
+                    
+                    // ✅ NOVA LÓGICA: Tentar reconectar se foi desconexão do browser
+                    if (info.status === 'disconnected' && motivo === 'BROWSER_DISCONNECTED_RECOVERING') {
+                        logger.info(`[Pool] Tentando reconectar ${clientId} (desconexão de browser)...`);
+                        try {
+                            // Tentar reinicializar cliente
+                            const reinitResult = await client.initialize();
+                            if (reinitResult.success) {
+                                logger.sucesso(`[Pool] ${clientId} reconectado com sucesso! ✅`);
+                                results[results.length - 1].isHealthy = true;
+                            }
+                        } catch (e) {
+                            logger.aviso(`[Pool] Falha ao reconectar ${clientId}: ${e.message} (tentará novamente)`);
+                            // Não é fatal - será tentado novamente no próximo health check
+                        }
+                    }
+
+                    // ✅ NOVA LÓGICA: Se o motivo for LOGOUT não solicitado, tentar reabrir sessão
+                    // Isso dispara novo QR inline (sem janela extra) para recuperar a conexão automaticamente
+                    if (info.status === 'disconnected' && motivo === 'LOGOUT') {
+                        logger.info(`[Pool] ${clientId} em LOGOUT não solicitado - reabrindo sessão para novo QR`);
+                        try {
+                            const reinitResult = await client.initialize();
+                            if (reinitResult.success) {
+                                logger.sucesso(`[Pool] ${clientId} reinicializado após LOGOUT - aguardando scan do QR`);
+                                results[results.length - 1].isHealthy = false; // ainda precisa do scan
+                            }
+                        } catch (e) {
+                            logger.aviso(`[Pool] Falha ao reinicializar ${clientId} após LOGOUT: ${e.message}`);
+                        }
+                    }
                 }
+            } catch (erro) {
+                logger.erro(`[Pool] Erro no health check de ${clientId}:`, erro.message);
+                results.push({
+                    clientId,
+                    status: 'error',
+                    state: 'UNKNOWN',
+                    isHealthy: false
+                });
             }
         }
 

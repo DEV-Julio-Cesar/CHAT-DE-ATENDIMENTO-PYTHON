@@ -12,8 +12,27 @@
 
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
-const logger = require('../infraestrutura/logger');
+const fs = require('fs-extra');
 const path = require('path');
+const logger = require('../infraestrutura/logger');
+
+async function limparSessao(sessionPath, clientId, tentativas = 3) {
+    const sessionDir = path.join(sessionPath, `session-${clientId}`);
+    for (let tentativa = 1; tentativa <= tentativas; tentativa++) {
+        try {
+            await fs.remove(sessionDir);
+            logger.info(`[${clientId}] Sessão local removida (${sessionDir})`);
+            return true;
+        } catch (erro) {
+            logger.aviso(`[${clientId}] Falha ao remover sessão (tentativa ${tentativa}/${tentativas}): ${erro.message}`);
+            if (tentativa === tentativas) {
+                return false;
+            }
+            await new Promise(resolve => setTimeout(resolve, 500 * tentativa));
+        }
+    }
+    return false;
+}
 
 class ServicoClienteWhatsApp {
     /**
@@ -49,7 +68,19 @@ class ServicoClienteWhatsApp {
             connectedAt: null,
             messageCount: 0
         };
+
+        // Guarda o último motivo de desconexão para decisões no Pool/HealthCheck
+        this.lastDisconnectReason = null;
+
+        // Heartbeat/Keep-alive - Aumentado para reduzir sobrecarga
+        this._heartbeatTimer = null;
+        this._heartbeatIntervalMs = 30000; // ✅ 30s (aumentado de 60s para detectar desconexões mais rápido)
+        this._limpandoSessaoPromise = null;
+
+        // Garantir contexto correto quando o pool chamar o utilitário
+        this.limparSessaoLocal = this.limparSessaoLocal.bind(this);
     }
+
 
     // Getter/Setter para status com métricas
     get status() {
@@ -72,9 +103,9 @@ class ServicoClienteWhatsApp {
      * Inicializa o cliente WhatsApp
      */
     async initialize() {
-        if (this.status === 'initializing' || this.status === 'ready') {
-            logger.aviso(`[${this.clientId}] Cliente já está ${this.status}`);
-            return { success: false, message: 'Cliente já está sendo inicializado ou já está pronto' };
+        if (['initializing', 'authenticated', 'ready'].includes(this.status)) {
+            logger.aviso(`[${this.clientId}] Cliente já está ${this.status} - pulando reinit`);
+            return { success: true, message: 'Cliente já está inicializado', clientId: this.clientId };
         }
 
         try {
@@ -82,14 +113,18 @@ class ServicoClienteWhatsApp {
             logger.info(`[${this.clientId}] Iniciando cliente WhatsApp...`);
 
             // Criar instância do cliente com LocalAuth isolado por clientId
+            // Forçar headless para não abrir janela do Chromium (evitar popup extra)
+            const headless = true;
+
             this.client = new Client({
                 authStrategy: new LocalAuth({
                     clientId: this.clientId,
                     dataPath: this.sessionPath
                 }),
                 puppeteer: {
-                    headless: true,
+                    headless,
                     args: [
+                        '--headless=new',
                         '--no-sandbox',
                         '--disable-setuid-sandbox',
                         '--disable-dev-shm-usage',
@@ -101,12 +136,29 @@ class ServicoClienteWhatsApp {
                 }
             });
 
-            // Registrar listeners de eventos
+            // Registrar listeners de eventos ANTES de inicializar
+            // Isso garante que o evento de QR seja capturado
             this._setupEventListeners();
 
-            // Inicializar cliente
-            await this.client.initialize();
+            logger.info(`[${this.clientId}] Listeners configurados, iniciando cliente...`);
 
+            // Inicializar cliente com timeout maior (90s) para evitar timeouts falsos
+            // Cliente pode levar tempo para escanear QR e autenticar
+            const initPromise = this.client.initialize();
+            const timeoutPromise = new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    reject(new Error('Timeout de inicialização (90s) - verifique se QR foi escaneado'));
+                }, 90000);
+            });
+
+            try {
+                await Promise.race([initPromise, timeoutPromise]);
+            } catch (timeoutError) {
+                logger.aviso(`[${this.clientId}] ${timeoutError.message}`);
+                // Não erro fatal, apenas aviso - o cliente pode estar aguardando QR
+            }
+
+            logger.info(`[${this.clientId}] Cliente inicializado, aguardando QR Code...`);
             return { success: true, clientId: this.clientId };
         } catch (erro) {
             this.status = 'error';
@@ -119,6 +171,24 @@ class ServicoClienteWhatsApp {
      * Configura listeners de eventos do cliente WhatsApp
      */
     _setupEventListeners() {
+        // Remove todos os listeners anteriores para evitar duplicação
+        if (this.client) {
+            this.client.removeAllListeners('qr');
+            this.client.removeAllListeners('authenticated');
+            this.client.removeAllListeners('ready');
+            this.client.removeAllListeners('message');
+            this.client.removeAllListeners('disconnected');
+            this.client.removeAllListeners('auth_failure');
+            this.client.removeAllListeners('loading_screen');
+            this.client.removeAllListeners('error');
+            this.client.removeAllListeners('warn');
+        }
+        
+        // Proteção contra erros não capturados do Puppeteer/Browser
+        if (this.client && this.client.pupBrowser) {
+            this.client.pupBrowser.removeAllListeners('disconnected');
+        }
+        
         // QR Code gerado
         this.client.on('qr', async (qr) => {
             try {
@@ -137,13 +207,13 @@ class ServicoClienteWhatsApp {
         });
 
         // Autenticado
-        this.client.on('authenticated', () => {
+        this.client.once('authenticated', () => {
             this.status = 'authenticated';
             logger.sucesso(`[${this.clientId}] Autenticado com sucesso`);
         });
 
-        // Cliente pronto
-        this.client.on('ready', async () => {
+        // Cliente pronto - IMPORTANTE: once() para evitar múltiplas chamadas
+        this.client.once('ready', async () => {
             this.status = 'ready';
             this.metadata.connectedAt = new Date().toISOString();
             
@@ -157,6 +227,13 @@ class ServicoClienteWhatsApp {
             }
             
             this.callbacks.onReady(this.clientId, this.phoneNumber);
+
+            // Iniciar heartbeat para manter conexão ativa
+            try {
+                this.iniciarHeartbeat();
+            } catch (e) {
+                logger.aviso(`[${this.clientId}] Falha ao iniciar heartbeat: ${e.message}`);
+            }
 
             // Processar mensagens pendentes na fila para este cliente
             try {
@@ -186,17 +263,42 @@ class ServicoClienteWhatsApp {
             this.callbacks.onMessage(this.clientId, message);
         });
 
-        // Desconectado
-        this.client.on('disconnected', (reason) => {
+        // Desconectado (MUDADO DE .once() PARA .on() PARA CAPTURAR MÚLTIPLAS DESCONEXÕES)
+        this.client.on('disconnected', async (reason) => {
+            const previousStatus = this.status;
             this.status = 'disconnected';
+            this.lastDisconnectReason = reason;
             logger.aviso(`[${this.clientId}] Desconectado: ${reason}`);
+
+            // Se foi LOGOUT, limpar sessão local para evitar loop e forçar novo QR limpo
+            if (reason === 'LOGOUT') {
+                try {
+                    await this.limparSessaoLocal();
+                } catch (erro) {
+                    logger.aviso(`[${this.clientId}] Falha ao limpar sessão após LOGOUT: ${erro.message}`);
+                }
+            }
+
+            // Auditoria de desconexão
+            try {
+                const auditoria = require('../infraestrutura/auditoria');
+                auditoria.logAudit('whatsapp.disconnected', {
+                    user: 'sistema',
+                    details: { clientId: this.clientId, reason, previousStatus }
+                });
+            } catch {}
+
+            // Parar heartbeat ao desconectar
+            this.pararHeartbeat();
             this.callbacks.onDisconnected(this.clientId, reason);
         });
 
-        // Falha de autenticação
+        // Falha de autenticação (MUDADO DE .once() PARA .on() PARA CAPTURAR MÚLTIPLAS FALHAS)
         this.client.on('auth_failure', (message) => {
             this.status = 'error';
             logger.erro(`[${this.clientId}] Falha de autenticação: ${message}`);
+            // Parar heartbeat em falha de autenticação
+            this.pararHeartbeat();
             this.callbacks.onAuthFailure(this.clientId, message);
         });
 
@@ -204,6 +306,50 @@ class ServicoClienteWhatsApp {
         this.client.on('loading_screen', (percent, message) => {
             logger.info(`[${this.clientId}] Carregando: ${percent}% - ${message}`);
         });
+
+        // Listener para erros do cliente (não deve ocorrer mas adicionado como precaução)
+        this.client.on('error', (erro) => {
+            logger.erro(`[${this.clientId}] Erro do cliente WhatsApp:`, erro.message || erro);
+        });
+
+        // Listener para avisos
+        this.client.on('warn', (aviso) => {
+            logger.aviso(`[${this.clientId}] Aviso do cliente WhatsApp:`, aviso.message || aviso);
+        });
+
+        // Proteção contra desconexão não esperada do browser
+        // ✅ MUDANÇA: Em vez de destruir, apenas notificar (permite reconexão automática)
+        if (this.client && this.client.pupBrowser) {
+            this.client.pupBrowser.once('disconnected', async () => {
+                logger.aviso(`[${this.clientId}] Browser do Puppeteer desconectou - aguardando reconexão automática`);
+                const previousStatus = this.status;
+                this.status = 'disconnected';
+                this.lastDisconnectReason = 'BROWSER_DISCONNECTED';
+
+                // Auditoria de desconexão do browser
+                try {
+                    const auditoria = require('../infraestrutura/auditoria');
+                    auditoria.logAudit('whatsapp.browser_disconnected', {
+                        user: 'sistema',
+                        details: { clientId: this.clientId, previousStatus, recoveryAttempt: true }
+                    });
+                } catch {}
+
+                // Parar heartbeat temporariamente
+                this.pararHeartbeat();
+                
+                // ✅ NOVA LÓGICA: Notificar mas NÃO destruir
+                // O pool tentará reconectar via health check
+                logger.info(`[${this.clientId}] Aguardando reconexão automática do browser...`);
+                try {
+                    this.callbacks.onDisconnected(this.clientId, 'BROWSER_DISCONNECTED_RECOVERING');
+                } catch {}
+                
+                // NÃO destruir - deixar a reconexão acontecer naturalmente
+                // Destruição será feita apenas se o usuário fizer logout explícito
+                this.client = null;
+            });
+        }
     }
 
     /**
@@ -269,6 +415,7 @@ class ServicoClienteWhatsApp {
             phoneNumber: this.phoneNumber,
             qrCode: this.qrCode,
             metadata: this.metadata,
+            lastDisconnectReason: this.lastDisconnectReason,
             isReady: this.status === 'ready'
         };
     }
@@ -315,14 +462,31 @@ class ServicoClienteWhatsApp {
      */
     async getState() {
         if (!this.client) {
-            return null;
+            return 'DISCONNECTED';
         }
 
         try {
             const state = await this.client.getState();
             return state;
         } catch (erro) {
-            logger.erro(`[${this.clientId}] Erro ao obter estado:`, erro.message);
+            const msg = (erro && erro.message) ? erro.message : String(erro);
+            const isSessionClosed = msg.includes('Protocol error') || msg.includes('Session closed') || msg.includes('page has been closed');
+
+            if (isSessionClosed) {
+                // Tratar sessão já encerrada sem poluir logs
+                const previousStatus = this.status;
+                this.status = 'disconnected';
+                this.lastDisconnectReason = 'BROWSER_DISCONNECTED';
+                this.pararHeartbeat();
+                try {
+                    this.callbacks.onDisconnected(this.clientId, 'BROWSER_DISCONNECTED');
+                } catch {}
+                logger.aviso(`[${this.clientId}] Estado definido como DISCONNECTED (browser fechado; status anterior: ${previousStatus})`);
+                return 'DISCONNECTED';
+            }
+
+            // Outros erros: logar e retornar nulo
+            logger.erro(`[${this.clientId}] Erro ao obter estado:`, msg);
             return null;
         }
     }
@@ -337,13 +501,33 @@ class ServicoClienteWhatsApp {
 
         try {
             logger.info(`[${this.clientId}] Desconectando cliente...`);
-            await this.client.destroy();
+            // Parar heartbeat antes de desconectar
+            this.pararHeartbeat();
+            
+            // Adicionar timeout e proteção contra erros de protocolo
+            const destroyPromise = Promise.race([
+                this.client.destroy(),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Timeout ao desconectar')), 5000)
+                )
+            ]);
+            
+            await destroyPromise.catch(err => {
+                // Erros de protocolo durante destroy são normais
+                if (!err.message.includes('Protocol error') && !err.message.includes('page has been closed')) {
+                    throw err;
+                }
+                logger.info(`[${this.clientId}] Erro de protocolo durante destroy (esperado)`);
+            });
+            
             this.status = 'disconnected';
             this.client = null;
             logger.sucesso(`[${this.clientId}] Cliente desconectado com sucesso`);
             return { success: true };
         } catch (erro) {
             logger.erro(`[${this.clientId}] Erro ao desconectar:`, erro.message);
+            this.client = null;
+            this.status = 'disconnected';
             return { success: false, message: erro.message };
         }
     }
@@ -359,6 +543,66 @@ class ServicoClienteWhatsApp {
     }
 
     /**
+     * Inicia o heartbeat/keep-alive para evitar timeout por inatividade
+     */
+    iniciarHeartbeat() {
+        if (this._heartbeatTimer) {
+            logger.aviso(`[${this.clientId}] Heartbeat já ativo`);
+            return;
+        }
+        if (!this.client) return;
+
+        this._heartbeatTimer = setInterval(async () => {
+            try {
+                // Operação leve que mantém a sessão ativa
+                const state = await this.client.getState();
+                if (!state || state === 'DISCONNECTED') {
+                    logger.aviso(`[${this.clientId}] Heartbeat detectou estado inválido: ${state}`);
+                } else {
+                    logger.debug && logger.debug(`[${this.clientId}] ❤️ Heartbeat OK (${state})`);
+                }
+            } catch (e) {
+                // Falhas ocasionais são esperadas; não interrompe
+                logger.aviso(`[${this.clientId}] Heartbeat falhou: ${e.message}`);
+            }
+        }, this._heartbeatIntervalMs);
+
+        logger.info(`[${this.clientId}] Heartbeat iniciado (intervalo ${this._heartbeatIntervalMs}ms)`);
+    }
+
+    /**
+     * Para o heartbeat/keep-alive
+     */
+    pararHeartbeat() {
+        if (this._heartbeatTimer) {
+            clearInterval(this._heartbeatTimer);
+            this._heartbeatTimer = null;
+            logger.info(`[${this.clientId}] Heartbeat parado`);
+        }
+    }
+
+    /**
+     * Garante que o cliente esteja desligado antes de remover arquivos da sessão
+     */
+    async limparSessaoLocal() {
+        if (this._limpandoSessaoPromise) {
+            return this._limpandoSessaoPromise;
+        }
+
+        this._limpandoSessaoPromise = (async () => {
+            await this.disconnect();
+            const removed = await limparSessao(this.sessionPath, this.clientId);
+            return removed;
+        })();
+
+        try {
+            return await this._limpandoSessaoPromise;
+        } finally {
+            this._limpandoSessaoPromise = null;
+        }
+    }
+
+    /**
      * Logout e remove sessão
      */
     async logout() {
@@ -368,6 +612,8 @@ class ServicoClienteWhatsApp {
 
         try {
             logger.info(`[${this.clientId}] Fazendo logout e removendo sessão...`);
+            const stack = new Error().stack || 'stack indisponível';
+            logger.info(`[${this.clientId}] Origem do logout: ${stack}`);
             await this.client.logout();
             this.status = 'idle';
             this.phoneNumber = null;
