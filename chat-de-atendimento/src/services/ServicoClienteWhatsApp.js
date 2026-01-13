@@ -17,6 +17,36 @@ const fs = require('fs-extra');
 const path = require('path');
 const logger = require('../infraestrutura/logger');
 
+const DEFAULT_PUPPETEER_ARGS = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--no-first-run',
+    '--no-zygote',
+    '--disable-gpu',
+    '--disable-blink-features=AutomationControlled',
+    '--disable-features=VizDisplayCompositor',
+    '--disable-infobars',
+    '--window-size=1920,1080',
+    '--disable-background-timer-throttling',
+    '--disable-backgrounding-occluded-windows',
+    '--disable-renderer-backgrounding'
+];
+const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+const DEFAULT_RECOVERY_REASONS = [
+    'NAVIGATION',
+    'CONFLICT',
+    'UNPAIRED',
+    'UNPAIRED_IDLE',
+    'BROWSER_DISCONNECTED',
+    'BROWSER_DISCONNECTED_RECOVERING',
+    'ERROR',
+    'RESTART_REQUIRED',
+    'HEARTBEAT_ERROR',
+    'DISCONNECTED_HEARTBEAT'
+];
+
 async function limparSessao(sessionPath, clientId, tentativas = 3) {
     const sessionDir = path.join(sessionPath, `session-${clientId}`);
     for (let tentativa = 1; tentativa <= tentativas; tentativa++) {
@@ -53,6 +83,19 @@ class ServicoClienteWhatsApp {
         this.qrCode = null;
         this.phoneNumber = null;
         this.sessionPath = options.sessionPath || path.join(process.cwd(), '.wwebjs_auth');
+        this._resolvedClientOptions = this._buildClientOptions(options.clientOptions);
+        this._puppeteerOptions = this._resolvePuppeteerOptions(options.puppeteer);
+        this._webVersionCache = this._resolveWebVersionCache(options.webVersionCache);
+        this.recoveryOptions = this._resolveRecoveryOptions(options.recovery);
+        this.keepAliveOptions = options.keepAlive || {};
+        this._autoRecoveryReasons = new Set(this.recoveryOptions.autoReconnectReasons.map(r => r.toUpperCase()));
+        this._autoRecoveryInProgress = false;
+        this._lastRecoveryAt = 0;
+        this._lastKnownState = null;
+        this._lastConflictRecoveryAt = 0;
+        
+        // Referência à estratégia de autenticação (será definida em initialize())
+        this._authStrategy = null;
         
         // Referência à estratégia de autenticação (será definida em initialize())
         this._authStrategy = null;
@@ -78,7 +121,7 @@ class ServicoClienteWhatsApp {
 
         // Heartbeat/Keep-alive - Aumentado para reduzir sobrecarga
         this._heartbeatTimer = null;
-        this._heartbeatIntervalMs = 30000; // ✅ 30s (aumentado de 60s para detectar desconexões mais rápido)
+        this._heartbeatIntervalMs = this.keepAliveOptions.heartbeatIntervalMs || 30000;
         this._limpandoSessaoPromise = null;
 
         // Garantir contexto correto quando o pool chamar o utilitário
@@ -117,8 +160,9 @@ class ServicoClienteWhatsApp {
             logger.info(`[${this.clientId}] Iniciando cliente WhatsApp...`);
 
             // Criar instância do cliente com LocalAuthPersistent (preserva sessão em logout automático)
-            // TESTE: headless=false para verificar se é detecção de automação
-            const headless = false; // Mudar para true após teste
+            const puppeteerConfig = this._clonePuppeteerOptions();
+            const webVersionCache = this._cloneWebVersionCache();
+            const clientOptions = this._resolvedClientOptions;
             
             // Guardar referência ao authStrategy para poder habilitar cleanup quando necessário
             this._authStrategy = new LocalAuthPersistent({
@@ -128,36 +172,17 @@ class ServicoClienteWhatsApp {
             
             this.client = new Client({
                 authStrategy: this._authStrategy,
-                puppeteer: {
-                    headless,
-                    args: [
-                        '--no-sandbox',
-                        '--disable-setuid-sandbox',
-                        '--disable-dev-shm-usage',
-                        '--disable-accelerated-2d-canvas',
-                        '--no-first-run',
-                        '--no-zygote',
-                        '--disable-gpu',
-                        // Argumentos adicionais para evitar detecção e melhorar estabilidade
-                        '--disable-blink-features=AutomationControlled',
-                        '--disable-features=VizDisplayCompositor',
-                        '--disable-infobars',
-                        '--window-size=1920,1080',
-                        '--disable-background-timer-throttling',
-                        '--disable-backgrounding-occluded-windows',
-                        '--disable-renderer-backgrounding',
-                        // User agent para evitar detecção
-                        '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                    ]
-                },// Configurações adicionais para manter sessão estável
-                webVersionCache: {
-                    type: 'local'
-                },
+                puppeteer: puppeteerConfig,
+                webVersionCache,
                 // Intervalo de QR mais longo para evitar renovação frequente
-                qrMaxRetries: 10,
+                qrMaxRetries: clientOptions.qrMaxRetries,
+                qrRefreshIntervalMs: clientOptions.qrRefreshIntervalMs,
+                authTimeoutMs: clientOptions.authTimeoutMs,
+                restartOnAuthFail: clientOptions.restartOnAuthFail,
                 // Permitir tomar controle da sessão se houver conflito (outra instância conectada)
-                takeoverOnConflict: true,
-                takeoverTimeoutMs: 5000
+                takeoverOnConflict: clientOptions.takeoverOnConflict,
+                takeoverTimeoutMs: clientOptions.takeoverTimeoutMs,
+                markOnlineAvailable: clientOptions.markOnlineAvailable
             });
 
             // Registrar listeners de eventos ANTES de inicializar
@@ -212,6 +237,22 @@ class ServicoClienteWhatsApp {
         if (this.client && this.client.pupBrowser) {
             this.client.pupBrowser.removeAllListeners('disconnected');
         }
+        if (this.client) {
+            this.client.removeAllListeners('change_state');
+            this.client.on('change_state', async (state) => {
+                this._lastKnownState = state;
+                logger.info(`[${this.clientId}] Estado alterado para ${state}`);
+                if (state === 'CONFLICT') {
+                    await this._attemptConflictRecovery('change_state');
+                }
+
+                if (state && /^UNPAIRED/i.test(state)) {
+                    this.lastDisconnectReason = state;
+                    await this._scheduleAutoRecovery(state);
+                }
+            });
+        }
+ 
           // QR Code gerado
         // IMPORTANTE: Ignorar QR codes quando já está autenticado/pronto para evitar desconexões indevidas
         this.client.on('qr', async (qr) => {
@@ -265,6 +306,15 @@ class ServicoClienteWhatsApp {
                 logger.aviso(`[${this.clientId}] Não foi possível obter número do telefone`);
             }
             
+            if (this._resolvedClientOptions.markOnlineAvailable && typeof this.client.sendPresenceAvailable === 'function') {
+                try {
+                    await this.client.sendPresenceAvailable();
+                    logger.info(`[${this.clientId}] Presença marcada como disponível`);
+                } catch (erro) {
+                    logger.aviso(`[${this.clientId}] Falha ao enviar presença disponível: ${erro.message}`);
+                }
+            }
+
             this.callbacks.onReady(this.clientId, this.phoneNumber);
 
             // Iniciar heartbeat para manter conexão ativa
@@ -343,15 +393,18 @@ class ServicoClienteWhatsApp {
             // Parar heartbeat ao desconectar
             this.pararHeartbeat();
             this.callbacks.onDisconnected(this.clientId, reason);
+
+            await this._scheduleAutoRecovery(reason);
         });
 
         // Falha de autenticação (MUDADO DE .once() PARA .on() PARA CAPTURAR MÚLTIPLAS FALHAS)
-        this.client.on('auth_failure', (message) => {
+        this.client.on('auth_failure', async (message) => {
             this.status = 'error';
             logger.erro(`[${this.clientId}] Falha de autenticação: ${message}`);
             // Parar heartbeat em falha de autenticação
             this.pararHeartbeat();
             this.callbacks.onAuthFailure(this.clientId, message);
+            await this._scheduleAutoRecovery('AUTH_FAILURE');
         });
 
         // Erro de carregamento
@@ -627,12 +680,18 @@ class ServicoClienteWhatsApp {
                 const state = await this.client.getState();
                 if (!state || state === 'DISCONNECTED') {
                     logger.aviso(`[${this.clientId}] Heartbeat detectou estado inválido: ${state}`);
+                    await this._scheduleAutoRecovery(state || 'DISCONNECTED_HEARTBEAT');
+                } else if (state === 'CONFLICT') {
+                    await this._attemptConflictRecovery('heartbeat');
+                } else if (/^UNPAIRED/i.test(state)) {
+                    await this._scheduleAutoRecovery(state);
                 } else {
                     logger.debug && logger.debug(`[${this.clientId}] ❤️ Heartbeat OK (${state})`);
                 }
             } catch (e) {
                 // Falhas ocasionais são esperadas; não interrompe
                 logger.aviso(`[${this.clientId}] Heartbeat falhou: ${e.message}`);
+                await this._scheduleAutoRecovery('HEARTBEAT_ERROR');
             }
         }, this._heartbeatIntervalMs);
 
@@ -702,6 +761,183 @@ class ServicoClienteWhatsApp {
         } catch (erro) {
             logger.erro(`[${this.clientId}] Erro ao fazer logout:`, erro.message);
             return { success: false, message: erro.message };
+        }
+    }
+
+    _buildClientOptions(overrides = {}) {
+        const defaults = {
+            qrMaxRetries: 10,
+            qrRefreshIntervalMs: 45000,
+            authTimeoutMs: 90000,
+            takeoverOnConflict: true,
+            takeoverTimeoutMs: 5000,
+            restartOnAuthFail: true,
+            markOnlineAvailable: true
+        };
+        return { ...defaults, ...(overrides || {}) };
+    }
+
+    _resolvePuppeteerOptions(overrides = {}) {
+        const overrideArgs = Array.isArray(overrides?.args) ? overrides.args.filter(arg => typeof arg === 'string') : [];
+        const userAgentFromArgs = this._extractUserAgentFromArgs(overrideArgs);
+        const userAgent = overrides?.userAgent || userAgentFromArgs || DEFAULT_USER_AGENT;
+
+        const baseArgs = DEFAULT_PUPPETEER_ARGS.filter(arg => !arg.startsWith('--user-agent='));
+        const extraArgs = overrideArgs.filter(arg => !arg.startsWith('--user-agent='));
+        const mergedArgs = [...baseArgs];
+        for (const arg of extraArgs) {
+            if (!mergedArgs.includes(arg)) {
+                mergedArgs.push(arg);
+            }
+        }
+        const sandboxEnabled = overrides?.chromiumSandbox === true;
+        const sandboxFlags = ['--no-sandbox', '--disable-setuid-sandbox'];
+        if (sandboxEnabled) {
+            for (const flag of sandboxFlags) {
+                const idx = mergedArgs.indexOf(flag);
+                if (idx >= 0) {
+                    mergedArgs.splice(idx, 1);
+                }
+            }
+        } else {
+            for (const flag of sandboxFlags) {
+                if (!mergedArgs.includes(flag)) {
+                    mergedArgs.unshift(flag);
+                }
+            }
+        }
+        mergedArgs.push(`--user-agent=${userAgent}`);
+
+        const resolved = {
+            headless: overrides && Object.prototype.hasOwnProperty.call(overrides, 'headless') ? overrides.headless : 'new',
+            args: mergedArgs,
+            ignoreHTTPSErrors: overrides?.ignoreHTTPSErrors ?? true,
+            defaultViewport: Object.prototype.hasOwnProperty.call(overrides || {}, 'defaultViewport') ? overrides.defaultViewport : null
+        };
+
+        if (overrides?.executablePath) {
+            resolved.executablePath = overrides.executablePath;
+        }
+
+        return resolved;
+    }
+
+    _resolveWebVersionCache(cacheOption) {
+        if (!cacheOption || typeof cacheOption !== 'object') {
+            return { type: 'local' };
+        }
+
+        if (cacheOption.type === 'remote' && !cacheOption.remotePath) {
+            logger.aviso(`[${this.clientId}] webVersionCache remoto sem remotePath - fallback para 'local'`);
+            return { type: 'local' };
+        }
+
+        return { ...cacheOption };
+    }
+
+    _cloneWebVersionCache() {
+        if (!this._webVersionCache) {
+            return { type: 'local' };
+        }
+        return { ...this._webVersionCache };
+    }
+
+    _clonePuppeteerOptions() {
+        const clone = { ...this._puppeteerOptions };
+        if (Array.isArray(this._puppeteerOptions.args)) {
+            clone.args = [...this._puppeteerOptions.args];
+        }
+        return clone;
+    }
+
+    _resolveRecoveryOptions(overrides = {}) {
+        const defaults = {
+            autoReconnect: true,
+            cooldownMs: 15000,
+            autoReconnectReasons: DEFAULT_RECOVERY_REASONS
+        };
+
+        const merged = {
+            ...defaults,
+            ...(overrides || {})
+        };
+
+        merged.autoReconnectReasons = Array.from(new Set((merged.autoReconnectReasons || DEFAULT_RECOVERY_REASONS).map(reason => String(reason).toUpperCase())));
+        return merged;
+    }
+
+    _extractUserAgentFromArgs(args = []) {
+        const flag = args.find(arg => typeof arg === 'string' && arg.startsWith('--user-agent='));
+        return flag ? flag.substring('--user-agent='.length) : null;
+    }
+
+    _normalizeReason(reason) {
+        if (!reason) return 'UNKNOWN';
+        if (typeof reason === 'string') {
+            return reason.toUpperCase();
+        }
+        return String(reason).toUpperCase();
+    }
+
+    _shouldAutoRecover(reason) {
+        if (!this.recoveryOptions.autoReconnect) {
+            return false;
+        }
+        const normalized = this._normalizeReason(reason);
+        return this._autoRecoveryReasons.has(normalized);
+    }
+
+    async _scheduleAutoRecovery(reason) {
+        if (!this._shouldAutoRecover(reason)) {
+            return;
+        }
+
+        const now = Date.now();
+        if (this._autoRecoveryInProgress) {
+            logger.info(`[${this.clientId}] Auto-reconnect já em andamento - ignorando motivo ${reason || 'N/A'}`);
+            return;
+        }
+
+        if (now - this._lastRecoveryAt < this.recoveryOptions.cooldownMs) {
+            logger.info(`[${this.clientId}] Cooldown de auto-reconnect ativo (${this.recoveryOptions.cooldownMs}ms)`);
+            return;
+        }
+
+        this._autoRecoveryInProgress = true;
+        this._lastRecoveryAt = now;
+
+        try {
+            logger.info(`[${this.clientId}] Auto-reconnect iniciado (motivo: ${reason || 'N/A'})`);
+            const result = await this.reconnect();
+            if (result && result.success) {
+                logger.sucesso(`[${this.clientId}] Reconexão automática concluída`);
+            } else {
+                const detalhe = result && result.message ? result.message : 'sem detalhes';
+                logger.aviso(`[${this.clientId}] Reconexão automática não concluída (${detalhe})`);
+            }
+        } catch (erro) {
+            logger.erro(`[${this.clientId}] Falha no auto-reconnect: ${erro.message}`);
+        } finally {
+            this._autoRecoveryInProgress = false;
+        }
+    }
+
+    async _attemptConflictRecovery(source = 'unknown') {
+        if (!this.client || typeof this.client.resetState !== 'function') {
+            return;
+        }
+
+        const now = Date.now();
+        if (now - this._lastConflictRecoveryAt < 5000) {
+            return;
+        }
+
+        this._lastConflictRecoveryAt = now;
+        try {
+            await this.client.resetState();
+            logger.info(`[${this.clientId}] resetState() executado após ${source}`);
+        } catch (erro) {
+            logger.aviso(`[${this.clientId}] Falha ao executar resetState (${source}): ${erro.message}`);
         }
     }
 }

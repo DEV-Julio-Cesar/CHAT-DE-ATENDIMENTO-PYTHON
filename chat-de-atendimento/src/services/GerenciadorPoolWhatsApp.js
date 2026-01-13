@@ -25,10 +25,30 @@ class GerenciadorPoolWhatsApp {
             maxClients: options.maxClients || 10,
             sessionPath: options.sessionPath || path.join(process.cwd(), '.wwebjs_auth'),
             persistencePath: options.persistencePath || path.join(process.cwd(), 'dados', 'whatsapp-sessions.json'),
-            autoReconnect: false,  // SEMPRE DESABILITADO - evita desconexões involuntárias
+            autoReconnect: options.autoReconnect ?? false,
             reconnectDelay: options.reconnectDelay || 5000,
             // ✅ AUMENTADO: de 60s para 30s para detectar/recuperar desconexões mais rápido
-            healthCheckInterval: options.healthCheckInterval || 30000 // 30 segundos
+            healthCheckInterval: options.healthCheckInterval || 30000, // 30 segundos
+            puppeteer: options.puppeteer || {},
+            clientOptions: options.clientOptions || {},
+            webVersionCache: options.webVersionCache || { type: 'local' },
+            recovery: {
+                autoReconnect: options.recovery?.autoReconnect ?? options.autoReconnect ?? false,
+                cooldownMs: options.recovery?.cooldownMs ?? 15000,
+                autoReconnectReasons: options.recovery?.autoReconnectReasons || [
+                    'NAVIGATION',
+                    'CONFLICT',
+                    'UNPAIRED',
+                    'UNPAIRED_IDLE',
+                    'BROWSER_DISCONNECTED',
+                    'BROWSER_DISCONNECTED_RECOVERING',
+                    'ERROR',
+                    'RESTART_REQUIRED'
+                ]
+            },
+            keepAlive: {
+                heartbeatIntervalMs: options.keepAlive?.heartbeatIntervalMs || 30000
+            }
         };
 
         // Callbacks globais (podem ser sobrescritos por cliente)
@@ -124,6 +144,11 @@ class GerenciadorPoolWhatsApp {
             // Criar instância do serviço
             const clientService = new ServicoClienteWhatsApp(clientId, {
                 sessionPath: this.config.sessionPath,
+                puppeteer: this.config.puppeteer,
+                clientOptions: this.config.clientOptions,
+                webVersionCache: this.config.webVersionCache,
+                recovery: this.config.recovery,
+                keepAlive: this.config.keepAlive,
                 ...callbacks
             });
 
@@ -361,6 +386,21 @@ class GerenciadorPoolWhatsApp {
                         } catch (e) {
                             logger.aviso(`[Pool] Falha ao reconectar ${clientId}: ${e.message} (tentará novamente)`);
                             // Não é fatal - será tentado novamente no próximo health check
+                        }
+                    } else if (
+                        this.config.recovery.autoReconnect &&
+                        info.status === 'disconnected' &&
+                        motivo !== 'LOGOUT'
+                    ) {
+                        logger.info(`[Pool] Auto-reconnect habilitado — agendando nova tentativa para ${clientId}`);
+                        try {
+                            const reconnectResult = await client.reconnect();
+                            if (reconnectResult && reconnectResult.success) {
+                                logger.sucesso(`[Pool] ${clientId} reconectado após health check`);
+                                results[results.length - 1].isHealthy = true;
+                            }
+                        } catch (e) {
+                            logger.aviso(`[Pool] Reconexão automática falhou para ${clientId}: ${e.message}`);
                         }
                     }
 

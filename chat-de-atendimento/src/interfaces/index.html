@@ -575,6 +575,18 @@
                         <span class="menu-item-desc">Automação</span>
                     </button>
 
+                    <button class="menu-item" onclick="abrirAutomacao()" title="Laboratório para montar prompts inteligentes" style="background: linear-gradient(140deg, rgba(14,165,233,0.08), rgba(129,140,248,0.15)); border: 2px solid rgba(14,165,233,0.35);">
+                        <span class="menu-item-icon">🧪</span>
+                        <span class="menu-item-text">Laboratório IA</span>
+                        <span class="menu-item-desc">Criar prompt do agente</span>
+                    </button>
+
+                    <button class="menu-item" onclick="abrirCampanhas()" title="Criar e acompanhar disparos multicanais" style="background: linear-gradient(135deg, rgba(6,182,212,0.12), rgba(14,116,144,0.08)); border: 2px solid rgba(6,182,212,0.35);">
+                        <span class="menu-item-icon">📣</span>
+                        <span class="menu-item-text">Campanhas</span>
+                        <span class="menu-item-desc">Disparos inteligentes</span>
+                    </button>
+
                     <button class="menu-item" onclick="abrirUsuarios()" title="Gerenciar usuários do sistema">
                         <span class="menu-item-icon">👥</span>
                         <span class="menu-item-text">Usuários</span>
@@ -922,6 +934,14 @@
 
         function abrirChatbot() {
             window.electronAPI.abrirChatbot();
+        }
+
+        function abrirAutomacao() {
+            window.electronAPI.abrirAutomacao();
+        }
+
+        function abrirCampanhas() {
+            window.electronAPI.abrirCampanhas();
         }
 
         function abrirUsuarios() {

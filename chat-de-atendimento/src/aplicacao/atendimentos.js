@@ -3,6 +3,12 @@ const path = require('path');
 const logger = require('../infraestrutura/logger');
 
 const FILE = path.join(__dirname, '../../dados/atendimentos.json');
+const STATUS_VALIDOS = ['disponivel', 'ocupado'];
+
+function normalizarStatus(status) {
+  const valor = String(status || '').toLowerCase();
+  return STATUS_VALIDOS.includes(valor) ? valor : 'disponivel';
+}
 
 async function ensureFile() {
   await fs.ensureDir(path.dirname(FILE));
@@ -38,18 +44,19 @@ async function save(data) {
 
 async function registrarAtendente(username) {
   const data = await load();
-  data.atendentes[username] = data.atendentes[username] || { status: 'online', updatedAt: new Date().toISOString() };
+  data.atendentes[username] = data.atendentes[username] || { status: 'disponivel', updatedAt: new Date().toISOString() };
   await save(data);
   return { success: true };
 }
 
 async function setStatus(username, status) {
   const data = await load();
+  const statusFinal = normalizarStatus(status);
   data.atendentes[username] = data.atendentes[username] || {};
-  data.atendentes[username].status = status;
+  data.atendentes[username].status = statusFinal;
   data.atendentes[username].updatedAt = new Date().toISOString();
   await save(data);
-  return { success: true };
+  return { success: true, status: statusFinal };
 }
 
 async function assumirChat(username, clientId, chatId) {
@@ -89,11 +96,22 @@ async function listarAtendimentos() {
   return { success: true, ...data };
 }
 
+async function obterStatusAtendente(username) {
+  const data = await load();
+  const info = data.atendentes[username] || { status: 'disponivel' };
+  return {
+    success: true,
+    status: normalizarStatus(info.status),
+    updatedAt: info.updatedAt || null
+  };
+}
+
 module.exports = {
   registrarAtendente,
   setStatus,
   assumirChat,
   liberarChat,
   obterAtendimento,
-  listarAtendimentos
+  listarAtendimentos,
+  obterStatusAtendente
 };

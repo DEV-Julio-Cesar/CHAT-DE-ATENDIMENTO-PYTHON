@@ -58,6 +58,22 @@ class GerenciadorJanelas {
                 resizable: true,
                 title: 'Chat WhatsApp - Sistema de Filas'
             },
+            'automacao': {
+                file: 'src/interfaces/automacao.html',
+                preload: 'src/interfaces/pre-carregamento-automacao.js',
+                width: 1200,
+                height: 820,
+                resizable: true,
+                title: 'Laboratório de Automação'
+            },
+            'campanhas': {
+                file: 'src/interfaces/campanhas.html',
+                preload: 'src/interfaces/pre-carregamento-campanhas.js',
+                width: 1280,
+                height: 860,
+                resizable: true,
+                title: 'Central de Campanhas'
+            },
             'dashboard': {
                 file: 'src/interfaces/painel.html',
                 preload: 'src/interfaces/pre-carregamento-painel.js',

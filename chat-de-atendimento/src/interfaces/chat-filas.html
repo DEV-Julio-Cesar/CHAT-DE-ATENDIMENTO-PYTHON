@@ -78,6 +78,60 @@
             align-items: center;
         }
 
+        .attendant-panel {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .attendant-meta {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            letter-spacing: 0.08em;
+            font-weight: 600;
+        }
+
+        .attendant-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .attendant-status-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .attendant-status-badge {
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            background: var(--badge-atendimento);
+            transition: background 0.2s ease;
+        }
+
+        .attendant-status-badge.ocupado {
+            background: var(--badge-espera);
+        }
+
+        .attendant-status-select {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--input-bg);
+            color: var(--text);
+            font-weight: 500;
+            cursor: pointer;
+        }
+
         .sidebar-header h2 {
             font-size: 18px;
             font-weight: 500;
@@ -399,6 +453,59 @@
             align-items: center;
         }
 
+        .chat-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .chat-contact-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: var(--border);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .chat-contact-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .chat-contact-initials {
+            font-size: 18px;
+            font-weight: 600;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+        }
+
+        .chat-contact-avatar.has-photo img {
+            display: block;
+        }
+
+        .chat-contact-avatar.has-photo .chat-contact-initials {
+            display: none;
+        }
+
+        .chat-contact-wa-name {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
         .chat-header-info h3 {
             font-size: 16px;
             margin-bottom: 3px;
@@ -698,6 +805,20 @@
                 <button class="btn-refresh" onclick="carregarFilas()"> Atualizar</button>
             </div>
 
+            <div class="attendant-panel">
+                <div>
+                    <div class="attendant-meta">Atendente logado</div>
+                    <div class="attendant-name" id="attendantName">—</div>
+                </div>
+                <div class="attendant-status-row">
+                    <span class="attendant-status-badge" id="attendantStatusBadge">Disponível</span>
+                    <select class="attendant-status-select" id="attendantStatusSelect">
+                        <option value="disponivel">Disponível</option>
+                        <option value="ocupado">Ocupado</option>
+                    </select>
+                </div>
+            </div>
+
             <!-- TABS -->
             <div class="tabs">
                 <div class="tab active" data-tab="automacao" onclick="trocarAba('automacao')">
@@ -840,20 +961,240 @@
     <script>
         let currentUser = 'admin';
         let currentClientId = null;
+        let attendantStatus = 'disponivel';
+        let contatoAtual = null;
         let conversasCache = { automacao: [], espera: [], atendimento: [] };
         let abaAtual = 'automacao';
         let conversaAtual = null;
         let conversasSelecionadas = new Set();
 
+        async function inicializarContextoAtendente() {
+            if (!currentUser) {
+                atualizarPainelAtendente();
+                return;
+            }
+
+            if (!window.electronAPI?.attend) {
+                atualizarPainelAtendente();
+                return;
+            }
+
+            try {
+                await window.electronAPI.attend.register(currentUser);
+                const resposta = await window.electronAPI.attend.getStatus(currentUser);
+                attendantStatus = resposta?.status || 'disponivel';
+            } catch (error) {
+                console.warn('Erro ao sincronizar status do atendente:', error);
+                attendantStatus = 'disponivel';
+            }
+
+            atualizarPainelAtendente();
+        }
+
+        function atualizarPainelAtendente() {
+            const nomeEl = document.getElementById('attendantName');
+            if (nomeEl) {
+                nomeEl.textContent = currentUser || '—';
+            }
+
+            const badgeEl = document.getElementById('attendantStatusBadge');
+            if (badgeEl) {
+                const disponivel = attendantStatus !== 'ocupado';
+                badgeEl.textContent = disponivel ? 'Disponível' : 'Ocupado';
+                badgeEl.classList.toggle('ocupado', !disponivel);
+            }
+
+            const selectEl = document.getElementById('attendantStatusSelect');
+            if (selectEl && selectEl.value !== attendantStatus) {
+                selectEl.value = attendantStatus;
+            }
+        }
+
+        async function alterarStatusAtendente(novoStatus) {
+            if (!window.electronAPI?.attend || !currentUser) {
+                return;
+            }
+
+            const statusNormalizado = novoStatus === 'ocupado' ? 'ocupado' : 'disponivel';
+
+            try {
+                const resultado = await window.electronAPI.attend.setStatus({
+                    username: currentUser,
+                    status: statusNormalizado
+                });
+
+                if (resultado?.success) {
+                    attendantStatus = statusNormalizado;
+                    atualizarPainelAtendente();
+                    mostrarToast(` Status atualizado para ${statusNormalizado === 'ocupado' ? 'ocupado' : 'disponível'}`, 'success');
+                } else {
+                    mostrarToast(resultado?.message || ' Não foi possível atualizar o status', 'error');
+                    atualizarPainelAtendente();
+                }
+            } catch (error) {
+                console.error('Erro ao atualizar status do atendente:', error);
+                mostrarToast(' Erro ao atualizar status', 'error');
+                atualizarPainelAtendente();
+            }
+        }
+
+        const statusSelectEl = document.getElementById('attendantStatusSelect');
+        if (statusSelectEl) {
+            statusSelectEl.addEventListener('change', (event) => {
+                alterarStatusAtendente(event.target.value);
+            });
+        }
+
+        function gerarIniciaisContato(nome = '') {
+            const base = (nome || '').trim();
+            if (!base) return '??';
+
+            const partes = base.split(/\s+/).filter(Boolean);
+            if (!partes.length) {
+                return base.slice(0, 2).toUpperCase();
+            }
+
+            return partes.slice(0, 2).map(parte => parte[0].toUpperCase()).join('');
+        }
+
+        function extrairNumeroWhatsApp(identificador = '') {
+            if (!identificador) return '';
+            return identificador.includes('@') ? identificador.split('@')[0] : identificador;
+        }
+
+        function construirContatoFallback(nome, chatId) {
+            return {
+                nome: nome || 'Contato WhatsApp',
+                numero: extrairNumeroWhatsApp(chatId),
+                pushname: '',
+                businessName: '',
+                foto: ''
+            };
+        }
+
+        function atualizarAvatarContato(info = {}) {
+            const avatarEl = document.getElementById('contactAvatar');
+            const avatarImg = document.getElementById('contactAvatarImage');
+            const avatarFallback = document.getElementById('contactAvatarFallback');
+
+            if (!avatarEl || !avatarImg || !avatarFallback) return;
+
+            if (info.foto) {
+                avatarImg.src = info.foto;
+                avatarImg.style.display = 'block';
+                avatarFallback.style.display = 'none';
+                avatarEl.classList.add('has-photo');
+            } else {
+                avatarImg.src = '';
+                avatarImg.style.display = 'none';
+                avatarFallback.textContent = gerarIniciaisContato(info.nome || info.numero || '??');
+                avatarFallback.style.display = 'flex';
+                avatarEl.classList.remove('has-photo');
+            }
+        }
+
+        function atualizarHeaderContato(info = {}) {
+            const nameEl = document.getElementById('contactName');
+            const metaEl = document.getElementById('contactMeta');
+            const waNameEl = document.getElementById('contactWaName');
+
+            if (nameEl) {
+                nameEl.textContent = info.nome || info.pushname || 'Contato WhatsApp';
+            }
+
+            if (metaEl) {
+                const partesMeta = [];
+                if (info.numero) partesMeta.push(info.numero);
+                if (info.businessName) partesMeta.push(info.businessName);
+                else if (info.pushname) partesMeta.push(info.pushname);
+                metaEl.textContent = partesMeta.length ? `WhatsApp • ${partesMeta.join(' • ')}` : 'WhatsApp';
+            }
+
+            if (waNameEl) {
+                const alias = info.businessName || info.pushname || '';
+                waNameEl.textContent = alias;
+                waNameEl.style.display = alias ? 'block' : 'none';
+            }
+
+            atualizarAvatarContato(info);
+        }
+
+        function atualizarMetaConversa(conversa, estado, tempoDecorrido) {
+            const metaEl = document.getElementById('conversationMeta');
+            if (!metaEl) return;
+
+            const estadoTexto = estado === 'automacao'
+                ? 'Automação'
+                : estado === 'espera'
+                    ? 'Em espera'
+                    : 'Em atendimento';
+
+            const tentativas = conversa.tentativasBot > 0
+                ? `${conversa.tentativasBot} tentativa${conversa.tentativasBot > 1 ? 's' : ''} bot • `
+                : '';
+
+            metaEl.textContent = `Estado: ${estadoTexto} • ${tentativas}Criado há ${tempoDecorrido}`;
+        }
+
+        async function sincronizarContatoWhatsApp(clientId, chatId, nomeFallback) {
+            const fallback = construirContatoFallback(nomeFallback, chatId);
+
+            if (!window.chatAPI?.obterContato) {
+                contatoAtual = fallback;
+                atualizarHeaderContato(contatoAtual);
+                return;
+            }
+
+            try {
+                const resposta = await window.chatAPI.obterContato(clientId, chatId);
+
+                if (!conversaAtual || conversaAtual.clientId !== clientId || conversaAtual.chatId !== chatId) {
+                    return;
+                }
+
+                if (resposta?.success && resposta.contato) {
+                    const contato = resposta.contato;
+                    contatoAtual = {
+                        nome: contato.nome || fallback.nome,
+                        numero: contato.numero || fallback.numero,
+                        pushname: contato.pushname || '',
+                        businessName: contato.businessName || '',
+                        foto: contato.foto || ''
+                    };
+                } else {
+                    contatoAtual = fallback;
+                    if (resposta?.message) {
+                        console.warn('Contato WhatsApp:', resposta.message);
+                    }
+                }
+            } catch (error) {
+                if (conversaAtual?.clientId !== clientId || conversaAtual?.chatId !== chatId) {
+                    return;
+                }
+                console.warn('Erro ao carregar contato WhatsApp:', error);
+                contatoAtual = fallback;
+            }
+
+            atualizarHeaderContato(contatoAtual);
+        }
+
         // Recebe clientId dos parâmetros de navegação
         if (window.navigationAPI) {
             window.navigationAPI.onParams((params) => {
+                if (params.usuario) {
+                    currentUser = params.usuario;
+                }
+
                 if (params.clientId) {
                     currentClientId = params.clientId;
-                    carregarFilas();
                 }
+
+                inicializarContextoAtendente();
+                carregarFilas();
             });
         }
+
+        inicializarContextoAtendente();
 
         async function carregarFilas() {
             try {
@@ -1051,6 +1392,9 @@
 
             const chatArea = document.getElementById('chatArea');
             const tempo = calcularTempoDecorrido(conversa.criadoEm);
+            const nomeContato = conversa?.metadata?.nomeContato || extrairNumeroWhatsApp(chatId);
+            contatoAtual = construirContatoFallback(nomeContato, chatId);
+            const iniciaisContato = gerarIniciaisContato(contatoAtual.nome || contatoAtual.numero || '??');
             
             let headerActions = '';
             if (estado === 'atendimento') {
@@ -1070,12 +1414,16 @@
 
             chatArea.innerHTML = `
                 <div class="chat-header">
-                    <div class="chat-header-info">
-                        <h3>${conversa.metadata.nomeContato}</h3>
-                        <div class="chat-header-meta">
-                            Estado: ${estado === 'automacao' ? 'Automação' : estado === 'espera' ? 'Em Espera' : 'Em Atendimento'}  
-                            ${conversa.tentativasBot > 0 ? conversa.tentativasBot + ' tentativas bot  ' : ''}
-                            Criado há ${tempo}
+                    <div class="chat-header-left">
+                        <div class="chat-contact-avatar" id="contactAvatar">
+                            <img id="contactAvatarImage" alt="Foto do contato" />
+                            <span class="chat-contact-initials" id="contactAvatarFallback">${iniciaisContato}</span>
+                        </div>
+                        <div class="chat-header-info">
+                            <h3 id="contactName">${contatoAtual.nome}</h3>
+                            <div class="chat-contact-wa-name" id="contactWaName" style="display:none;"></div>
+                            <div class="chat-header-meta" id="contactMeta">${contatoAtual.numero ? `WhatsApp • ${contatoAtual.numero}` : 'Sincronizando com WhatsApp...'}</div>
+                            <div class="chat-header-meta" id="conversationMeta"></div>
                         </div>
                     </div>
                     <div class="chat-header-actions">
@@ -1102,6 +1450,9 @@
             if (container) {
                 container.scrollTop = container.scrollHeight;
             }
+
+            atualizarMetaConversa(conversa, estado, tempo);
+            sincronizarContatoWhatsApp(clientId, chatId, contatoAtual.nome);
         }
 
         function handleEnter(event) {

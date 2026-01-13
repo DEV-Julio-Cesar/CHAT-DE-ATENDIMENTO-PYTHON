@@ -104,6 +104,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   abrirChat: (clientId) => ipcRenderer.send('open-chat-window', clientId),
   abrirDashboard: () => ipcRenderer.send('open-dashboard'),
   abrirChatbot: () => ipcRenderer.send('open-chatbot'),
+    abrirAutomacao: () => ipcRenderer.send('open-automacao'),
+    abrirCampanhas: () => ipcRenderer.send('open-campanhas'),
   // NOVO: backups/relatórios/tema/atendimentos
   backupNow: () => ipcRenderer.invoke('backup:run'),
   listarBackups: () => ipcRenderer.invoke('backup:list'),
@@ -116,7 +118,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     claim: (p) => ipcRenderer.invoke('attend:claim', p),
     release: (p) => ipcRenderer.invoke('attend:release', p),
     get: (p) => ipcRenderer.invoke('attend:get', p),
-    list: () => ipcRenderer.invoke('attend:list')
+        list: () => ipcRenderer.invoke('attend:list'),
+        getStatus: (username) => ipcRenderer.invoke('attend:get-status', username)
   }
 });
 

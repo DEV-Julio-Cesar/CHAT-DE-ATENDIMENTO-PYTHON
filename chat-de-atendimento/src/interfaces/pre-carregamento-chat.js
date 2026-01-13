@@ -1,7 +1,8 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
 contextBridge.exposeInMainWorld('iaAPI', {
     perguntarGemini: ({ mensagem, contexto }) => ipcRenderer.invoke('ia:gemini:perguntar', { mensagem, contexto })
 });
-const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('chatAPI', {
     aoDefinirCliente: (callback) => ipcRenderer.on('set-client-id', (_, id) => callback(id)),
@@ -15,7 +16,8 @@ contextBridge.exposeInMainWorld('chatAPI', {
     removerMensagemRapida: (codigo) => ipcRenderer.invoke('quick-messages-remove', codigo),
     registrarUsoMensagemRapida: (codigo) => ipcRenderer.invoke('quick-messages-registrar-uso', codigo),
     metricasMensagensRapidas: () => ipcRenderer.invoke('quick-messages-metrics'),
-    resetMetricasMensagensRapidas: () => ipcRenderer.invoke('quick-messages-metrics-reset')
+    resetMetricasMensagensRapidas: () => ipcRenderer.invoke('quick-messages-metrics-reset'),
+    obterContato: (clientId, chatId) => ipcRenderer.invoke('whatsapp:get-contact-info', { clientId, chatId })
 });
 
 // API de Filas de Atendimento
@@ -33,6 +35,20 @@ contextBridge.exposeInMainWorld('filasAPI', {
     atribuirMultiplos: (conversasIds, atendente, atendenteOrigem) => ipcRenderer.invoke('filas:atribuir-multiplos', { conversasIds, atendente, atendenteOrigem }),
     encerrarMultiplos: (conversasIds, atendente) => ipcRenderer.invoke('filas:encerrar-multiplos', { conversasIds, atendente }),
     listarAtendentes: () => ipcRenderer.invoke('filas:listar-atendentes')
+});
+
+contextBridge.exposeInMainWorld('electronAPI', {
+    getTheme: () => ipcRenderer.invoke('theme:get'),
+    setTheme: (theme) => ipcRenderer.invoke('theme:set', theme),
+    attend: {
+        register: (username) => ipcRenderer.invoke('attend:register', username),
+        setStatus: (payload) => ipcRenderer.invoke('attend:set-status', payload),
+        claim: (payload) => ipcRenderer.invoke('attend:claim', payload),
+        release: (payload) => ipcRenderer.invoke('attend:release', payload),
+        get: (payload) => ipcRenderer.invoke('attend:get', payload),
+        list: () => ipcRenderer.invoke('attend:list'),
+        getStatus: (username) => ipcRenderer.invoke('attend:get-status', username)
+    }
 });
 
 contextBridge.exposeInMainWorld('navigationAPI', {

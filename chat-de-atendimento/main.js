@@ -11,6 +11,7 @@ const fs = require('fs-extra');
 const axios = require('axios');
 const WebSocket = require('ws');
 const { MessageMedia } = require('whatsapp-web.js');
+const ExcelJS = require('exceljs');
 
 // ImportaÃ§Ãµes dos mÃ³dulos internos
 const iaGemini = require('./src/aplicacao/ia-gemini');
@@ -40,6 +41,9 @@ const gerenciadorMidia = require('./src/aplicacao/gerenciador-midia');
 const chatbot = require('./src/aplicacao/chatbot');
 const metricas = require('./src/aplicacao/metricas');
 const notificacoes = require('./src/aplicacao/notificacoes');
+const gerenciadorFilas = require('./src/aplicacao/gerenciador-filas');
+const automacaoConfig = require('./src/aplicacao/automacao-config');
+const campanhas = require('./src/aplicacao/campanhas');
 const backups = require('./src/aplicacao/backup');
 const atend = require('./src/aplicacao/atendimentos');
 const relatorios = require('./src/aplicacao/relatorios');
@@ -62,6 +66,246 @@ let gerenciadorJanelas = null;
 // Pool Manager de Clientes WhatsApp
 let poolWhatsApp = null;
 const qrWindows = new Map();
+
+function selecionarClienteWhatsAppParaCampanha(preferencialId) {
+    if (!poolWhatsApp) {
+        return { success: false, code: 'pool_not_ready', message: 'Pool WhatsApp não está inicializado.' };
+    }
+
+    if (preferencialId) {
+        const preferencial = poolWhatsApp.clients.get(preferencialId);
+        if (preferencial && preferencial.status === 'ready') {
+            return { success: true, clientId: preferencialId, usouFallback: false };
+        }
+    }
+
+    const prontos = typeof poolWhatsApp.getReadyClients === 'function' ? poolWhatsApp.getReadyClients() : [];
+    if (Array.isArray(prontos) && prontos.length > 0) {
+        return { success: true, clientId: prontos[0], usouFallback: Boolean(preferencialId && prontos[0] !== preferencialId) };
+    }
+
+    return { success: false, code: 'no_clients', message: 'Nenhuma sessão WhatsApp pronta para envio.' };
+}
+
+function construirChatIdWhatsApp(destinatario) {
+    if (!destinatario) return null;
+    const valor = String(destinatario).trim();
+    if (!valor) return null;
+    if (valor.endsWith('@c.us') || valor.endsWith('@g.us')) {
+        return valor;
+    }
+    return `${valor}@c.us`;
+}
+
+async function gerarPromptIAParaCampanha(campanha) {
+    if (!campanha?.usarAgenteIA) {
+        return { success: false };
+    }
+
+    try {
+        const destaques = [];
+        if (campanha.nome) {
+            destaques.push(`Campanha: ${campanha.nome}`);
+        }
+        if (campanha.finalidadeDescricao || campanha.finalidade) {
+            destaques.push(`Finalidade: ${campanha.finalidadeDescricao || campanha.finalidade}`);
+        }
+        if (campanha.mensagemBase) {
+            const previewMensagem = campanha.mensagemBase.length > 320
+                ? `${campanha.mensagemBase.slice(0, 317)}...`
+                : campanha.mensagemBase;
+            destaques.push(`Mensagem base: ${previewMensagem}`);
+        }
+
+        const resposta = await automacaoConfig.gerarPromptPreview({
+            instrucoesAdicionais: campanha.instrucoesIA,
+            destaques
+        });
+
+        if (resposta?.success && resposta.prompt) {
+            return { success: true, prompt: resposta.prompt, destaques, geradoEm: new Date().toISOString() };
+        }
+    } catch (erro) {
+        logger.erro('[Campanhas] Erro ao gerar prompt IA:', erro.message);
+    }
+
+    return { success: false };
+}
+
+async function executarDisparoWhatsapp(campanha, destinatarios) {
+    const selecaoCliente = selecionarClienteWhatsAppParaCampanha(campanha?.clientePreferencial);
+    if (!selecaoCliente.success) {
+        return {
+            success: false,
+            motivo: selecaoCliente.message,
+            code: selecaoCliente.code || 'no_clients'
+        };
+    }
+
+    const detalhes = [];
+    let enviados = 0;
+    let falhas = 0;
+
+    for (const numero of destinatarios) {
+        const chatId = construirChatIdWhatsApp(numero);
+        if (!chatId) {
+            falhas += 1;
+            detalhes.push({ destinatario: numero, status: 'erro', erro: 'Número inválido' });
+            continue;
+        }
+
+        try {
+            const envio = await poolWhatsApp.sendMessage(selecaoCliente.clientId, chatId, campanha.mensagemBase);
+            const messageId = (() => {
+                if (!envio?.id) return null;
+                if (typeof envio.id === 'string') return envio.id;
+                if (typeof envio.id === 'object') {
+                    return envio.id._serialized || envio.id.id || null;
+                }
+                return null;
+            })();
+            detalhes.push({
+                destinatario: numero,
+                chatId,
+                status: 'enviado',
+                messageId,
+                timestamp: new Date().toISOString()
+            });
+            enviados += 1;
+        } catch (erroEnvio) {
+            logger.erro(`[Campanhas] Falha ao enviar mensagem de ${campanha?.id} para ${chatId}: ${erroEnvio.message}`);
+            detalhes.push({
+                destinatario: numero,
+                chatId,
+                status: 'erro',
+                erro: erroEnvio.message || 'Falha ao enviar'
+            });
+            falhas += 1;
+        }
+    }
+
+    return {
+        success: enviados > 0,
+        clientId: selecaoCliente.clientId,
+        usouFallbackCliente: selecaoCliente.usouFallback,
+        enviados,
+        falhas,
+        detalhes
+    };
+}
+
+function textoDaCelula(valor) {
+    if (valor === undefined || valor === null) return '';
+    if (typeof valor === 'string') return valor.trim();
+    return String(valor).trim();
+}
+
+function extrairDigitos(valor) {
+    return String(valor || '').replace(/[^0-9]/g, '');
+}
+
+function detectarCabecalhoPlanilha(valores = []) {
+    const mapa = {};
+    valores.forEach((valor, index) => {
+        const texto = textoDaCelula(valor).toLowerCase();
+        if (!texto) return;
+        if (mapa.nome === undefined && texto.includes('nome')) {
+            mapa.nome = index;
+        }
+        if (mapa.telefone === undefined && (texto.includes('tel') || texto.includes('fone') || texto.includes('cel'))) {
+            mapa.telefone = index;
+        }
+        if (mapa.cpf === undefined && texto.includes('cpf')) {
+            mapa.cpf = index;
+        }
+    });
+    if (mapa.nome !== undefined && mapa.telefone !== undefined && mapa.cpf !== undefined) {
+        return mapa;
+    }
+    return null;
+}
+
+async function importarContatosDePlanilha(filePath) {
+    if (!filePath) {
+        throw new Error('Informe um arquivo para importar.');
+    }
+
+    const extensao = path.extname(filePath).toLowerCase();
+    if (!['.xlsx', '.csv'].includes(extensao)) {
+        throw new Error('Formato não suportado. Utilize arquivos .xlsx ou .csv.');
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    let worksheet;
+
+    if (extensao === '.csv') {
+        await workbook.csv.readFile(filePath);
+        worksheet = workbook.worksheets[0];
+    } else {
+        await workbook.xlsx.readFile(filePath);
+        worksheet = workbook.worksheets[0];
+    }
+
+    if (!worksheet) {
+        throw new Error('Não encontramos dados na planilha.');
+    }
+
+    let cabecalho = null;
+    const contatos = [];
+    const vistos = new Set();
+
+    worksheet.eachRow({ includeEmpty: false }, (row) => {
+        const valores = row.values.slice(1);
+        const possuiDados = valores.some((valor) => textoDaCelula(valor));
+        if (!possuiDados) {
+            return;
+        }
+
+        if (!cabecalho) {
+            const possivelCabecalho = detectarCabecalhoPlanilha(valores);
+            if (possivelCabecalho) {
+                cabecalho = possivelCabecalho;
+                return;
+            }
+            cabecalho = { nome: 0, telefone: 1, cpf: 2 };
+        }
+
+        const indiceNome = cabecalho.nome ?? 0;
+        const indiceTelefone = cabecalho.telefone ?? 1;
+        const indiceCpf = cabecalho.cpf ?? 2;
+
+        const nome = textoDaCelula(valores[indiceNome]);
+        const telefoneOriginal = textoDaCelula(valores[indiceTelefone]);
+        const telefoneSanitizado = extrairDigitos(telefoneOriginal);
+        if (!telefoneSanitizado || telefoneSanitizado.length < 8 || vistos.has(telefoneSanitizado)) {
+            return;
+        }
+
+        vistos.add(telefoneSanitizado);
+
+        const cpfOriginal = textoDaCelula(valores[indiceCpf]);
+        const cpfSanitizado = extrairDigitos(cpfOriginal);
+
+        contatos.push({
+            nome: nome || null,
+            telefone: telefoneSanitizado,
+            telefoneOriginal: telefoneOriginal || telefoneSanitizado,
+            cpf: cpfSanitizado || null,
+            cpfOriginal: cpfOriginal || null
+        });
+    });
+
+    if (contatos.length === 0) {
+        throw new Error('Não encontramos contatos válidos na planilha.');
+    }
+
+    return {
+        success: true,
+        total: contatos.length,
+        destinatarios: contatos.map((c) => c.telefone),
+        contatos
+    };
+}
 
 // ConfiguraÃ§Ãµes da API Cloud (WhatsApp Business)
 let WHATSAPP_TOKEN = '';
@@ -602,9 +846,19 @@ function configurarManipuladoresIPC() {
         gerenciadorJanelas.navigate('pool-manager');
     });
 
-    // abrir janela de chat
-    ipcMain.on('open-chat-window', (_event, clientId) => {
-        gerenciadorJanelas.navigate('chat', { clientId });
+    // abrir janela de chat (usa tela de filas como única UI)
+    ipcMain.on('open-chat-window', (_event, payload) => {
+        const params = (typeof payload === 'object' && payload !== null)
+            ? payload
+            : { clientId: payload };
+        const usuarioInfo = usuarioLogado
+            ? { usuario: usuarioLogado.username, role: usuarioLogado.role }
+            : {};
+
+        gerenciadorJanelas.navigate('chat-filas', {
+            ...params,
+            ...usuarioInfo
+        });
     });
 
     // abrir dashboard
@@ -615,6 +869,14 @@ function configurarManipuladoresIPC() {
     // abrir chatbot
     ipcMain.on('open-chatbot', () => {
         gerenciadorJanelas.navigate('chatbot');
+    });
+    
+    ipcMain.on('open-automacao', () => {
+        gerenciadorJanelas.navigate('automacao');
+    });
+
+    ipcMain.on('open-campanhas', () => {
+        gerenciadorJanelas.navigate('campanhas');
     });
     
     // Restaurar sessÃµes persistidas
@@ -940,6 +1202,74 @@ function configurarManipuladoresIPC() {
             erro: 'Busca de histÃ³rico requer banco de dados' 
         };
     });
+
+    ipcMain.handle('whatsapp:get-contact-info', async (_event, { clientId, chatId } = {}) => {
+        try {
+            if (!clientId || !chatId) {
+                return { success: false, message: 'clientId e chatId são obrigatórios' };
+            }
+
+            const client = whatsappClients.get(clientId);
+            if (!client) {
+                return { success: false, message: 'Cliente não conectado' };
+            }
+
+            let contact = null;
+            try {
+                contact = await client.getContactById(chatId);
+            } catch (erroGetContact) {
+                logger.aviso(`[Contato] Falha ao buscar contato ${chatId} via getContactById: ${erroGetContact.message}`);
+            }
+
+            if (!contact) {
+                try {
+                    const chat = await client.getChatById(chatId);
+                    if (chat && typeof chat.getContact === 'function') {
+                        contact = await chat.getContact();
+                    }
+                } catch (erroChat) {
+                    logger.aviso(`[Contato] Não foi possível obter chat ${chatId}: ${erroChat.message}`);
+                }
+            }
+
+            if (!contact) {
+                return { success: false, message: 'Contato não encontrado' };
+            }
+
+            let profilePicUrl = '';
+            try {
+                if (typeof contact.getProfilePicUrl === 'function') {
+                    profilePicUrl = await contact.getProfilePicUrl();
+                }
+            } catch (erroFoto) {
+                logger.aviso(`[Contato] Não foi possível obter foto de ${chatId}: ${erroFoto.message}`);
+            }
+
+            const nomePreferencial = contact.verifiedName
+                || contact.formattedName
+                || contact.pushname
+                || contact.name
+                || contact.shortName
+                || contact.number
+                || chatId;
+
+            return {
+                success: true,
+                contato: {
+                    id: contact.id?._serialized || chatId,
+                    numero: contact.id?.user || contact.number || '',
+                    nome: nomePreferencial,
+                    pushname: contact.pushname || '',
+                    shortName: contact.shortName || '',
+                    businessName: contact.verifiedName || '',
+                    foto: profilePicUrl || ''
+                }
+            };
+        } catch (erro) {
+            logger.erro('[Contato WhatsApp] Erro ao obter informações:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
     
     // --- CONFIGURAÃ‡Ã•ES ---
     
@@ -988,6 +1318,116 @@ function configurarManipuladoresIPC() {
     ipcMain.handle('attend:release', async (_e, { username, clientId, chatId }) => atend.liberarChat(username, clientId, chatId));
     ipcMain.handle('attend:get', async (_e, { clientId, chatId }) => atend.obterAtendimento(clientId, chatId));
     ipcMain.handle('attend:list', async () => atend.listarAtendimentos());
+    ipcMain.handle('attend:get-status', async (_e, username) => atend.obterStatusAtendente(username));
+
+    // Filas de atendimento
+    ipcMain.handle('filas:criar-conversa', async (_event, { clientId, chatId, metadata = {} } = {}) => {
+        try {
+            return await gerenciadorFilas.criarConversa(clientId, chatId, metadata || {});
+        } catch (erro) {
+            logger.erro('[Filas] Erro ao criar conversa:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('filas:mover-espera', async (_event, { clientId, chatId, motivo } = {}) => {
+        try {
+            return await gerenciadorFilas.moverParaEspera(clientId, chatId, motivo);
+        } catch (erro) {
+            logger.erro('[Filas] Erro ao mover para espera:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('filas:assumir', async (_event, { clientId, chatId, atendente } = {}) => {
+        try {
+            return await gerenciadorFilas.assumirConversa(clientId, chatId, atendente);
+        } catch (erro) {
+            logger.erro('[Filas] Erro ao assumir conversa:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('filas:encerrar', async (_event, { clientId, chatId, atendente } = {}) => {
+        try {
+            return await gerenciadorFilas.encerrarConversa(clientId, chatId, atendente);
+        } catch (erro) {
+            logger.erro('[Filas] Erro ao encerrar conversa:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('filas:listar-por-estado', async (_event, { estado, atendente } = {}) => {
+        try {
+            return await gerenciadorFilas.listarPorEstado(estado, atendente);
+        } catch (erro) {
+            logger.erro('[Filas] Erro ao listar por estado:', erro.message);
+            return [];
+        }
+    });
+
+    ipcMain.handle('filas:estatisticas', async () => {
+        try {
+            return await gerenciadorFilas.obterEstatisticas();
+        } catch (erro) {
+            logger.erro('[Filas] Erro ao obter estatísticas:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('filas:atualizar-metadata', async (_event, { clientId, chatId, metadata = {} } = {}) => {
+        try {
+            return await gerenciadorFilas.atualizarMetadata(clientId, chatId, metadata || {});
+        } catch (erro) {
+            logger.erro('[Filas] Erro ao atualizar metadata:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('filas:atribuir', async (_event, { clientId, chatId, atendente, atendenteOrigem } = {}) => {
+        try {
+            return await gerenciadorFilas.atribuirConversa(clientId, chatId, atendente, atendenteOrigem);
+        } catch (erro) {
+            logger.erro('[Filas] Erro ao atribuir conversa:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('filas:transferir', async (_event, { clientId, chatId, atendenteDestino, atendenteOrigem } = {}) => {
+        try {
+            return await gerenciadorFilas.transferirConversa(clientId, chatId, atendenteDestino, atendenteOrigem);
+        } catch (erro) {
+            logger.erro('[Filas] Erro ao transferir conversa:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('filas:atribuir-multiplos', async (_event, { conversasIds = [], atendente, atendenteOrigem } = {}) => {
+        try {
+            return await gerenciadorFilas.atribuirMultiplos(conversasIds, atendente, atendenteOrigem);
+        } catch (erro) {
+            logger.erro('[Filas] Erro ao atribuir múltiplas conversas:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('filas:encerrar-multiplos', async (_event, { conversasIds = [], atendente } = {}) => {
+        try {
+            return await gerenciadorFilas.encerrarMultiplos(conversasIds, atendente);
+        } catch (erro) {
+            logger.erro('[Filas] Erro ao encerrar múltiplas conversas:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('filas:listar-atendentes', async () => {
+        try {
+            return await gerenciadorFilas.listarAtendentes();
+        } catch (erro) {
+            logger.erro('[Filas] Erro ao listar atendentes:', erro.message);
+            return [];
+        }
+    });
 
     // RelatÃ³rios
     ipcMain.handle('report:export', async (_e, tipo) => relatorios.exportar(tipo));
@@ -995,6 +1435,183 @@ function configurarManipuladoresIPC() {
     // Tema
     ipcMain.handle('theme:get', async () => ({ success: true, theme: await tema.getTheme() }));
     ipcMain.handle('theme:set', async (_e, themeName) => tema.setTheme(themeName));
+
+    // Automação / Prompt Builder
+    ipcMain.handle('automacao:obter-config', async () => {
+        try {
+            const config = await automacaoConfig.carregarConfiguracao();
+            return { success: true, config };
+        } catch (erro) {
+            logger.erro('[Automacao] Erro ao carregar configuração:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('automacao:salvar-config', async (_event, configAtualizada) => {
+        try {
+            return await automacaoConfig.salvarConfiguracao(configAtualizada || {});
+        } catch (erro) {
+            logger.erro('[Automacao] Erro ao salvar configuração:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('automacao:gerar-prompt', async (_event, payload = {}) => {
+        try {
+            const resultado = await automacaoConfig.gerarPromptPreview(payload || {});
+            return resultado;
+        } catch (erro) {
+            logger.erro('[Automacao] Erro ao gerar prompt:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('campanhas:listar', async () => {
+        try {
+            const campanhasRegistradas = await campanhas.listarCampanhas();
+            return { success: true, campanhas: campanhasRegistradas };
+        } catch (erro) {
+            logger.erro('[Campanhas] Erro ao listar:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('campanhas:salvar', async (_event, campanha) => {
+        try {
+            return await campanhas.salvarCampanha(campanha || {});
+        } catch (erro) {
+            logger.erro('[Campanhas] Erro ao salvar:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('campanhas:remover', async (_event, idCampanha) => {
+        try {
+            return await campanhas.removerCampanha(idCampanha);
+        } catch (erro) {
+            logger.erro('[Campanhas] Erro ao remover:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('campanhas:importar-planilha', async (_event, payload = {}) => {
+        try {
+            const caminho = payload.filePath || payload.path;
+            const resultado = await importarContatosDePlanilha(caminho);
+            return resultado;
+        } catch (erro) {
+            logger.erro('[Campanhas] Erro ao importar planilha:', erro.message);
+            return { success: false, message: erro.message };
+        }
+    });
+
+    ipcMain.handle('campanhas:disparar', async (_event, payload = {}) => {
+        const campanhaId = payload?.campanhaId || payload?.id;
+        if (!campanhaId) {
+            return { success: false, message: 'ID da campanha é obrigatório para disparo.' };
+        }
+
+        if (!poolWhatsApp) {
+            return { success: false, message: 'Pool WhatsApp ainda não foi inicializado.' };
+        }
+
+        try {
+            const campanha = await campanhas.obterCampanhaPorId(campanhaId);
+            if (!campanha) {
+                return { success: false, message: 'Campanha não encontrada.' };
+            }
+
+            const destinatarios = campanhas.sanitizarDestinatarios(campanha.destinatarios);
+            if (destinatarios.length === 0) {
+                return { success: false, message: 'Nenhum destinatário válido para disparo.' };
+            }
+
+            const canaisAtivos = Array.isArray(campanha.canais) && campanha.canais.length > 0
+                ? [...new Set(campanha.canais)]
+                : ['whatsapp'];
+
+            const inicio = Date.now();
+            const resultados = {};
+            let totalEnviados = 0;
+            let totalFalhas = 0;
+            let clientUtilizado = null;
+            let fallbackCliente = false;
+
+            if (canaisAtivos.includes('whatsapp')) {
+                const envioWhatsApp = await executarDisparoWhatsapp(campanha, destinatarios);
+                if (envioWhatsApp.code === 'no_clients') {
+                    return { success: false, message: envioWhatsApp.motivo || 'Nenhuma sessão WhatsApp pronta para envio.' };
+                }
+
+                resultados.whatsapp = {
+                    enviados: envioWhatsApp.enviados,
+                    falhas: envioWhatsApp.falhas,
+                    detalhes: envioWhatsApp.detalhes,
+                    clientId: envioWhatsApp.clientId
+                };
+                clientUtilizado = envioWhatsApp.clientId || null;
+                fallbackCliente = Boolean(envioWhatsApp.usouFallbackCliente);
+                totalEnviados += envioWhatsApp.enviados;
+                totalFalhas += envioWhatsApp.falhas;
+            }
+
+            for (const canal of canaisAtivos) {
+                if (canal === 'whatsapp') continue;
+                resultados[canal] = {
+                    status: 'pendente',
+                    motivo: 'Integração ainda não disponível para este canal.',
+                    totalPlanejado: destinatarios.length
+                };
+            }
+
+            const duracaoMs = Date.now() - inicio;
+            const statusFinal = totalEnviados > 0 && totalFalhas === 0
+                ? 'executado'
+                : totalEnviados > 0
+                    ? 'parcial'
+                    : 'erro';
+
+            const promptIA = await gerarPromptIAParaCampanha(campanha);
+
+            await campanhas.registrarHistoricoEnvio(campanhaId, {
+                totalDestinatarios: destinatarios.length,
+                canaisAtivos,
+                resultados,
+                clientId: clientUtilizado,
+                mensagemUtilizada: campanha.mensagemBase,
+                statusFinal,
+                observacoes: totalFalhas ? `${totalFalhas} destinatário(s) falharam` : null,
+                duracaoMs,
+                iaAtivada: Boolean(campanha.usarAgenteIA),
+                promptIA: promptIA?.prompt || null,
+                instrucoesIA: campanha.instrucoesIA,
+                destaquesIA: promptIA?.destaques || null,
+                usouFallbackCliente: fallbackCliente
+            });
+
+            return {
+                success: true,
+                campanhaId,
+                status: statusFinal,
+                enviados: totalEnviados,
+                falhas: totalFalhas,
+                clientId: clientUtilizado,
+                clientFallback: fallbackCliente,
+                canais: canaisAtivos,
+                ia: campanha.usarAgenteIA
+                    ? {
+                        ativa: true,
+                        prompt: promptIA?.prompt || null,
+                        geradoEm: promptIA?.geradoEm || null
+                    }
+                    : { ativa: false },
+                resultados
+            };
+        } catch (erro) {
+            logger.erro('[Campanhas] Erro ao disparar campanha:', erro);
+            return { success: false, message: erro.message || 'Falha ao executar disparo.' };
+        }
+    });
 
     // Abrir nova conexão via QR (inline, sem nova janela)
     ipcMain.handle('open-new-qr-window', async () => {
@@ -1145,7 +1762,16 @@ function setupNavigationHandlers() {
     // Navegar para uma rota
     ipcMain.handle('navigate-to', async (_event, route, params = {}) => {
         logger.info(`[Navigation] Navegando para: ${route}`);
-        gerenciadorJanelas.navigate(route, params);
+        const finalParams = { ...params };
+        if (usuarioLogado) {
+            if (!finalParams.usuario) {
+                finalParams.usuario = usuarioLogado.username;
+            }
+            if (!finalParams.role) {
+                finalParams.role = usuarioLogado.role;
+            }
+        }
+        gerenciadorJanelas.navigate(route, finalParams);
         return { success: true };
     });
 
@@ -1246,13 +1872,24 @@ app.whenReady().then(async () => {
     
     // Inicializar Pool Manager de WhatsApp
     const whatsappConfig = gerenciadorConfiguracoes.get('whatsapp', {});
+    const autoReconnectFeatureEnabled = sinalizadoresRecursos.isEnabled('whatsapp.auto-reconnect');
     poolWhatsApp = new GerenciadorPoolWhatsApp({
         maxClients: whatsappConfig.maxClients || 10,
         sessionPath: path.join(__dirname, whatsappConfig.sessionPath || '.wwebjs_auth'),
         persistencePath: path.join(__dirname, 'dados', 'whatsapp-sessions.json'),
-        autoReconnect: sinalizadoresRecursos.isEnabled('whatsapp.auto-reconnect'),
+        autoReconnect: autoReconnectFeatureEnabled,
         reconnectDelay: 5000,
         healthCheckInterval: 60000,
+        puppeteer: whatsappConfig.puppeteer,
+        clientOptions: whatsappConfig.clientOptions,
+        webVersionCache: whatsappConfig.webVersionCache,
+        recovery: {
+            ...(whatsappConfig.recovery || {}),
+            autoReconnect: (whatsappConfig.recovery && typeof whatsappConfig.recovery.autoReconnect === 'boolean')
+                ? whatsappConfig.recovery.autoReconnect
+                : autoReconnectFeatureEnabled
+        },
+        keepAlive: whatsappConfig.keepAlive,
         
         // Callbacks globais
         onQR: (clientId, qrDataURL) => {
@@ -1311,6 +1948,30 @@ app.whenReady().then(async () => {
                 fromMe: message.fromMe,
                 hasMedia: message.hasMedia
             });
+            
+            // Sincroniza conversa com o sistema de filas
+            try {
+                const contact = await message.getContact().catch(() => null);
+                const nomeContato = contact?.pushname || contact?.name || chat.name || message.from;
+                const corpoMensagem = message.body && message.body.trim().length > 0
+                    ? message.body
+                    : (message.hasMedia ? '[mídia]' : '[mensagem]');
+                const metadata = {
+                    nomeContato,
+                    ultimaMensagem: corpoMensagem,
+                    mensagensNaoLidas: chat.unreadCount || 0,
+                    origem: 'whatsapp'
+                };
+
+                const conversaAtual = await gerenciadorFilas.buscarPorChatId(message.from);
+                if (!conversaAtual) {
+                    await gerenciadorFilas.criarConversa(clientId, message.from, metadata);
+                } else {
+                    await gerenciadorFilas.atualizarMetadata(clientId, message.from, metadata);
+                }
+            } catch (erroFilas) {
+                logger.erro(`[Filas] Erro ao sincronizar conversa ${message.from}: ${erroFilas.message}`);
+            }
             
 
             // Processa com chatbot
