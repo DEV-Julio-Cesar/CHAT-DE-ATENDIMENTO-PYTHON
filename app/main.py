@@ -16,6 +16,9 @@ from app.core.redis_client import redis_manager
 from app.core.monitoring import monitoring
 from app.core.security_advanced import security_manager, SecurityMiddleware
 from app.services.whatsapp_enterprise import whatsapp_api
+from app.services.chatbot_ai import chatbot_ai
+from app.services.data_migration import migration_service
+from app.services.performance_optimizer import performance_optimizer
 from app.api.routes import api_router
 from app.api.endpoints.dashboard import router as dashboard_router
 from app.websocket.main import websocket_router
@@ -79,6 +82,14 @@ async def lifespan(app: FastAPI):
         # Inicializar WhatsApp Enterprise API
         await whatsapp_api.initialize()
         logger.info("WhatsApp Enterprise API initialized")
+        
+        # Inicializar Chatbot AI
+        await chatbot_ai.initialize()
+        logger.info("Chatbot AI initialized")
+        
+        # Inicializar Performance Optimizer
+        await performance_optimizer.initialize()
+        logger.info("Performance Optimizer initialized")
         
         # Inicializar sistema de monitoramento
         await monitoring.start()
@@ -277,6 +288,15 @@ async def general_exception_handler(request: Request, exc: Exception):
 app.include_router(api_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(websocket_router, prefix="/ws")
+
+# Importar e incluir novos routers
+from app.api.endpoints.chatbot import router as chatbot_router
+from app.api.endpoints.migration import router as migration_router
+from app.api.endpoints.optimization import router as optimization_router
+
+app.include_router(chatbot_router, prefix="/api/v1")
+app.include_router(migration_router, prefix="/api/v1")
+app.include_router(optimization_router, prefix="/api/v1")
 
 # Middleware de segurança
 app.add_middleware(SecurityMiddleware)

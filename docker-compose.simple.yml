@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: isp_support
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ISP_Support_2024_Strong_Password
     ports:
       - "5432:5432"
     volumes:
@@ -27,15 +27,32 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:password@postgres:5432/isp_support
+      - DATABASE_URL=postgresql+asyncpg://postgres:ISP_Support_2024_Strong_Password@postgres:5432/isp_support
       - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=test-secret-key
-      - DEBUG=true
+      - SECRET_KEY=BjmXHTN42Y2QT1tiid6YMT5uX30v39iDaRnDWtBikQg
+      - DEBUG=false
+      - ENVIRONMENT=production
+      - WHATSAPP_ACCESS_TOKEN=YOUR_WHATSAPP_ACCESS_TOKEN_HERE
+      - WHATSAPP_PHONE_NUMBER_ID=YOUR_PHONE_NUMBER_ID_HERE
+      - WHATSAPP_BUSINESS_ACCOUNT_ID=YOUR_BUSINESS_ACCOUNT_ID_HERE
+      - WHATSAPP_WEBHOOK_VERIFY_TOKEN=ISP_WEBHOOK_TOKEN_2024_SECURE
+      - GEMINI_API_KEY=AIzaSyDJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=1440
+      - MAX_WHATSAPP_CLIENTS=10000
+      - MAX_BOT_ATTEMPTS=3
+      - BUSINESS_HOURS_START=8
+      - BUSINESS_HOURS_END=18
+      - MAX_FILE_SIZE=10485760
+      - ALLOWED_FILE_TYPES=image/jpeg,image/png,application/pdf,text/plain
+      - RATE_LIMIT_PER_MINUTE=100
+      - RATE_LIMIT_BURST=200
     depends_on:
       - postgres
       - redis
     volumes:
       - ./app:/app/app
+      - ./uploads:/app/uploads
 
 volumes:
   postgres_data:

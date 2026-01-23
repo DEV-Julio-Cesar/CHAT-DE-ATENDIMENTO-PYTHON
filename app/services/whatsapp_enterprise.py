@@ -395,7 +395,126 @@ class WhatsAppEnterpriseAPI:
                 'code': 'INTERNAL_ERROR'
             }
             
-    async def handle_webhook(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    async def get_connected_clients(self) -> List[Dict[str, Any]]:
+        """Obtém lista de clientes conectados"""
+        try:
+            # Busca sessões ativas no Redis
+            sessions = await redis_manager.hgetall('whatsapp:active_sessions')
+            
+            clients = []
+            for session_id, session_data in sessions.items():
+                session_info = json.loads(session_data)
+                clients.append({
+                    'id': session_id,
+                    'phone': session_info.get('phone_number'),
+                    'status': session_info.get('status', 'connected'),
+                    'name': f"Cliente {session_info.get('phone_number', 'Unknown')}",
+                    'last_activity': session_info.get('last_activity'),
+                    'message_count': session_info.get('message_count', 0)
+                })
+                
+            return clients
+            
+        except Exception as e:
+            logger.error("Error getting connected clients", error=str(e))
+            return []
+            
+    async def get_status(self) -> Dict[str, Any]:
+        """Obtém status da integração WhatsApp"""
+        try:
+            # Verifica saúde da API
+            health_status = await redis_manager.get('whatsapp:health')
+            
+            # Conta sessões ativas
+            active_sessions = await redis_manager.hlen('whatsapp:active_sessions')
+            
+            # Métricas básicas
+            return {
+                'success': True,
+                'status': health_status or 'unknown',
+                'active_sessions': active_sessions,
+                'api_configured': bool(self.access_token and self.phone_number_id),
+                'webhook_configured': bool(self.webhook_verify_token),
+                'rate_limit_status': 'normal',  # Placeholder
+                'last_health_check': datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error("Error getting WhatsApp status", error=str(e))
+            return {
+                'success': False,
+                'error': str(e),
+                'code': 'INTERNAL_ERROR'
+            }
+            
+    async def configure(self, config_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Configura WhatsApp Business API"""
+        try:
+            # Atualiza configurações
+            if 'access_token' in config_data:
+                self.access_token = config_data['access_token']
+                
+            if 'phone_number_id' in config_data:
+                self.phone_number_id = config_data['phone_number_id']
+                
+            if 'webhook_verify_token' in config_data:
+                self.webhook_verify_token = config_data['webhook_verify_token']
+                
+            # Atualiza headers da sessão
+            if self.session:
+                self.session.headers.update({
+                    'Authorization': f'Bearer {self.access_token}'
+                })
+                
+            # Testa configuração
+            test_result = await self._test_configuration()
+            
+            return {
+                'success': True,
+                'message': 'WhatsApp configurado com sucesso',
+                'test_result': test_result
+            }
+            
+        except Exception as e:
+            logger.error("Error configuring WhatsApp", error=str(e))
+            return {
+                'success': False,
+                'error': str(e),
+                'code': 'INTERNAL_ERROR'
+            }
+            
+    async def process_webhook(self, webhook_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Processa webhook recebido"""
+        return await self.handle_webhook(webhook_data)
+        
+    async def _test_configuration(self) -> Dict[str, Any]:
+        """Testa configuração atual"""
+        try:
+            if not self.access_token or not self.phone_number_id:
+                return {
+                    'success': False,
+                    'error': 'Missing required configuration'
+                }
+                
+            # Testa acesso à API
+            url = f"{self.base_url}/{self.phone_number_id}"
+            async with self.session.get(url) as response:
+                if response.status == 200:
+                    return {
+                        'success': True,
+                        'message': 'Configuration test successful'
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'error': f'API test failed with status {response.status}'
+                    }
+                    
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e)
+            }
         """Processa webhook do WhatsApp"""
         try:
             # Verifica assinatura
