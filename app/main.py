@@ -13,7 +13,11 @@ from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_
 from app.core.config import settings
 from app.core.database import create_tables, db_manager
 from app.core.redis_client import redis_manager
+from app.core.monitoring import monitoring
+from app.core.security_advanced import security_manager, SecurityMiddleware
+from app.services.whatsapp_enterprise import whatsapp_api
 from app.api.routes import api_router
+from app.api.endpoints.dashboard import router as dashboard_router
 from app.websocket.main import websocket_router
 
 # Configurar logging estruturado
@@ -72,6 +76,14 @@ async def lifespan(app: FastAPI):
         await redis_manager.initialize()
         logger.info("Redis initialized")
         
+        # Inicializar WhatsApp Enterprise API
+        await whatsapp_api.initialize()
+        logger.info("WhatsApp Enterprise API initialized")
+        
+        # Inicializar sistema de monitoramento
+        await monitoring.start()
+        logger.info("Advanced monitoring started")
+        
         # Verificar integrações externas
         await check_external_services()
         
@@ -85,6 +97,8 @@ async def lifespan(app: FastAPI):
     finally:
         # Shutdown
         logger.info("Shutting down application")
+        await monitoring.stop()
+        await whatsapp_api.close()
         await db_manager.close()
         await redis_manager.close()
         logger.info("Application shutdown completed")
@@ -261,7 +275,11 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 # Rotas principais
 app.include_router(api_router, prefix="/api/v1")
+app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(websocket_router, prefix="/ws")
+
+# Middleware de segurança
+app.add_middleware(SecurityMiddleware)
 
 
 # Endpoint de health check

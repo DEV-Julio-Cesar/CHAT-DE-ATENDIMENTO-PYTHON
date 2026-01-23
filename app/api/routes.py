@@ -3,6 +3,7 @@ Roteador principal da API
 """
 from fastapi import APIRouter
 from app.api.endpoints import auth, users, conversations, campaigns, whatsapp, dashboard
+from app.api.endpoints.dashboard_functional import router as dashboard_functional_router
 
 api_router = APIRouter()
 
@@ -46,4 +47,10 @@ api_router.include_router(
     dashboard.router,
     prefix="/dashboard",
     tags=["dashboard"]
+)
+
+# Incluir rotas do dashboard funcional
+api_router.include_router(
+    dashboard_functional_router,
+    tags=["dashboard-functional"]
 )

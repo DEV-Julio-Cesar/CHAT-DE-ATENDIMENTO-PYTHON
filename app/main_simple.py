@@ -9,6 +9,9 @@ import os
 # Importar endpoints WhatsApp
 from app.whatsapp_endpoints import router as whatsapp_router
 
+# Importar dashboard funcional
+from app.api.endpoints.dashboard_functional import router as dashboard_functional_router
+
 # Configurações simples
 app = FastAPI(
     title="ISP Customer Support - Dev",
@@ -27,6 +30,9 @@ app.add_middleware(
 
 # Incluir rotas WhatsApp
 app.include_router(whatsapp_router)
+
+# Incluir dashboard funcional
+app.include_router(dashboard_functional_router, prefix="/api/v1")
 
 # Dados em memória para desenvolvimento
 users_db = {
