@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Comandos - Robô de Atendimento</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #667eea;
+            --primary-dark: #5568d3;
+            --secondary-color: #764ba2;
+            --bg-color: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-color: #333333;
+            --text-secondary: #666666;
+            --border-color: #e0e0e0;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        :root.dark-mode {
+            --primary-color: #7c8ff5;
+            --primary-dark: #6b7edb;
+            --secondary-color: #9966cc;
+            --bg-color: #1e1e2e;
+            --bg-secondary: #2d2d3f;
+            --text-color: #e0e0e0;
+            --text-secondary: #b0b0c0;
+            --border-color: #3d3d4f;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: var(--bg-color);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--text-color);
+            margin-bottom: 10px;
+        }
+
+        .header-info {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .theme-toggle {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            color: var(--text-color);
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--bg-color);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .panel h2 {
+            color: var(--text-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-color);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 14px;
+            background: var(--bg-secondary);
+            color: var(--text-color);
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+            width: 100%;
+        }
+
+        .btn-danger:hover {
+            background: #ee5a52;
+        }
+
+        .btn-success {
+            background: #51cf66;
+            color: white;
+            width: 100%;
+        }
+
+        .btn-success:hover {
+            background: #40c057;
+        }
+
+        .btn-small {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .commands-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .command-item {
+            background: var(--bg-secondary);
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid var(--primary-color);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .command-item:hover {
+            background: var(--border-color);
+            transform: translateX(5px);
+        }
+
+        .command-item.active {
+            background: var(--primary-color);
+            color: white;
+            border-left-color: #40c057;
+        }
+
+        .command-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .command-id {
+            font-weight: bold;
+            color: var(--text-color);
+        }
+
+        .command-type {
+            font-size: 12px;
+            background: var(--primary-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 3px;
+        }
+
+        .command-category {
+            font-size: 11px;
+            background: var(--secondary-color);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 5px;
+        }
+
+        .command-status {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: var(--border-color);
+        }
+
+        .command-status.ativo {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .command-status.inativo {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .command-preview {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .search-box input {
+            padding-left: 35px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .category-filter {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .category-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-color);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .category-btn:hover, .category-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .tab {
+            padding: 10px 15px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .keywords-input {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+            flex-wrap: wrap;
+        }
+
+        .keyword-tag {
+            background: var(--primary-color);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .keyword-tag button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .config-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            color: var(--primary-color);
+            padding: 20px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--bg-secondary);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        footer {
+            background: var(--bg-color);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 12px;
+            box-shadow: var(--shadow);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>🤖 Gerenciador de Comandos do Robô</h1>
+                <p class="header-info">Adicione, edite e gerencie as respostas automáticas do seu chatbot</p>
+            </div>
+            <button class="theme-toggle" onclick="toggleDarkMode()" title="Alternar tema">
+                <span id="themeIcon">🌙</span>
+            </button>
+        </header>
+
+        <div id="alerts"></div>
+
+        <div class="main-grid">
+            <!-- Painel Esquerdo: Lista de Comandos -->
+            <div class="panel">
+                <h2>Comandos</h2>
+
+                <div class="stats" id="stats"></div>
+
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Buscar comando..." />
+                </div>
+
+                <div id="categoryFilter" class="category-filter"></div>
+
+                <div class="commands-list" id="commandsList"></div>
+            </div>
+
+            <!-- Painel Direito: Formulário e Detalhes -->
+            <div class="panel">
+                <div class="tabs">
+                    <button class="tab active" onclick="ativarTab(event, 'form')">➕ Novo Comando</button>
+                    <button class="tab" onclick="ativarTab(event, 'settings')">⚙️ Configurações</button>
+                    <button class="tab" onclick="ativarTab(event, 'import')">📥 Importar/Exportar</button>
+                </div>
+
+                <!-- Tab: Novo Comando -->
+                <div id="form" class="tab-content active">
+                    <h2>Criar/Editar Comando</h2>
+
+                    <form id="commandForm">
+                        <div class="form-group">
+                            <label for="commandId">ID do Comando *</label>
+                            <input type="text" id="commandId" placeholder="exemplo_comando" required />
+                            <small style="color: #999; font-size: 12px;">Identificador único (não use espaços)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="commandType">Tipo *</label>
+                            <select id="commandType" required>
+                                <option value="saudacao">Saudação</option>
+                                <option value="informacao">Informação</option>
+                                <option value="problema">Problema</option>
+                                <option value="resposta_gentil">Resposta Gentil</option>
+                                <option value="duvida">Dúvida</option>
+                                <option value="acao">Ação</option>
+                                <option value="generico">Genérico</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="commandCategory">Categoria</label>
+                            <input type="text" id="commandCategory" placeholder="Ex: Suporte, Vendas, FAQ" />
+                            <small style="color: var(--text-secondary); font-size: 12px;">Ajuda a organizar seus comandos</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="commandResponse">Resposta *</label>
+                            <textarea id="commandResponse" placeholder="Digite a resposta que o robô deve dar..." required></textarea>
+                            <small style="color: #999; font-size: 12px;">Você pode usar emojis! 😊</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Palavras-Chave *</label>
+                            <input type="text" id="keywordInput" placeholder="Digite uma palavra-chave e pressione Enter" />
+                            <div class="keywords-input" id="keywordsList"></div>
+                            <small style="color: #999; font-size: 12px;">Palavras que o robô deve reconhecer</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="commandPriority">Prioridade (1-10)</label>
+                            <input type="number" id="commandPriority" min="1" max="10" value="5" />
+                            <small style="color: #999; font-size: 12px;">Comandos com maior prioridade são usados primeiro</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="commandActive" checked />
+                                <span>Comando Ativo</span>
+                            </label>
+                        </div>
+
+                        <div class="button-group">
+                            <button type="submit" class="btn btn-primary">💾 Salvar Comando</button>
+                            <button type="button" class="btn btn-secondary" onclick="limparFormulario()">🔄 Limpar</button>
+                        </div>
+
+                        <button type="button" id="deleteBtn" class="btn btn-danger" style="display: none; margin-top: 10px;">🗑️ Deletar Comando</button>
+                    </form>
+                </div>
+
+                <!-- Tab: Configurações -->
+                <div id="settings" class="tab-content">
+                    <h2>Configurações Globais</h2>
+
+                    <form id="settingsForm">
+                        <div class="config-grid">
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="checkbox" id="useBaseKnowledge" checked />
+                                    <span>Usar Base de Conhecimento</span>
+                                </label>
+                                <small style="color: #999; font-size: 12px;">Ativa/desativa o reconhecimento de comandos</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="checkbox" id="useGemini" checked />
+                                    <span>Usar Gemini AI</span>
+                                </label>
+                                <small style="color: #999; font-size: 12px;">Ativa/desativa a IA para responder</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="checkbox" id="fallbackIA" checked />
+                                    <span>Fallback para IA</span>
+                                </label>
+                                <small style="color: #999; font-size: 12px;">Se comando não encontrado, usa IA</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="minConfidence">Confiança Mínima (%)</label>
+                                <input type="number" id="minConfidence" min="0" max="100" value="70" />
+                                <small style="color: #999; font-size: 12px;">Quanto maior, mais rigoroso</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="responseTime">Tempo Máximo de Resposta (segundos)</label>
+                            <input type="number" id="responseTime" min="5" value="15" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="defaultResponse">Resposta Padrão (não entendi)</label>
+                            <textarea id="defaultResponse" placeholder="Resposta quando nenhum comando é encontrado"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-success" style="width: 100%;">💾 Salvar Configurações</button>
+                    </form>
+                </div>
+
+                <!-- Tab: Importar/Exportar -->
+                <div id="import" class="tab-content">
+                    <h2>Importar/Exportar</h2>
+
+                    <div class="form-group">
+                        <label for="exportData">📥 Exportar Base de Conhecimento</label>
+                        <textarea id="exportData" readonly style="min-height: 200px; font-family: monospace; font-size: 12px;"></textarea>
+                        <button type="button" class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="copiarExport()">📋 Copiar para Área de Transferência</button>
+                    </div>
+
+                    <hr style="margin: 30px 0; border: none; border-top: 2px solid #e0e0e0;">
+
+                    <div class="form-group">
+                        <label for="importData">📤 Importar Base de Conhecimento</label>
+                        <textarea id="importData" placeholder="Cole aqui o JSON da base de conhecimento"></textarea>
+                        <button type="button" class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="importarBase()">📥 Importar</button>
+                    </div>
+
+                    <button type="button" class="btn btn-secondary" style="width: 100%; margin-top: 20px;" onclick="carregarBase()">🔄 Atualizar</button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>🤖 Gerenciador de Comandos v1.0 | Sistema de Atendimento Humanizado</p>
+        </footer>
+    </div>
+
+    <script>
+        let baseConhecimento = null;
+        let baseConhecimentoConfiguracao = null;
+        let comandoEmEdicao = null;
+        let palavrasChave = [];
+        let categoriaFiltro = null;
+
+        // Inicializar
+        window.addEventListener('DOMContentLoaded', () => {
+            inicializarTema();
+            carregarBase();
+            setupEventListeners();
+        });
+
+        function inicializarTema() {
+            const temaSalvo = localStorage.getItem('tema-gerenciador');
+            const preferenciaEscura = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (temaSalvo === 'dark' || (!temaSalvo && preferenciaEscura)) {
+                document.documentElement.classList.add('dark-mode');
+                document.body.classList.add('dark-mode');
+                document.getElementById('themeIcon').textContent = '☀️';
+            }
+        }
+
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const body = document.body;
+            const icon = document.getElementById('themeIcon');
+            
+            html.classList.toggle('dark-mode');
+            body.classList.toggle('dark-mode');
+            
+            const estaDark = html.classList.contains('dark-mode');
+            localStorage.setItem('tema-gerenciador', estaDark ? 'dark' : 'light');
+            icon.textContent = estaDark ? '☀️' : '🌙';
+        }
+
+        function setupEventListeners() {
+            // Formulário de comando
+            document.getElementById('commandForm').addEventListener('submit', salvarComando);
+
+            // Formulário de configurações
+            document.getElementById('settingsForm').addEventListener('submit', salvarConfigurações);
+
+            // Input de palavras-chave
+            document.getElementById('keywordInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    adicionarPalavraChave();
+                }
+            });
+
+            // Busca
+            document.getElementById('searchInput').addEventListener('input', buscarComandos);
+
+            // Delete button
+            document.getElementById('deleteBtn').addEventListener('click', deletarComandoAtual);
+        }
+
+        async function carregarBase() {
+            try {
+                const resposta = await fetch('/api/base-conhecimento');
+                const dados = await resposta.json();
+                
+                // A API retorna um objeto com { comandos, configuracoes }
+                baseConhecimento = dados.comandos || dados;
+                baseConhecimentoConfiguracao = dados.configuracoes;
+
+                atualizarLista();
+                atualizarStats();
+                atualizarExport();
+                carregarConfiguracoes();
+            } catch (erro) {
+                mostrarAlerta('Erro ao carregar base de conhecimento', 'error');
+                console.error(erro);
+            }
+        }
+
+        function atualizarLista() {
+            const lista = document.getElementById('commandsList');
+
+            if (!baseConhecimento || baseConhecimento.length === 0) {
+                lista.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>Nenhum comando criado ainda</p>
+                        <p style="font-size: 12px; margin-top: 10px;">Clique em "Novo Comando" para começar</p>
+                    </div>
+                `;
+                atualizarFiltrosCategoria();
+                return;
+            }
+
+            // Agrupar por categoria
+            const comandosPorCategoria = {};
+            let temSemCategoria = false;
+
+            baseConhecimento.forEach(cmd => {
+                const categoria = cmd.categoria || 'Sem categoria';
+                if (!comandosPorCategoria[categoria]) {
+                    comandosPorCategoria[categoria] = [];
+                }
+                comandosPorCategoria[categoria].push(cmd);
+            });
+
+            let html = '';
+
+            // Renderizar por categoria
+            Object.keys(comandosPorCategoria).sort().forEach(categoria => {
+                const comandos = comandosPorCategoria[categoria];
+                const categoriaDeFiltro = categoriaFiltro || 'all';
+                
+                if (categoriaDeFiltro !== 'all' && categoria !== categoriaFiltro) {
+                    return;
+                }
+
+                // Cabeçalho da categoria
+                html += `<div style="margin: 15px 0 10px 0; font-weight: bold; color: var(--primary-color); padding-left: 10px;">📁 ${categoria}</div>`;
+
+                // Comandos da categoria
+                html += comandos
+                    .sort((a, b) => b.prioridade - a.prioridade)
+                    .map(cmd => `
+                        <div class="command-item" onclick="editarComando('${cmd.id}')">
+                            <div class="command-item-header">
+                                <span class="command-id">${cmd.id}</span>
+                                <div>
+                                    <span class="command-type">${cmd.tipo}</span>
+                                    ${cmd.categoria ? `<span class="command-category">${cmd.categoria}</span>` : ''}
+                                    <span class="command-status ${cmd.ativo ? 'ativo' : 'inativo'}">
+                                        ${cmd.ativo ? '✓ Ativo' : '✗ Inativo'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="command-preview">${cmd.resposta.substring(0, 80)}...</div>
+                        </div>
+                    `).join('');
+            });
+
+            lista.innerHTML = html;
+            atualizarFiltrosCategoria();
+        }
+
+        function atualizarFiltrosCategoria() {
+            if (!baseConhecimento) return;
+
+            const categorias = new Set();
+            baseConhecimento.forEach(cmd => {
+                if (cmd.categoria) categorias.add(cmd.categoria);
+            });
+
+            const filterContainer = document.getElementById('categoryFilter');
+            let html = '<button class="category-btn ' + (categoriaFiltro === null ? 'active' : '') + '" onclick="filtrarCategoria(null)">Tudo</button>';
+            
+            Array.from(categorias).sort().forEach(categoria => {
+                html += `<button class="category-btn ${categoriaFiltro === categoria ? 'active' : ''}" onclick="filtrarCategoria('${categoria}')">${categoria}</button>`;
+            });
+
+            filterContainer.innerHTML = html;
+        }
+
+        function filtrarCategoria(categoria) {
+            categoriaFiltro = categoria;
+            atualizarLista();
+        }
+
+        function atualizarStats() {
+            if (!baseConhecimento) return;
+
+            const total = baseConhecimento.length;
+            const ativos = baseConhecimento.filter(c => c.ativo).length;
+            const tipos = {};
+
+            baseConhecimento.forEach(cmd => {
+                tipos[cmd.tipo] = (tipos[cmd.tipo] || 0) + 1;
+            });
+
+            const statsHtml = `
+                <div class="stat-card">
+                    <div class="stat-number">${total}</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${ativos}</div>
+                    <div class="stat-label">Ativos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${total - ativos}</div>
+                    <div class="stat-label">Inativos</div>
+                </div>
+            `;
+
+            document.getElementById('stats').innerHTML = statsHtml;
+        }
+
+        function editarComando(id) {
+            comandoEmEdicao = baseConhecimento.find(cmd => cmd.id === id);
+
+            if (!comandoEmEdicao) return;
+
+            document.getElementById('commandId').value = comandoEmEdicao.id;
+            document.getElementById('commandId').disabled = true;
+            document.getElementById('commandType').value = comandoEmEdicao.tipo;
+            document.getElementById('commandCategory').value = comandoEmEdicao.categoria || '';
+            document.getElementById('commandResponse').value = comandoEmEdicao.resposta;
+            document.getElementById('commandPriority').value = comandoEmEdicao.prioridade;
+            document.getElementById('commandActive').checked = comandoEmEdicao.ativo;
+
+            palavrasChave = [...comandoEmEdicao.palavras_chave];
+            atualizarKeywordsList();
+
+            document.getElementById('deleteBtn').style.display = 'block';
+            document.querySelector('form button[type="submit"]').textContent = '✏️ Atualizar Comando';
+
+            ativarTab(null, 'form');
+            document.getElementById('commandForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function limparFormulario() {
+            document.getElementById('commandForm').reset();
+            document.getElementById('commandId').disabled = false;
+            document.getElementById('commandCategory').value = '';
+            document.getElementById('commandPriority').value = '5';
+            document.getElementById('commandActive').checked = true;
+            document.getElementById('deleteBtn').style.display = 'none';
+            document.querySelector('form button[type="submit"]').textContent = '💾 Salvar Comando';
+            palavrasChave = [];
+            atualizarKeywordsList();
+            comandoEmEdicao = null;
+        }
+
+        function adicionarPalavraChave() {
+            const input = document.getElementById('keywordInput');
+            const palavra = input.value.trim().toLowerCase();
+
+            if (!palavra) return;
+            if (palavrasChave.includes(palavra)) {
+                mostrarAlerta('Palavra-chave já adicionada', 'error');
+                return;
+            }
+
+            palavrasChave.push(palavra);
+            input.value = '';
+            atualizarKeywordsList();
+        }
+
+        function removerPalavraChave(palavra) {
+            palavrasChave = palavrasChave.filter(p => p !== palavra);
+            atualizarKeywordsList();
+        }
+
+        function atualizarKeywordsList() {
+            const lista = document.getElementById('keywordsList');
+            lista.innerHTML = palavrasChave
+                .map(p => `
+                    <div class="keyword-tag">
+                        ${p}
+                        <button type="button" onclick="removerPalavraChave('${p}')">✕</button>
+                    </div>
+                `).join('');
+        }
+
+        async function salvarComando(e) {
+            e.preventDefault();
+
+            if (palavrasChave.length === 0) {
+                mostrarAlerta('Adicione pelo menos uma palavra-chave', 'error');
+                return;
+            }
+
+            const comando = {
+                id: document.getElementById('commandId').value,
+                tipo: document.getElementById('commandType').value,
+                categoria: document.getElementById('commandCategory').value,
+                resposta: document.getElementById('commandResponse').value,
+                prioridade: parseInt(document.getElementById('commandPriority').value),
+                ativo: document.getElementById('commandActive').checked,
+                palavras_chave: palavrasChave
+            };
+
+            try {
+                const url = comandoEmEdicao
+                    ? `/api/base-conhecimento/${comando.id}`
+                    : '/api/base-conhecimento';
+
+                const metodo = comandoEmEdicao ? 'PUT' : 'POST';
+
+                const resposta = await fetch(url, {
+                    method: metodo,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(comando)
+                });
+
+                if (resposta.ok) {
+                    mostrarAlerta(
+                        comandoEmEdicao ? '✏️ Comando atualizado!' : '✅ Comando criado!',
+                        'success'
+                    );
+                    carregarBase();
+                    limparFormulario();
+                } else {
+                    const erro = await resposta.json();
+                    mostrarAlerta(erro.message || 'Erro ao salvar comando', 'error');
+                }
+            } catch (erro) {
+                mostrarAlerta('Erro ao salvar comando', 'error');
+                console.error(erro);
+            }
+        }
+
+        async function deletarComandoAtual() {
+            if (!comandoEmEdicao) return;
+
+            if (!confirm(`Deseja deletar o comando "${comandoEmEdicao.id}"?`)) {
+                return;
+            }
+
+            try {
+                const resposta = await fetch(`/api/base-conhecimento/${comandoEmEdicao.id}`, {
+                    method: 'DELETE'
+                });
+
+                if (resposta.ok) {
+                    mostrarAlerta('🗑️ Comando deletado!', 'success');
+                    carregarBase();
+                    limparFormulario();
+                } else {
+                    mostrarAlerta('Erro ao deletar comando', 'error');
+                }
+            } catch (erro) {
+                mostrarAlerta('Erro ao deletar comando', 'error');
+                console.error(erro);
+            }
+        }
+
+        function buscarComandos() {
+            const termo = document.getElementById('searchInput').value.toLowerCase();
+            const lista = document.getElementById('commandsList');
+
+            if (!termo) {
+                atualizarLista();
+                return;
+            }
+
+            const filtrados = baseConhecimento.filter(cmd =>
+                cmd.id.includes(termo) ||
+                cmd.resposta.toLowerCase().includes(termo) ||
+                cmd.palavras_chave.some(p => p.includes(termo))
+            );
+
+            if (filtrados.length === 0) {
+                lista.innerHTML = `<div class="empty-state"><p>Nenhum comando encontrado</p></div>`;
+                return;
+            }
+
+            lista.innerHTML = filtrados
+                .map(cmd => `
+                    <div class="command-item" onclick="editarComando('${cmd.id}')">
+                        <div class="command-item-header">
+                            <span class="command-id">${cmd.id}</span>
+                            <span class="command-type">${cmd.tipo}</span>
+                        </div>
+                        <div class="command-preview">${cmd.resposta.substring(0, 80)}...</div>
+                    </div>
+                `).join('');
+        }
+
+        async function salvarConfigurações(e) {
+            e.preventDefault();
+
+            const configs = {
+                usar_base_conhecimento: document.getElementById('useBaseKnowledge').checked,
+                usar_ia_gemini: document.getElementById('useGemini').checked,
+                fazer_fallback_ia: document.getElementById('fallbackIA').checked,
+                minimo_confianca: parseInt(document.getElementById('minConfidence').value),
+                tempo_resposta_segundos: parseInt(document.getElementById('responseTime').value),
+                resposta_padrao_nao_entendi: document.getElementById('defaultResponse').value
+            };
+
+            try {
+                const resposta = await fetch('/api/base-conhecimento/configuracoes', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(configs)
+                });
+
+                if (resposta.ok) {
+                    mostrarAlerta('⚙️ Configurações salvas!', 'success');
+                } else {
+                    mostrarAlerta('Erro ao salvar configurações', 'error');
+                }
+            } catch (erro) {
+                mostrarAlerta('Erro ao salvar configurações', 'error');
+                console.error(erro);
+            }
+        }
+
+        function carregarConfiguracoes() {
+            if (!baseConhecimentoConfiguracao) return;
+
+            const config = baseConhecimentoConfiguracao;
+            document.getElementById('useBaseKnowledge').checked = config.usar_base_conhecimento !== false;
+            document.getElementById('useGemini').checked = config.usar_ia_gemini !== false;
+            document.getElementById('fallbackIA').checked = config.fazer_fallback_ia !== false;
+            document.getElementById('minConfidence').value = config.minimo_confianca || 70;
+            document.getElementById('responseTime').value = config.tempo_resposta_segundos || 15;
+            document.getElementById('defaultResponse').value = config.resposta_padrao_nao_entendi || '';
+        }
+
+        function atualizarExport() {
+            if (!baseConhecimento) return;
+            document.getElementById('exportData').value = JSON.stringify(baseConhecimento, null, 2);
+        }
+
+        function copiarExport() {
+            const textarea = document.getElementById('exportData');
+            textarea.select();
+            document.execCommand('copy');
+            mostrarAlerta('📋 Copiado para área de transferência!', 'success');
+        }
+
+        async function importarBase() {
+            const json = document.getElementById('importData').value.trim();
+
+            if (!json) {
+                mostrarAlerta('Cole o JSON para importar', 'error');
+                return;
+            }
+
+            try {
+                const resposta = await fetch('/api/base-conhecimento/importar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: json
+                });
+
+                if (resposta.ok) {
+                    mostrarAlerta('✅ Base importada com sucesso!', 'success');
+                    document.getElementById('importData').value = '';
+                    carregarBase();
+                } else {
+                    const erro = await resposta.json();
+                    mostrarAlerta(erro.message || 'Erro ao importar', 'error');
+                }
+            } catch (erro) {
+                mostrarAlerta('Erro ao importar base', 'error');
+                console.error(erro);
+            }
+        }
+
+        function ativarTab(event, tabName) {
+            // Desativar todos os tabs
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            // Ativar tab selecionado
+            if (event) {
+                event.target.classList.add('active');
+            } else {
+                document.querySelector(`[onclick*="'${tabName}'"]`).classList.add('active');
+            }
+
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function mostrarAlerta(mensagem, tipo) {
+            const alertsDiv = document.getElementById('alerts');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${tipo}`;
+            alert.textContent = mensagem;
+
+            alertsDiv.appendChild(alert);
+
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

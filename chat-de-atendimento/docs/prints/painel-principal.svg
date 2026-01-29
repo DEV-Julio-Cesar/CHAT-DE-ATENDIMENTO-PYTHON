@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+  <title id="title">Painel Principal - Layout</title>
+  <desc id="desc">Wireframe simplificado destacando as seções principais da tela inicial do atendente.</desc>
+  <style>
+    text { font-family: 'Segoe UI', sans-serif; fill: #0f172a; }
+    .title { font-size: 18px; font-weight: 600; }
+    .caption { font-size: 14px; }
+    .card { fill: #fff; stroke: #cbd5f5; stroke-width: 2; }
+    .header { fill: #0f172a; }
+    .header text { fill: #fff; font-size: 16px; font-weight: 600; }
+    .sidebar { fill: #e0ecff; }
+    .highlight { fill: #f1f5f9; stroke: #94a3b8; stroke-dasharray: 6 4; }
+  </style>
+  <rect width="960" height="540" fill="#f8fafc" rx="24" />
+
+  <rect class="header" x="40" y="40" width="880" height="60" rx="16" />
+  <text x="80" y="78" class="title" fill="#fff">Painel do Operador</text>
+  <text x="360" y="78" fill="#94a3b8" font-size="14">Status do pool · Alertas · Botão "Iniciar Campanha"</text>
+
+  <rect class="sidebar" x="40" y="120" width="180" height="360" rx="16" />
+  <text x="60" y="150" class="title">Menu</text>
+  <text x="60" y="190" class="caption">• Dashboard</text>
+  <text x="60" y="220" class="caption">• Filas</text>
+  <text x="60" y="250" class="caption">• Campanhas</text>
+  <text x="60" y="280" class="caption">• Configurações</text>
+  <text x="60" y="310" class="caption">• Chat Interno</text>
+  <text x="60" y="340" class="caption">• Relatórios</text>
+
+  <rect class="card" x="240" y="120" width="300" height="160" rx="20" />
+  <text x="260" y="150" class="title">Filas em Tempo Real</text>
+  <text x="260" y="190" class="caption">Automação · Espera · Atendimento · Encerrados</text>
+  <text x="260" y="215" class="caption">SLA, Tempo médio e Clientes em foco</text>
+
+  <rect class="card" x="570" y="120" width="350" height="160" rx="20" />
+  <text x="590" y="150" class="title">Mensagens Recentes</text>
+  <text x="590" y="190" class="caption">Resumo dos últimos chats e status do bot</text>
+  <text x="590" y="215" class="caption">Alertas de desconexão e filas prioritárias</text>
+
+  <rect class="card" x="240" y="310" width="330" height="170" rx="20" />
+  <text x="260" y="340" class="title">Chat do Cliente</text>
+  <text x="260" y="370" class="caption">Histórico, tags rápidas, anexos, IA humanizada</text>
+  <rect class="highlight" x="260" y="380" width="290" height="70" rx="12" />
+  <text x="275" y="410" class="caption">Entrada livre para mensagem + sugestões IA</text>
+
+  <rect class="card" x="600" y="310" width="320" height="170" rx="20" />
+  <text x="620" y="340" class="title">Chat Interno</text>
+  <text x="620" y="370" class="caption">Troca com outros atendentes e supervisores</text>
+  <text x="620" y="400" class="caption">Links rápidos para automações e campanhas</text>
+</svg>

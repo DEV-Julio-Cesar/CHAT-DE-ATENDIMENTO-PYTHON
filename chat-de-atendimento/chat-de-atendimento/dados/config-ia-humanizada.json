@@ -1,0 +1,131 @@
+{
+  "iaHumanizada": {
+    "ativo": true,
+    "configuracoes": {
+      "empresa": "Seu Nome de Empresa",
+      "servico": "Atendimento ao Cliente",
+      "timezone": "America/Sao_Paulo"
+    },
+    "perfisPadrao": {
+      "atencioso": {
+        "tom": "atencioso e cuidadoso",
+        "usarEmojis": true,
+        "reconhecerEmocoes": true
+      },
+      "profissional": {
+        "tom": "profissional mas acessível",
+        "usarEmojis": false,
+        "serEstruturado": true
+      },
+      "amigavel": {
+        "tom": "amigável e descontraído",
+        "usarEmojis": true,
+        "serNatural": true
+      },
+      "solucao": {
+        "tom": "orientado para solução",
+        "passoAPasso": true,
+        "oferecerOpcoes": true
+      }
+    },
+    "deteccaoEmocao": {
+      "ativo": true,
+      "palavrasChavesFrustrado": [
+        "não funciona",
+        "problema",
+        "erro",
+        "chato",
+        "decepcionado"
+      ],
+      "palavrasChavesUrgente": [
+        "urgente",
+        "rápido",
+        "já",
+        "agora",
+        "preciso",
+        "emergência"
+      ],
+      "palavrasChavesConfuso": [
+        "não entendi",
+        "confuso",
+        "como funciona",
+        "não sei"
+      ],
+      "palavrasChavesFeliz": [
+        "legal",
+        "ótimo",
+        "adorei",
+        "perfeito",
+        "obrigado"
+      ]
+    },
+    "historico": {
+      "ativo": true,
+      "limiteMensagens": 10,
+      "tempo_expiracao_minutos": 1440,
+      "armazenarLocalmente": true
+    },
+    "respostasPadrao": {
+      "erroGemini": "Desculpe, estou tendo dificuldades no momento. Um atendente irá ajudá-lo em breve!",
+      "transferencia": "Um especialista irá assumir sua conversa agora!",
+      "foraHorario": "Estamos fora do horário de atendimento. Retornaremos em breve!"
+    },
+    "limites": {
+      "tamanhoMaximoResposta": 4,
+      "paragrafoMaximo": true,
+      "tempoEsperaDados": 15000,
+      "tentativasRequisicao": 3
+    },
+    "recursosPorTipo": {
+      "saudacao": {
+        "perfil": "amigavel",
+        "reconhecerPrimeiraVez": true,
+        "ofrecerAjuda": true
+      },
+      "duvida": {
+        "perfil": "profissional",
+        "serClaro": true,
+        "darExemplos": true
+      },
+      "problema": {
+        "perfil": "solucao",
+        "diagnosticar": true,
+        "historicoDeTentativas": true
+      },
+      "insatisfacao": {
+        "perfil": "atencioso",
+        "reconhecerFrustacao": true,
+        "pedirDesculpas": true
+      },
+      "feedback": {
+        "perfil": "amigavel",
+        "agradecerGenuino": true,
+        "pedirMais": true
+      },
+      "oferta": {
+        "perfil": "profissional",
+        "naoAgressivo": true,
+        "mostrarValor": true
+      }
+    },
+    "mensagensPersonalizadas": {
+      "boasVindas": "Olá! Bem-vindo ao nosso atendimento. Como posso ajudá-lo?",
+      "primeira_interacao": "Oi {nome}! Que legal conversar com você! 😊 Em que posso ajudá-lo hoje?",
+      "problema_detectado": "Entendo sua situação. Deixa que eu descubro uma solução pra você!",
+      "cliente_frustrado": "Sinto muito pelos problemas. Vou fazer tudo que está ao meu alcance para resolver isso!",
+      "transferencia_humana": "Um especialista irá conversar com você agora para resolver melhor sua situação!"
+    },
+    "seguranca": {
+      "validarEntrada": true,
+      "limitarTamanoMensagem": true,
+      "tamanhoMaximoCaracteres": 2000,
+      "filtrarPalavrasNegativas": false
+    },
+    "logging": {
+      "ativo": true,
+      "nivelDetalhamento": "info",
+      "registrarErros": true,
+      "registrarSucesso": false
+    }
+  }
+}

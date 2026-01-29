@@ -1,0 +1,16 @@
+{
+  "chatId": "39123561746615@lid",
+  "mensagens": [
+    {
+      "id": "A50F727DFDCA307AD032709F22337F83",
+      "timestamp": 1768354863000,
+      "from": "39123561746615@lid",
+      "to": "558488986845@c.us",
+      "body": "Oi",
+      "type": "chat",
+      "fromMe": false,
+      "hasMedia": false,
+      "mediaUrl": null
+    }
+  ]
+}

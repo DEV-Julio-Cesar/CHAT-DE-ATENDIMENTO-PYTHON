@@ -1,0 +1,16 @@
+{
+  "chatId": "558494980779@c.us",
+  "mensagens": [
+    {
+      "id": "3EB063CB1AF66D87CFD7",
+      "timestamp": 1768212854000,
+      "from": "558494980779@c.us",
+      "to": "558488986845@c.us",
+      "body": "",
+      "type": "notification_template",
+      "fromMe": false,
+      "hasMedia": false,
+      "mediaUrl": null
+    }
+  ]
+}
