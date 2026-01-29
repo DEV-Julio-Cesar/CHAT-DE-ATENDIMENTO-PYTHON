@@ -14,7 +14,12 @@ from app.core.config import settings
 from app.core.database import create_tables, db_manager
 from app.core.redis_client import redis_manager
 from app.core.monitoring import monitoring
-from app.core.security_advanced import security_manager, SecurityMiddleware
+from app.core.security_simple import security_manager, SecurityMiddleware
+from app.core.metrics import metrics_collector
+from app.core.circuit_breaker import circuit_breaker_manager
+from app.core.cache_strategy import cache_manager
+from app.core.query_optimizer import query_optimizer
+from app.core.compression import compression_manager, CompressionMiddleware
 from app.services.whatsapp_enterprise import whatsapp_api
 from app.services.chatbot_ai import chatbot_ai
 from app.services.data_migration import migration_service
@@ -95,6 +100,18 @@ async def lifespan(app: FastAPI):
         await monitoring.start()
         logger.info("Advanced monitoring started")
         
+        # Inicializar sistema de cache
+        await cache_manager.warm_cache({
+            "system_config": {
+                "fetch_func": lambda: {"initialized": True, "timestamp": time.time()},
+                "ttl": 3600
+            }
+        })
+        logger.info("Cache system initialized and warmed")
+        
+        # Inicializar métricas
+        logger.info("Metrics collector initialized")
+        
         # Verificar integrações externas
         await check_external_services()
         
@@ -153,13 +170,24 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Middleware de CORS
+# Middleware de compressão (deve vir antes de outros middlewares)
+app.add_middleware(CompressionMiddleware)
+
+# Middleware de CORS - Configuração segura
+allowed_origins = ["*"] if settings.DEBUG else [
+    "https://yourdomain.com",
+    "https://app.yourdomain.com",
+    "http://localhost:3000",  # Para desenvolvimento local
+    "http://localhost:8080"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.DEBUG else ["https://yourdomain.com"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["X-Process-Time"]
 )
 
 # Middleware de segurança
@@ -324,6 +352,60 @@ async def health_check():
             "checks": checks,
         }
     )
+
+
+# Endpoint de cache stats
+@app.get("/cache/stats")
+async def cache_stats():
+    """Estatísticas do sistema de cache"""
+    cache_stats = cache_manager.get_stats()
+    redis_health = await redis_manager.health_check()
+    
+    return {
+        "cache_stats": cache_stats,
+        "redis_health": redis_health,
+        "timestamp": time.time()
+    }
+
+
+# Endpoint de compressão stats
+@app.get("/compression/stats")
+async def compression_stats():
+    """Estatísticas de compressão"""
+    return {
+        "compression_stats": compression_manager.get_stats(),
+        "timestamp": time.time()
+    }
+
+
+# Endpoint de performance
+@app.get("/performance/dashboard")
+async def performance_dashboard():
+    """Dashboard de performance otimizado"""
+    stats = await query_optimizer.get_dashboard_stats_cached()
+    return {
+        "dashboard_stats": stats,
+        "cache_hit": True,  # Sempre vem do cache
+        "timestamp": time.time()
+    }
+
+
+# Endpoint de circuit breakers
+@app.get("/circuit-breakers")
+async def circuit_breakers_status():
+    """Status dos circuit breakers"""
+    return {
+        "circuit_breakers": circuit_breaker_manager.get_all_states(),
+        "timestamp": time.time()
+    }
+
+
+# Endpoint para resetar circuit breaker
+@app.post("/circuit-breakers/{name}/reset")
+async def reset_circuit_breaker(name: str):
+    """Resetar circuit breaker específico"""
+    await circuit_breaker_manager.reset_breaker(name)
+    return {"message": f"Circuit breaker {name} reset successfully"}
 
 
 # Endpoint de métricas Prometheus

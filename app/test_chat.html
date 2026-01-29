@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Chat WhatsApp</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: #667eea; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .conversations { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .conversation-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .conversation-item:hover { background: #f5f5f5; }
+        .status-waiting { color: #e53e3e; }
+        .status-assigned { color: #d69e2e; }
+        .status-automation { color: #38a169; }
+        .btn { padding: 8px 16px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-success { background: #48bb78; color: white; }
+        .btn-warning { background: #ed8936; color: white; }
+        .btn-danger { background: #f56565; color: white; }
+        .messages { background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 20px; min-height: 300px; }
+        .message { margin-bottom: 10px; padding: 8px; border-radius: 4px; }
+        .message.customer { background: #e6f3ff; }
+        .message.agent { background: #f0fff4; }
+        .message.bot { background: #fff5e6; }
+        .message.system { background: #f5f5f5; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 ISP Customer Support - Chat WhatsApp</h1>
+            <p>Sistema de Chat com 3 Etapas: ESPERA → ATRIBUÍDO → AUTOMAÇÃO</p>
+        </div>
+
+        <div class="conversations">
+            <h2>Conversas</h2>
+            <div id="conversations-list">
+                <p>Carregando conversas...</p>
+            </div>
+            <button class="btn btn-primary" onclick="createTestConversation()">Nova Conversa</button>
+            <button class="btn btn-success" onclick="loadConversations()">Atualizar</button>
+        </div>
+
+        <div class="messages">
+            <h2>Mensagens</h2>
+            <div id="messages-list">
+                <p>Selecione uma conversa para ver as mensagens</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <input type="text" id="message-input" placeholder="Digite uma mensagem..." style="width: 70%; padding: 8px;">
+            <button class="btn btn-primary" onclick="sendMessage()">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        let currentConversation = null;
+
+        // Carregar conversas
+        async function loadConversations() {
+            try {
+                const response = await fetch('/api/conversations');
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderConversations(data.data);
+                } else {
+                    document.getElementById('conversations-list').innerHTML = '<p>Erro ao carregar conversas</p>';
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('conversations-list').innerHTML = '<p>Erro de conexão</p>';
+            }
+        }
+
+        // Renderizar conversas
+        function renderConversations(conversations) {
+            const container = document.getElementById('conversations-list');
+            
+            if (conversations.length === 0) {
+                container.innerHTML = '<p>Nenhuma conversa encontrada</p>';
+                return;
+            }
+
+            let html = '';
+            conversations.forEach(conv => {
+                const statusClass = `status-${conv.status}`;
+                const statusLabel = getStatusLabel(conv.status);
+                
+                html += `
+                    <div class="conversation-item" onclick="selectConversation('${conv.id}')">
+                        <strong>${conv.customer_name}</strong>
+                        <span class="${statusClass}">[${statusLabel}]</span>
+                        <br>
+                        <small>${conv.last_message || 'Sem mensagens'}</small>
+                        <div style="margin-top: 5px;">
+                            ${getActionButtons(conv)}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Obter label do status
+        function getStatusLabel(status) {
+            const labels = {
+                'waiting': 'Espera',
+                'assigned': 'Atribuído',
+                'automation': 'Automação',
+                'closed': 'Encerrado'
+            };
+            return labels[status] || status;
+        }
+
+        // Obter botões de ação
+        function getActionButtons(conv) {
+            let buttons = '';
+            
+            switch (conv.status) {
+                case 'waiting':
+                    buttons = `<button class="btn btn-primary" onclick="assignConversation('${conv.id}')">Atribuir</button>`;
+                    break;
+                case 'assigned':
+                    buttons = `
+                        <button class="btn btn-success" onclick="startAutomation('${conv.id}')">Automação</button>
+                    `;
+                    break;
+                case 'automation':
+                    buttons = `<button class="btn btn-primary" onclick="takeOverConversation('${conv.id}')">Assumir</button>`;
+                    break;
+            }
+            
+            if (conv.status !== 'closed') {
+                buttons += ` <button class="btn btn-danger" onclick="closeConversation('${conv.id}')">Encerrar</button>`;
+            }
+            
+            return buttons;
+        }
+
+        // Selecionar conversa
+        async function selectConversation(conversationId) {
+            currentConversation = conversationId;
+            await loadMessages(conversationId);
+        }
+
+        // Carregar mensagens
+        async function loadMessages(conversationId) {
+            try {
+                const response = await fetch(`/api/conversations/${conversationId}/messages`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderMessages(data.messages);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar mensagens:', error);
+            }
+        }
+
+        // Renderizar mensagens
+        function renderMessages(messages) {
+            const container = document.getElementById('messages-list');
+            
+            if (messages.length === 0) {
+                container.innerHTML = '<p>Nenhuma mensagem</p>';
+                return;
+            }
+
+            let html = '';
+            messages.forEach(msg => {
+                const time = new Date(msg.created_at).toLocaleTimeString();
+                html += `
+                    <div class="message ${msg.sender_type}">
+                        <strong>${msg.sender_type.toUpperCase()}</strong> (${time}):
+                        ${msg.content}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Ações das conversas
+        async function assignConversation(id) {
+            await fetch(`/api/conversations/${id}/assign`, { method: 'POST' });
+            loadConversations();
+        }
+
+        async function startAutomation(id) {
+            await fetch(`/api/conversations/${id}/automate`, { method: 'POST' });
+            loadConversations();
+        }
+
+        async function takeOverConversation(id) {
+            await fetch(`/api/conversations/${id}/takeover`, { method: 'POST' });
+            loadConversations();
+        }
+
+        async function closeConversation(id) {
+            if (confirm('Encerrar conversa?')) {
+                await fetch(`/api/conversations/${id}/close`, { method: 'POST' });
+                loadConversations();
+            }
+        }
+
+        // Criar conversa de teste
+        async function createTestConversation() {
+            const name = prompt('Nome do cliente:') || 'Cliente Teste';
+            const phone = prompt('Telefone:') || '+5511999999999';
+            const message = prompt('Mensagem inicial:') || 'Olá, preciso de ajuda';
+            
+            try {
+                await fetch('/api/conversations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        customer_name: name,
+                        customer_phone: phone,
+                        initial_message: message
+                    })
+                });
+                loadConversations();
+            } catch (error) {
+                alert('Erro ao criar conversa');
+            }
+        }
+
+        // Enviar mensagem
+        async function sendMessage() {
+            if (!currentConversation) {
+                alert('Selecione uma conversa primeiro');
+                return;
+            }
+
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            try {
+                await fetch(`/api/conversations/${currentConversation}/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: message })
+                });
+                
+                input.value = '';
+                loadMessages(currentConversation);
+                loadConversations();
+            } catch (error) {
+                alert('Erro ao enviar mensagem');
+            }
+        }
+
+        // Carregar conversas ao iniciar
+        loadConversations();
+    </script>
+</body>
+</html>

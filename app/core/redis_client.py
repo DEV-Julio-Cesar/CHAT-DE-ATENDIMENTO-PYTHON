@@ -1,68 +1,152 @@
 """
-Cliente Redis para cache distribuído e sessões
+Cliente Redis Avançado com Connection Pooling Otimizado
 """
 import redis.asyncio as redis
 from redis.asyncio.cluster import RedisCluster
+from redis.asyncio.connection import ConnectionPool
 import structlog
 import json
+import asyncio
 from typing import Any, Optional, Union, Dict, List
 from datetime import timedelta
+import time
 
-from app.core.config import settings, get_redis_config
+from .config import settings, get_redis_config
 
 logger = structlog.get_logger(__name__)
 
 
-class RedisManager:
-    """Gerenciador de conexões Redis com suporte a cluster"""
+class AdvancedRedisManager:
+    """Gerenciador Redis com connection pooling avançado"""
     
     def __init__(self):
         self.client: Optional[Union[redis.Redis, RedisCluster]] = None
+        self.pool: Optional[ConnectionPool] = None
         self._is_cluster = bool(settings.REDIS_CLUSTER_NODES)
+        self._connection_stats = {
+            "total_connections": 0,
+            "active_connections": 0,
+            "failed_connections": 0,
+            "pool_hits": 0,
+            "pool_misses": 0
+        }
     
     async def initialize(self):
-        """Inicializar conexão Redis"""
+        """Inicializar conexão Redis com pool otimizado"""
         try:
             config = get_redis_config()
             
             if self._is_cluster:
-                self.client = RedisCluster(**config)
+                # Configuração para cluster Redis
+                self.client = RedisCluster(
+                    **config,
+                    max_connections=50,  # Pool maior para cluster
+                    retry_on_timeout=True,
+                    retry_on_error=[redis.ConnectionError, redis.TimeoutError],
+                    health_check_interval=30
+                )
             else:
-                self.client = redis.from_url(**config)
+                # Pool de conexões otimizado para instância única
+                self.pool = ConnectionPool.from_url(
+                    config["url"],
+                    max_connections=30,      # Pool de 30 conexões
+                    retry_on_timeout=True,
+                    socket_keepalive=True,
+                    socket_keepalive_options={
+                        1: 1,  # TCP_KEEPIDLE
+                        2: 3,  # TCP_KEEPINTVL  
+                        3: 5,  # TCP_KEEPCNT
+                    },
+                    health_check_interval=30,
+                    decode_responses=True
+                )
+                
+                self.client = redis.Redis(
+                    connection_pool=self.pool,
+                    socket_connect_timeout=5,
+                    socket_timeout=5,
+                    retry_on_timeout=True,
+                    retry_on_error=[redis.ConnectionError, redis.TimeoutError]
+                )
             
             # Testar conexão
             await self.client.ping()
-            logger.info("Redis connection established", is_cluster=self._is_cluster)
+            logger.info("Advanced Redis connection established", 
+                       is_cluster=self._is_cluster,
+                       pool_size=30 if not self._is_cluster else 50)
             
         except Exception as e:
             logger.error("Failed to connect to Redis", error=str(e))
             raise
     
     async def close(self):
-        """Fechar conexão Redis"""
+        """Fechar conexões Redis"""
         if self.client:
             await self.client.close()
-            logger.info("Redis connection closed")
+        if self.pool:
+            await self.pool.disconnect()
+        logger.info("Redis connections closed")
     
-    async def health_check(self) -> bool:
-        """Verificar se Redis está acessível"""
+    async def health_check(self) -> Dict[str, Any]:
+        """Verificação de saúde avançada"""
         try:
-            if self.client:
-                await self.client.ping()
-                return True
-            return False
+            start_time = time.time()
+            
+            # Ping básico
+            ping_result = await self.client.ping()
+            ping_time = time.time() - start_time
+            
+            # Informações do pool
+            pool_info = {}
+            if self.pool:
+                pool_info = {
+                    "created_connections": self.pool.created_connections,
+                    "available_connections": len(self.pool._available_connections),
+                    "in_use_connections": len(self.pool._in_use_connections)
+                }
+            
+            # Informações do servidor Redis
+            info = await self.client.info()
+            
+            return {
+                "status": "healthy" if ping_result else "unhealthy",
+                "ping_time_ms": round(ping_time * 1000, 2),
+                "pool_info": pool_info,
+                "server_info": {
+                    "redis_version": info.get("redis_version"),
+                    "connected_clients": info.get("connected_clients"),
+                    "used_memory_human": info.get("used_memory_human"),
+                    "keyspace_hits": info.get("keyspace_hits", 0),
+                    "keyspace_misses": info.get("keyspace_misses", 0)
+                },
+                "connection_stats": self._connection_stats
+            }
+            
         except Exception as e:
             logger.error("Redis health check failed", error=str(e))
-            return False
+            return {
+                "status": "unhealthy",
+                "error": str(e),
+                "connection_stats": self._connection_stats
+            }
     
-    # Operações básicas
+    # Operações básicas otimizadas
     async def get(self, key: str) -> Optional[str]:
-        """Obter valor por chave"""
-        try:
-            return await self.client.get(key)
-        except Exception as e:
-            logger.error("Redis GET failed", key=key, error=str(e))
-            return None
+        """Obter valor por chave com retry automático"""
+        for attempt in range(3):  # 3 tentativas
+            try:
+                result = await self.client.get(key)
+                self._connection_stats["pool_hits"] += 1
+                return result
+            except (redis.ConnectionError, redis.TimeoutError) as e:
+                self._connection_stats["pool_misses"] += 1
+                if attempt == 2:  # Última tentativa
+                    logger.error("Redis GET failed after retries", key=key, error=str(e))
+                    return None
+                await asyncio.sleep(0.1 * (attempt + 1))  # Backoff exponencial
+            except Exception as e:
+                logger.error("Redis GET failed", key=key, error=str(e))
+                return None
     
     async def set(
         self, 
@@ -73,16 +157,27 @@ class RedisManager:
         nx: bool = False,
         xx: bool = False
     ) -> bool:
-        """Definir valor com TTL opcional"""
-        try:
-            return await self.client.set(key, value, ex=ex, px=px, nx=nx, xx=xx)
-        except Exception as e:
-            logger.error("Redis SET failed", key=key, error=str(e))
-            return False
+        """Definir valor com retry automático"""
+        for attempt in range(3):
+            try:
+                result = await self.client.set(key, value, ex=ex, px=px, nx=nx, xx=xx)
+                self._connection_stats["pool_hits"] += 1
+                return bool(result)
+            except (redis.ConnectionError, redis.TimeoutError) as e:
+                self._connection_stats["pool_misses"] += 1
+                if attempt == 2:
+                    logger.error("Redis SET failed after retries", key=key, error=str(e))
+                    return False
+                await asyncio.sleep(0.1 * (attempt + 1))
+            except Exception as e:
+                logger.error("Redis SET failed", key=key, error=str(e))
+                return False
     
     async def delete(self, *keys: str) -> int:
         """Deletar chaves"""
         try:
+            if not keys:
+                return 0
             return await self.client.delete(*keys)
         except Exception as e:
             logger.error("Redis DELETE failed", keys=keys, error=str(e))
@@ -96,266 +191,189 @@ class RedisManager:
             logger.error("Redis EXISTS failed", keys=keys, error=str(e))
             return 0
     
-    async def expire(self, key: str, time: int) -> bool:
-        """Definir TTL para chave"""
+    async def mget(self, keys: List[str]) -> List[Optional[str]]:
+        """Buscar múltiplas chaves de uma vez (otimizado)"""
         try:
-            return await self.client.expire(key, time)
+            if not keys:
+                return []
+            
+            result = await self.client.mget(keys)
+            self._connection_stats["pool_hits"] += 1
+            return result
         except Exception as e:
-            logger.error("Redis EXPIRE failed", key=key, error=str(e))
+            logger.error("Redis MGET failed", keys_count=len(keys), error=str(e))
+            return [None] * len(keys)
+    
+    async def mset(self, mapping: Dict[str, str]) -> bool:
+        """Definir múltiplas chaves de uma vez (otimizado)"""
+        try:
+            if not mapping:
+                return True
+            
+            result = await self.client.mset(mapping)
+            self._connection_stats["pool_hits"] += 1
+            return bool(result)
+        except Exception as e:
+            logger.error("Redis MSET failed", keys_count=len(mapping), error=str(e))
             return False
     
-    # Operações com JSON
-    async def get_json(self, key: str) -> Optional[Dict]:
-        """Obter objeto JSON"""
+    async def pipeline_operations(self, operations: List[Dict[str, Any]]) -> List[Any]:
+        """Executar operações em pipeline para melhor performance"""
         try:
-            value = await self.get(key)
-            if value:
-                return json.loads(value)
-            return None
-        except json.JSONDecodeError as e:
-            logger.error("Failed to decode JSON from Redis", key=key, error=str(e))
-            return None
+            async with self.client.pipeline() as pipe:
+                for op in operations:
+                    method = getattr(pipe, op["method"])
+                    args = op.get("args", [])
+                    kwargs = op.get("kwargs", {})
+                    method(*args, **kwargs)
+                
+                results = await pipe.execute()
+                self._connection_stats["pool_hits"] += 1
+                return results
+                
+        except Exception as e:
+            logger.error("Redis pipeline failed", operations_count=len(operations), error=str(e))
+            return [None] * len(operations)
     
-    async def set_json(
-        self, 
-        key: str, 
-        value: Dict, 
-        ex: Optional[int] = None
-    ) -> bool:
-        """Definir objeto JSON"""
+    async def cache_with_ttl(self, key: str, data: Any, ttl: int = 3600) -> bool:
+        """Cache inteligente com TTL"""
         try:
-            json_str = json.dumps(value, ensure_ascii=False)
-            return await self.set(key, json_str, ex=ex)
-        except (TypeError, ValueError) as e:
-            logger.error("Failed to encode JSON for Redis", key=key, error=str(e))
+            serialized = json.dumps(data, default=str)
+            return await self.set(key, serialized, ex=ttl)
+        except Exception as e:
+            logger.error("Cache set failed", key=key, error=str(e))
             return False
     
-    # Operações com Hash
+    async def get_or_cache(self, key: str, fetch_func, ttl: int = 3600):
+        """Get or fetch pattern - busca no cache ou executa função"""
+        try:
+            # Tentar buscar no cache
+            cached = await self.get(key)
+            if cached:
+                return json.loads(cached)
+            
+            # Se não encontrou, executar função e cachear
+            data = await fetch_func() if asyncio.iscoroutinefunction(fetch_func) else fetch_func()
+            await self.cache_with_ttl(key, data, ttl)
+            return data
+            
+        except Exception as e:
+            logger.error("Get or cache failed", key=key, error=str(e))
+            # Se falhar, tentar executar função diretamente
+            return await fetch_func() if asyncio.iscoroutinefunction(fetch_func) else fetch_func()
+    
+    async def invalidate_pattern(self, pattern: str) -> int:
+        """Invalidar chaves que correspondem ao padrão"""
+        try:
+            keys = await self.client.keys(pattern)
+            if keys:
+                return await self.delete(*keys)
+            return 0
+        except Exception as e:
+            logger.error("Pattern invalidation failed", pattern=pattern, error=str(e))
+            return 0
+    
+    # Operações de Hash
     async def hget(self, name: str, key: str) -> Optional[str]:
-        """Obter campo de hash"""
+        """Obter valor de hash"""
         try:
             return await self.client.hget(name, key)
         except Exception as e:
             logger.error("Redis HGET failed", name=name, key=key, error=str(e))
             return None
     
-    async def hset(self, name: str, key: str, value: str) -> int:
-        """Definir campo de hash"""
+    async def hset(self, name: str, key: str, value: str) -> bool:
+        """Definir valor em hash"""
         try:
             return await self.client.hset(name, key, value)
         except Exception as e:
             logger.error("Redis HSET failed", name=name, key=key, error=str(e))
-            return 0
+            return False
     
-    async def hgetall(self, name: str) -> Dict[str, str]:
-        """Obter todos os campos de hash"""
+    async def hgetall(self, name: str) -> dict:
+        """Obter todos os valores de hash"""
         try:
             return await self.client.hgetall(name)
         except Exception as e:
             logger.error("Redis HGETALL failed", name=name, error=str(e))
             return {}
     
-    async def hdel(self, name: str, *keys: str) -> int:
-        """Deletar campos de hash"""
+    # Rate Limiting otimizado
+    async def rate_limit_check(self, key: str, limit: int, window: int) -> tuple[bool, int]:
+        """Rate limiting com sliding window otimizado"""
         try:
-            return await self.client.hdel(name, *keys)
-        except Exception as e:
-            logger.error("Redis HDEL failed", name=name, keys=keys, error=str(e))
-            return 0
-    
-    # Operações com Set
-    async def sadd(self, name: str, *values: str) -> int:
-        """Adicionar membros ao set"""
-        try:
-            return await self.client.sadd(name, *values)
-        except Exception as e:
-            logger.error("Redis SADD failed", name=name, error=str(e))
-            return 0
-    
-    async def srem(self, name: str, *values: str) -> int:
-        """Remover membros do set"""
-        try:
-            return await self.client.srem(name, *values)
-        except Exception as e:
-            logger.error("Redis SREM failed", name=name, error=str(e))
-            return 0
-    
-    async def smembers(self, name: str) -> set:
-        """Obter todos os membros do set"""
-        try:
-            return await self.client.smembers(name)
-        except Exception as e:
-            logger.error("Redis SMEMBERS failed", name=name, error=str(e))
-            return set()
-    
-    async def sismember(self, name: str, value: str) -> bool:
-        """Verificar se valor está no set"""
-        try:
-            return await self.client.sismember(name, value)
-        except Exception as e:
-            logger.error("Redis SISMEMBER failed", name=name, value=value, error=str(e))
-            return False
-    
-    # Operações com List
-    async def lpush(self, name: str, *values: str) -> int:
-        """Adicionar valores no início da lista"""
-        try:
-            return await self.client.lpush(name, *values)
-        except Exception as e:
-            logger.error("Redis LPUSH failed", name=name, error=str(e))
-            return 0
-    
-    async def rpush(self, name: str, *values: str) -> int:
-        """Adicionar valores no final da lista"""
-        try:
-            return await self.client.rpush(name, *values)
-        except Exception as e:
-            logger.error("Redis RPUSH failed", name=name, error=str(e))
-            return 0
-    
-    async def lpop(self, name: str) -> Optional[str]:
-        """Remover e retornar primeiro elemento da lista"""
-        try:
-            return await self.client.lpop(name)
-        except Exception as e:
-            logger.error("Redis LPOP failed", name=name, error=str(e))
-            return None
-    
-    async def rpop(self, name: str) -> Optional[str]:
-        """Remover e retornar último elemento da lista"""
-        try:
-            return await self.client.rpop(name)
-        except Exception as e:
-            logger.error("Redis RPOP failed", name=name, error=str(e))
-            return None
-    
-    async def lrange(self, name: str, start: int, end: int) -> List[str]:
-        """Obter range de elementos da lista"""
-        try:
-            return await self.client.lrange(name, start, end)
-        except Exception as e:
-            logger.error("Redis LRANGE failed", name=name, error=str(e))
-            return []
-    
-    # Rate Limiting
-    async def rate_limit_check(
-        self, 
-        key: str, 
-        limit: int, 
-        window: int
-    ) -> tuple[bool, int]:
-        """
-        Verificar rate limit usando sliding window
-        Retorna (permitido, tentativas_restantes)
-        """
-        try:
-            pipe = self.client.pipeline()
-            now = int(time.time())
+            now = time.time()
+            window_start = now - window
             
-            # Remover entradas antigas
-            pipe.zremrangebyscore(key, 0, now - window)
-            
-            # Contar tentativas atuais
-            pipe.zcard(key)
-            
-            # Adicionar tentativa atual
-            pipe.zadd(key, {str(now): now})
-            
-            # Definir TTL
-            pipe.expire(key, window)
-            
-            results = await pipe.execute()
-            current_count = results[1]
-            
-            if current_count < limit:
-                return True, limit - current_count - 1
-            else:
-                # Remover a tentativa que acabamos de adicionar
-                await self.client.zrem(key, str(now))
-                return False, 0
+            async with self.client.pipeline() as pipe:
+                # Remover entradas antigas
+                pipe.zremrangebyscore(key, 0, window_start)
                 
+                # Adicionar entrada atual
+                pipe.zadd(key, {str(now): now})
+                
+                # Contar entradas atuais
+                pipe.zcard(key)
+                
+                # Definir TTL
+                pipe.expire(key, window)
+                
+                results = await pipe.execute()
+                current_count = results[2]  # Resultado do zcard
+                
+                if current_count <= limit:
+                    return True, limit - current_count
+                else:
+                    # Remover a tentativa que acabamos de adicionar
+                    await self.client.zrem(key, str(now))
+                    return False, 0
+                    
         except Exception as e:
             logger.error("Rate limit check failed", key=key, error=str(e))
             # Em caso de erro, permitir a operação
             return True, limit
-    
-    # Cache com TTL automático
-    async def cache_set(
-        self, 
-        key: str, 
-        value: Any, 
-        ttl: int = 3600
-    ) -> bool:
-        """Cache com serialização automática"""
-        try:
-            if isinstance(value, (dict, list)):
-                serialized = json.dumps(value, ensure_ascii=False)
-            else:
-                serialized = str(value)
-            
-            return await self.set(key, serialized, ex=ttl)
-        except Exception as e:
-            logger.error("Cache set failed", key=key, error=str(e))
-            return False
-    
-    async def cache_get(self, key: str) -> Optional[Any]:
-        """Cache com deserialização automática"""
-        try:
-            value = await self.get(key)
-            if value is None:
-                return None
-            
-            # Tentar deserializar como JSON
-            try:
-                return json.loads(value)
-            except json.JSONDecodeError:
-                # Se não for JSON, retornar como string
-                return value
-                
-        except Exception as e:
-            logger.error("Cache get failed", key=key, error=str(e))
-            return None
 
 
 # Instância global
-redis_manager = RedisManager()
+redis_manager = AdvancedRedisManager()
 
 
-# Utilitários para chaves de cache
+# Chaves de cache padronizadas
 class CacheKeys:
-    """Constantes para chaves de cache"""
+    """Chaves de cache padronizadas"""
     
-    # Sessões de usuário
+    # Usuários
     USER_SESSION = "session:{user_id}"
     USER_PERMISSIONS = "permissions:{user_id}"
+    USER_PROFILE = "profile:{user_id}"
+    
+    # Conversas
+    CONVERSATION = "conv:{conversation_id}"
+    CONVERSATION_MESSAGES = "conv_msgs:{conversation_id}"
+    ACTIVE_CONVERSATIONS = "active_convs:{user_id}"
     
     # WhatsApp
     WHATSAPP_CLIENT = "wa_client:{client_id}"
-    WHATSAPP_SESSION = "wa_session:{client_id}"
+    WHATSAPP_SESSION = "wa_session:{session_id}"
     
-    # Conversas
-    CONVERSATION_STATE = "conv:{conversation_id}"
-    CONVERSATION_MESSAGES = "conv_msgs:{conversation_id}"
-    
-    # Rate limiting
-    RATE_LIMIT_USER = "rate:{user_id}:{endpoint}"
-    RATE_LIMIT_IP = "rate:ip:{ip}:{endpoint}"
+    # Rate Limiting
+    RATE_LIMIT = "rate:{identifier}:{endpoint}"
     
     # Métricas
-    METRICS_DAILY = "metrics:{date}:{type}"
-    METRICS_HOURLY = "metrics:{date}:{hour}:{type}"
+    METRICS_DAILY = "metrics:{date}"
+    METRICS_HOURLY = "metrics:{date}:{hour}"
     
-    # Configurações
-    SYSTEM_CONFIG = "config:{key}"
-    
-    # Filas
-    QUEUE_WAITING = "queue:waiting"
-    QUEUE_PROCESSING = "queue:processing"
+    # Cache de queries
+    QUERY_CACHE = "query:{hash}"
     
     @staticmethod
-    def format_key(template: str, **kwargs) -> str:
-        """Formatar chave de cache com parâmetros"""
-        return template.format(**kwargs)
-
-
-import time
+    def user_session(user_id: str) -> str:
+        return f"session:{user_id}"
+    
+    @staticmethod
+    def conversation_cache(conversation_id: str) -> str:
+        return f"conv:{conversation_id}"
+    
+    @staticmethod
+    def rate_limit_key(identifier: str, endpoint: str = "global") -> str:
+        return f"rate:{identifier}:{endpoint}"
