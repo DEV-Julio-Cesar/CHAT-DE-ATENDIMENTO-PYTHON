@@ -1,0 +1,84 @@
+{
+  "comandos": [
+    {
+      "id": "saudacao_padrao",
+      "categoria": "Saudações",
+      "palavras_chave": ["oi", "olá", "ola", "bom dia", "boa tarde", "boa noite", "e aí"],
+      "tipo": "saudacao",
+      "resposta": "Olá! Bem-vindo ao nosso atendimento! 😊 Como posso ajudá-lo hoje?",
+      "prioridade": 10,
+      "ativo": true
+    },
+    {
+      "id": "horario_funcionamento",
+      "categoria": "Informações",
+      "palavras_chave": ["horário", "horario", "funciona", "funcionamento", "aberto", "fechado", "atendimento"],
+      "tipo": "informacao",
+      "resposta": "Nosso horário de atendimento é de segunda a sexta, das 8h às 18h. Estamos aqui para ajudá-lo! ⏰",
+      "prioridade": 9,
+      "ativo": true
+    },
+    {
+      "id": "preco_valores",
+      "categoria": "Informações",
+      "palavras_chave": ["preço", "preco", "valor", "quanto custa", "custa", "tabela", "valores"],
+      "tipo": "informacao",
+      "resposta": "Para informações sobre preços e valores, um atendente irá enviar a tabela de preços para você em breve! 💰",
+      "prioridade": 9,
+      "ativo": true
+    },
+    {
+      "id": "obrigado",
+      "categoria": "Respostas",
+      "palavras_chave": ["obrigado", "obrigada", "valeu", "agradeço", "agradeco", "muito obrigado", "thanks"],
+      "tipo": "resposta_gentil",
+      "resposta": "Por nada! Fico feliz em ajudar! Estamos sempre à disposição para você! 🙌",
+      "prioridade": 8,
+      "ativo": true
+    },
+    {
+      "id": "problema_tecnico",
+      "categoria": "Suporte",
+      "palavras_chave": ["problema", "erro", "não funciona", "nao funciona", "quebrou", "parou", "travou"],
+      "tipo": "problema",
+      "resposta": "Desculpe pelos problemas que está enfrentando! Vou investigar isso para você agora. Um atendente irá contatá-lo em breve com a solução! 🔧",
+      "prioridade": 10,
+      "ativo": true
+    },
+    {
+      "id": "feedback_positivo",
+      "categoria": "Respostas",
+      "palavras_chave": ["adorei", "perfeito", "legal", "ótimo", "excelente", "maravilhoso", "incrível"],
+      "tipo": "resposta_gentil",
+      "resposta": "Que alegria ouvir isso! Sua satisfação é nossa prioridade! Continue confiando em nós! 🌟",
+      "prioridade": 7,
+      "ativo": true
+    },
+    {
+      "id": "duvida_produto",
+      "categoria": "Informações",
+      "palavras_chave": ["como funciona", "como usar", "qual a diferença", "qual diferença", "pode me explicar"],
+      "tipo": "duvida",
+      "resposta": "Ótima pergunta! Deixa que eu te explico melhor. Um especialista irá conversar com você com mais detalhes! 📚",
+      "prioridade": 9,
+      "ativo": true
+    },
+    {
+      "id": "fazer_pedido",
+      "categoria": "Vendas",
+      "palavras_chave": ["quero comprar", "fazer pedido", "contratar", "adquirir", "comprar"],
+      "tipo": "acao",
+      "resposta": "Que legal! Vou te passar para um atendente que irá ajudá-lo a fazer o seu pedido! 🛒",
+      "prioridade": 10,
+      "ativo": true
+    }
+  ],
+  "configuracoes": {
+    "usar_base_conhecimento": true,
+    "usar_ia_gemini": true,
+    "fazer_fallback_ia": true,
+    "minimo_confianca": 70,
+    "tempo_resposta_segundos": 15,
+    "resposta_padrao_nao_entendi": "Desculpe, não entendi bem sua mensagem. Pode reformular? Um atendente também está disponível para ajudá-lo! 😊"
+  }
+}

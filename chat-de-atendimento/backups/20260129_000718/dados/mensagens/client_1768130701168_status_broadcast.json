@@ -1,0 +1,74 @@
+{
+  "chatId": "status@broadcast",
+  "mensagens": [
+    {
+      "id": "AC3B7D1D73351A4AEBEB40E66C984D59",
+      "timestamp": 1768048806000,
+      "from": "status@broadcast",
+      "to": "558488986845@c.us",
+      "body": "",
+      "type": "image",
+      "fromMe": false,
+      "hasMedia": true,
+      "mediaUrl": null
+    },
+    {
+      "id": "AC92191BEBE9311F2AA26A8B02BAB7B9",
+      "timestamp": 1768048806000,
+      "from": "status@broadcast",
+      "to": "558488986845@c.us",
+      "body": "",
+      "type": "image",
+      "fromMe": false,
+      "hasMedia": true,
+      "mediaUrl": null
+    },
+    {
+      "id": "ACEC192E72FCAAFB0C53C5273EAAB039",
+      "timestamp": 1768048806000,
+      "from": "status@broadcast",
+      "to": "558488986845@c.us",
+      "body": "",
+      "type": "image",
+      "fromMe": false,
+      "hasMedia": true,
+      "mediaUrl": null
+    },
+    {
+      "id": "AC5BEE5499F80E95A1C2CFC9922767AE",
+      "timestamp": 1768048806000,
+      "from": "status@broadcast",
+      "to": "558488986845@c.us",
+      "body": "",
+      "type": "image",
+      "fromMe": false,
+      "hasMedia": true,
+      "mediaUrl": null
+    },
+    {
+      "id": "ACAED3609BA473A1D9DD953E1AA3D803",
+      "timestamp": 1768049704000,
+      "from": "status@broadcast",
+      "to": "558488986845@c.us",
+      "body": "https://youtu.be/McbPO45A94c?si=g645GL45X22Qv-wM",
+      "type": "chat",
+      "fromMe": false,
+      "hasMedia": false,
+      "mediaUrl": null
+    },
+    {
+      "id": "ACC3953DBB4C432B34659376776D5FB7",
+      "timestamp": 1768050116000,
+      "from": "status@broadcast",
+      "to": "558488986845@c.us",
+      "body": "Bom dia de \"A a  Z\" pra não esquecer de ninguém.",
+      "type": "image",
+      "fromMe": false,
+      "hasMedia": true,
+      "mediaUrl": null
+    }
+  ]
+}
+    }
+  ]
+}

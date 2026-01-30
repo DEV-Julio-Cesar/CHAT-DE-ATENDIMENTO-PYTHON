@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratório de Automação</title>
+    <style>
+        :root {
+            --bg: #0f1829;
+            --panel: #111f36;
+            --panel-alt: #152743;
+            --text: #f5f7ff;
+            --muted: #94a3b8;
+            --accent: #7dd3fc;
+            --accent-strong: #0ea5e9;
+            --border: rgba(255,255,255,0.08);
+            --success: #4ade80;
+            --danger: #f87171;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            margin: 0;
+            background: radial-gradient(circle at top, #132342, #060c17 60%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 70px 40px 40px;
+        }
+
+        h1, h2, h3 { margin: 0; }
+
+        .page-title {
+            font-size: 28px;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            margin-bottom: 32px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 18px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .panel h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel small { color: var(--muted); }
+
+        textarea, input {
+            width: 100%;
+            background: var(--panel-alt);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            color: var(--text);
+            padding: 12px;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(14,165,233,0.2);
+        }
+
+        .list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .list-card {
+            background: var(--panel-alt);
+            border: 1px dashed rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 16px;
+            position: relative;
+        }
+
+        .list-card h4 {
+            margin: 0 0 6px;
+            font-size: 15px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(125,211,252,0.15);
+            color: var(--accent);
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            letter-spacing: 0.3px;
+        }
+
+        .inline-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border: none;
+            border-radius: 999px;
+            padding: 10px 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        button:hover { transform: translateY(-1px); }
+
+        .btn-primary {
+            background: linear-gradient(120deg, var(--accent-strong), #22d3ee);
+            color: #02111f;
+            box-shadow: 0 10px 20px rgba(14,165,233,0.35);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.08);
+            color: var(--text);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: var(--text);
+        }
+
+        .btn-danger {
+            background: rgba(248,113,113,0.15);
+            color: var(--danger);
+        }
+
+        .actions {
+            display: flex;
+            gap: 16px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .preview-box {
+            background: #050a13;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 20px;
+            min-height: 180px;
+            font-family: 'JetBrains Mono', Consolas, monospace;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .empty-state {
+            border: 1px dashed rgba(255,255,255,0.12);
+            padding: 18px;
+            border-radius: 12px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .list-card .remove-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.5);
+            cursor: pointer;
+        }
+
+        .list-card .remove-btn:hover {
+            color: var(--danger);
+        }
+    </style>
+</head>
+<body>
+    <h1 class="page-title">Laboratório de Automação</h1>
+    <p class="subtitle">Desenhe o prompt base da automação, catalogue funções inteligentes e gere instruções prontas para o bot.</p>
+
+    <section class="grid">
+        <div class="panel">
+            <h3>🧠 Papel do Assistente</h3>
+            <small>Descreva como a automação deve agir e o tom que precisa adotar.</small>
+            <textarea id="basePrompt" rows="6" placeholder="Ex.: Você é um assistente especialista..."></textarea>
+        </div>
+        <div class="panel">
+            <h3>📋 Observações Essenciais</h3>
+            <small>Regras de ouro, limites e alertas que nunca podem ser quebrados.</small>
+            <textarea id="observacoes" rows="6" placeholder="Nunca comprometa dados internos, ofereça humano quando necessário..."></textarea>
+        </div>
+    </section>
+
+    <section class="grid" style="margin-top: 24px;">
+        <div class="panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3>🏗️ Contexto Padrão</h3>
+                <button class="btn-secondary" onclick="adicionarContexto()">+ Adicionar</button>
+            </div>
+            <div id="contextList" class="list"></div>
+        </div>
+        <div class="panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3>🛠️ Funções Inteligentes</h3>
+                <button class="btn-secondary" onclick="adicionarFuncao()">+ Nova Função</button>
+            </div>
+            <div id="funcoesList" class="list"></div>
+        </div>
+    </section>
+
+    <section class="panel" style="margin-top: 24px;">
+        <h3>⚡ Laboratório de Prompt</h3>
+        <small>Combine o template com instruções extras para gerar um comando pronto para colar no Gemini/IA.</small>
+        <textarea id="instrucoesExtras" rows="4" placeholder="Instruções adicionais para este teste..."></textarea>
+        <div class="inline-actions" style="margin-top:16px;">
+            <button class="btn-primary" onclick="gerarPrompt()">Gerar Preview</button>
+            <button class="btn-outline" onclick="copiarPreview()">Copiar Preview</button>
+        </div>
+        <div id="previewPrompt" class="preview-box" style="margin-top:16px;">Insira instruções para visualizar o prompt consolidado...</div>
+    </section>
+
+    <div class="actions">
+        <button class="btn-primary" onclick="salvarConfiguracao()">💾 Salvar Configuração</button>
+        <button class="btn-secondary" onclick="carregarConfiguracao()">↺ Recarregar</button>
+    </div>
+
+    <script>
+        let configuracaoAtual = null;
+
+        function garantirEstruturas() {
+            if (!configuracaoAtual) configuracaoAtual = {};
+            if (!Array.isArray(configuracaoAtual.contextoPadrao)) configuracaoAtual.contextoPadrao = [];
+            if (!Array.isArray(configuracaoAtual.funcoes)) configuracaoAtual.funcoes = [];
+        }
+
+        async function carregarConfiguracao() {
+            const resposta = await window.automacaoAPI.carregar();
+            configuracaoAtual = resposta?.config || resposta;
+            garantirEstruturas();
+            preencherCampos();
+        }
+
+        function preencherCampos() {
+            document.getElementById('basePrompt').value = configuracaoAtual.basePrompt || '';
+            document.getElementById('observacoes').value = configuracaoAtual.observacoesGerais || '';
+            renderizarContextos();
+            renderizarFuncoes();
+        }
+
+        function renderizarContextos() {
+            garantirEstruturas();
+            const container = document.getElementById('contextList');
+            if (configuracaoAtual.contextoPadrao.length === 0) {
+                container.innerHTML = '<div class="empty-state">Nenhum contexto cadastrado ainda.</div>';
+                return;
+            }
+
+            container.innerHTML = configuracaoAtual.contextoPadrao.map((ctx, index) => `
+                <div class="list-card">
+                    <button class="remove-btn" onclick="removerContexto(${index})">✕</button>
+                    <h4>${ctx.titulo || 'Sem título'}</h4>
+                    <div class="badge">Contexto ${index + 1}</div>
+                    <input type="text" placeholder="Título" value="${ctx.titulo || ''}" oninput="atualizarContexto(${index}, 'titulo', this.value)">
+                    <textarea rows="2" placeholder="Descrição" oninput="atualizarContexto(${index}, 'descricao', this.value)">${ctx.descricao || ''}</textarea>
+                </div>
+            `).join('');
+        }
+
+        function renderizarFuncoes() {
+            garantirEstruturas();
+            const container = document.getElementById('funcoesList');
+            if (configuracaoAtual.funcoes.length === 0) {
+                container.innerHTML = '<div class="empty-state">Cadastre funções para orientar a automação.</div>';
+                return;
+            }
+
+            container.innerHTML = configuracaoAtual.funcoes.map((fn, index) => `
+                <div class="list-card">
+                    <button class="remove-btn" onclick="removerFuncao(${index})">✕</button>
+                    <h4>${fn.nome || 'Função sem nome'}</h4>
+                    <div class="badge">#${index + 1}</div>
+                    <input type="text" placeholder="Nome da função" value="${fn.nome || ''}" oninput="atualizarFuncao(${index}, 'nome', this.value)">
+                    <textarea rows="2" placeholder="Quando usar?" oninput="atualizarFuncao(${index}, 'quandoUsar', this.value)">${fn.quandoUsar || ''}</textarea>
+                    <textarea rows="3" placeholder="Passo a passo" oninput="atualizarFuncao(${index}, 'descricaoPassoAPasso', this.value)">${fn.descricaoPassoAPasso || ''}</textarea>
+                    <textarea rows="2" placeholder="Exemplo de resposta" oninput="atualizarFuncao(${index}, 'exemploResposta', this.value)">${fn.exemploResposta || ''}</textarea>
+                </div>
+            `).join('');
+        }
+
+        function atualizarContexto(index, campo, valor) {
+            configuracaoAtual.contextoPadrao[index][campo] = valor;
+        }
+
+        function removerContexto(index) {
+            configuracaoAtual.contextoPadrao.splice(index, 1);
+            renderizarContextos();
+        }
+
+        function adicionarContexto() {
+            configuracaoAtual.contextoPadrao.push({ titulo: '', descricao: '' });
+            renderizarContextos();
+        }
+
+        function atualizarFuncao(index, campo, valor) {
+            configuracaoAtual.funcoes[index][campo] = valor;
+        }
+
+        function removerFuncao(index) {
+            configuracaoAtual.funcoes.splice(index, 1);
+            renderizarFuncoes();
+        }
+
+        function adicionarFuncao() {
+            configuracaoAtual.funcoes.push({ nome: '', quandoUsar: '', descricaoPassoAPasso: '', exemploResposta: '' });
+            renderizarFuncoes();
+        }
+
+        function coletarFormulario() {
+            configuracaoAtual.basePrompt = document.getElementById('basePrompt').value.trim();
+            configuracaoAtual.observacoesGerais = document.getElementById('observacoes').value.trim();
+        }
+
+        async function salvarConfiguracao() {
+            coletarFormulario();
+            const resultado = await window.automacaoAPI.salvar(configuracaoAtual);
+            if (resultado?.success) {
+                mostrarToast('Configuração salva com sucesso.', 'success');
+                configuracaoAtual = resultado.config;
+                renderizarContextos();
+                renderizarFuncoes();
+            } else {
+                mostrarToast('Não foi possível salvar.', 'error');
+            }
+        }
+
+        async function gerarPrompt() {
+            coletarFormulario();
+            const extras = {
+                configuracao: configuracaoAtual,
+                instrucoesAdicionais: document.getElementById('instrucoesExtras').value.trim()
+            };
+            const resultado = await window.automacaoAPI.gerarPrompt(extras);
+            if (resultado?.success) {
+                document.getElementById('previewPrompt').textContent = resultado.prompt;
+            } else {
+                document.getElementById('previewPrompt').textContent = 'Erro ao gerar prompt: ' + (resultado?.message || 'desconhecido');
+            }
+        }
+
+        function copiarPreview() {
+            const texto = document.getElementById('previewPrompt').textContent;
+            if (!texto || texto.startsWith('Insira instruções')) {
+                mostrarToast('Gere o prompt antes de copiar.', 'info');
+                return;
+            }
+            navigator.clipboard.writeText(texto).then(() => mostrarToast('Prompt copiado!', 'success'));
+        }
+
+        function mostrarToast(msg, tipo = 'info') {
+            const colores = {
+                success: 'var(--success)',
+                error: 'var(--danger)',
+                info: 'var(--accent)'
+            };
+            const toast = document.createElement('div');
+            toast.textContent = msg;
+            toast.style.position = 'fixed';
+            toast.style.bottom = '30px';
+            toast.style.right = '30px';
+            toast.style.padding = '12px 18px';
+            toast.style.borderRadius = '999px';
+            toast.style.background = 'rgba(5,10,19,0.9)';
+            toast.style.color = colores[tipo] || 'white';
+            toast.style.border = `1px solid ${colores[tipo] || 'white'}`;
+            toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.4)';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3200);
+        }
+
+        carregarConfiguracao();
+    </script>
+
+    <script src="barra-navegacao.js"></script>
+    <script>
+        initNavigationBar('🔧 Automação Inteligente');
+    </script>
+</body>
+</html>

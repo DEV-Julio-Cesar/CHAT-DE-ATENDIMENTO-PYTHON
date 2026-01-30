@@ -1,0 +1,14 @@
+{
+  "usuarios": [
+    {
+      "username": "admin",
+      "password": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
+      "email": "admin@sistema.com",
+      "role": "admin",
+      "ativo": true,
+      "criadoEm": "2026-01-11T07:14:39.060Z",
+      "ultimoLogin": "2026-01-13T05:40:28.062Z",
+      "atualizadoEm": "2026-01-11T07:15:51.525Z"
+    }
+  ]
+}

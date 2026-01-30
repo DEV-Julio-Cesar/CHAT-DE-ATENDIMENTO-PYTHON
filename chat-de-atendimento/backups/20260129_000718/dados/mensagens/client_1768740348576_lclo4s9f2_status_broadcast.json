@@ -1,0 +1,18 @@
+{
+  "chatId": "status@broadcast",
+  "mensagens": [
+    {
+      "id": "AC257C9D562F8060CEA8E2085616CD84",
+      "timestamp": 1768656939000,
+      "from": "status@broadcast",
+      "to": "558488986845@c.us",
+      "body": "🥰",
+      "type": "image",
+      "fromMe": false,
+      "hasMedia": true,
+      "mediaUrl": null
+    }
+  ]
+}
+
+}

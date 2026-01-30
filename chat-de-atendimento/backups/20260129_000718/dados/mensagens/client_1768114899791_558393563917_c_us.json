@@ -1,0 +1,27 @@
+{
+  "chatId": "558393563917@c.us",
+  "mensagens": [
+    {
+      "id": "3EB06E8349279C234B37",
+      "timestamp": 1768115146000,
+      "from": "558393563917@c.us",
+      "to": "558488986845@c.us",
+      "body": "",
+      "type": "e2e_notification",
+      "fromMe": false,
+      "hasMedia": false,
+      "mediaUrl": null
+    },
+    {
+      "id": "A5B330027E547D1B1BEE53452BB86CF8",
+      "timestamp": 1768115146000,
+      "from": "558393563917@c.us",
+      "to": "558488986845@c.us",
+      "body": "Olá, sejam bem vindos a Floricultura BR.\nEscolha em qual unidade deseja atendimento:\n\n1️⃣ João pessoa / PB\n2️⃣ Campina Grande / PB\n3️⃣ Natal / RN\n\nEm instantes nosso time irá lhe atender.\n\nEnquanto isso, acesse este link para ver nosso catálogo: https://wa.me/c/558393563917",
+      "type": "chat",
+      "fromMe": false,
+      "hasMedia": false,
+      "mediaUrl": null
+    }
+  ]
+}

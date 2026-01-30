@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="520" viewBox="0 0 960 520" role="img" aria-labelledby="title desc">
+  <title id="title">Tela de Automação & Campanhas</title>
+  <desc id="desc">Print conceitual destacando componentes críticos da tela de automações para configuração de fluxos e disparos.</desc>
+  <style>
+    text { font-family: 'Segoe UI', sans-serif; fill: #1e293b; }
+    .section-title { font-size: 16px; font-weight: 600; }
+    .section-sub { font-size: 13px; fill: #475569; }
+    .panel { fill: #ffffff; stroke: #94a3b8; stroke-width: 2; rx: 18; }
+    .chip { fill: #e0f2fe; stroke: #0284c7; stroke-width: 1; rx: 12; font-size: 12px; }
+    .chip text { fill: #0369a1; }
+    .gradient { fill: url(#diag); stroke: #475569; }
+  </style>
+  <defs>
+    <linearGradient id="diag" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#eef2ff" />
+      <stop offset="100%" stop-color="#e0f2fe" />
+    </linearGradient>
+  </defs>
+
+  <rect width="960" height="520" fill="#f4f6fb" rx="28" />
+
+  <rect class="panel" x="40" y="40" width="880" height="90" rx="18" />
+  <text x="70" y="85" class="section-title">Resumo de Automação</text>
+  <text x="70" y="110" class="section-sub">Status do bot, sessão vinculada, total de leads ativos, fila configurada</text>
+  <rect class="chip" x="640" y="70" width="120" height="26" />
+  <text x="700" y="88" text-anchor="middle" font-size="13" fill="#0369a1">IA Gemini ON</text>
+  <rect class="chip" x="780" y="70" width="110" height="26" />
+  <text x="835" y="88" text-anchor="middle" font-size="13" fill="#0369a1">Campanha #24</text>
+
+  <rect class="panel" x="40" y="150" width="420" height="330" rx="22" />
+  <text x="70" y="190" class="section-title">Editor de Fluxo</text>
+  <text x="70" y="215" class="section-sub">Sequência de gatilhos, mensagens, escalonamento e fallback humano</text>
+  <g transform="translate(80,240)">
+    <rect class="gradient" width="150" height="60" rx="16" />
+    <text x="75" y="35" text-anchor="middle" class="section-sub">Gatilho Inicial</text>
+  </g>
+  <g transform="translate(260,240)">
+    <rect class="gradient" width="150" height="60" rx="16" />
+    <text x="75" y="28" text-anchor="middle" class="section-sub">Pergunta IA</text>
+    <text x="75" y="48" text-anchor="middle" class="section-sub">(contexto + prompt)</text>
+  </g>
+  <g transform="translate(80,330)">
+    <rect class="gradient" width="150" height="60" rx="16" />
+    <text x="75" y="35" text-anchor="middle" class="section-sub">Condição SLA</text>
+  </g>
+  <g transform="translate(260,330)">
+    <rect class="gradient" width="150" height="60" rx="16" />
+    <text x="75" y="20" text-anchor="middle" class="section-sub">Escalonar</text>
+    <text x="75" y="40" text-anchor="middle" class="section-sub">Fila: Atendimento</text>
+  </g>
+
+  <rect class="panel" x="480" y="150" width="440" height="150" rx="22" />
+  <text x="510" y="190" class="section-title">Prompt & Configuração IA</text>
+  <text x="510" y="215" class="section-sub">Contexto global + funções permitidas + destaques para respostas humanizadas</text>
+  <rect class="gradient" x="510" y="230" width="380" height="50" rx="14" />
+  <text x="700" y="260" text-anchor="middle" class="section-sub">"Você é um assistente focado em pré-vendas..."</text>
+
+  <rect class="panel" x="480" y="320" width="440" height="160" rx="22" />
+  <text x="510" y="360" class="section-title">Pré-visualização / Print</text>
+  <text x="510" y="385" class="section-sub">Como o cliente verá a mensagem inicial e o CTA principal</text>
+  <rect class="gradient" x="510" y="400" width="380" height="60" rx="20" />
+  <text x="700" y="435" text-anchor="middle" class="section-sub">"Olá {{nome}}, posso ajudar com sua dúvida sobre..."</text>
+</svg>

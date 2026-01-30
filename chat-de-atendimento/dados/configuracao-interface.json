@@ -1,0 +1,61 @@
+{
+  "idioma": "pt-BR",
+  "tema": "light",
+  "personalizacao": {
+    "nomeEmpresa": "Sistema de Atendimento",
+    "logoTexto": "🚀",
+    "corPrimaria": "#667eea",
+    "corSecundaria": "#764ba2",
+    "saudacaoLogin": "Bem-vindo ao Sistema de Atendimento WhatsApp!",
+    "mensagemPrimeiroAcesso": "Use \"admin/admin\" para primeiro acesso",
+    "rodape": {
+      "versao": "2.0.0",
+      "desenvolvedor": "Sistema Chat Atendimento",
+      "ano": "2026"
+    }
+  },
+  "textos": {
+    "tituloPrincipal": "Sistema de Atendimento WhatsApp",
+    "subtituloPrincipal": "Gerencie suas conversas de forma profissional e eficiente",
+    "menuPrincipal": {
+      "gerenciarConexoes": "Gerenciar Conexões",
+      "conectarWhatsapp": "Conectar WhatsApp",
+      "chatInteligente": "Chat Inteligente",
+      "dashboard": "Dashboard",
+      "configurarIA": "Configurar IA",
+      "campanhas": "Campanhas",
+      "usuarios": "Usuários",
+      "healthMonitor": "Health Monitor"
+    },
+    "descricoes": {
+      "gerenciarConexoes": "Controle de sessões",
+      "conectarWhatsapp": "Novo cliente",
+      "chatInteligente": "Automação + Filas + Atendimento",
+      "dashboard": "Analytics",
+      "configurarIA": "Chatbot + Laboratório + Prompts",
+      "campanhas": "Disparos inteligentes",
+      "usuarios": "Permissões",
+      "healthMonitor": "Status"
+    }
+  },
+  "mensagens": {
+    "whatsappNaoConectado": "❌ Nenhum cliente WhatsApp conectado.\n\nConecte um cliente primeiro clicando em \"Conectar WhatsApp\".",
+    "qrInstrucoes": "📱 Escaneie este código com o WhatsApp do seu celular para conectar",
+    "conectadoSucesso": "✅ Conectado com sucesso!",
+    "gerandoQR": "Gerando QR Code...",
+    "erroConexao": "❌ Erro na conexão",
+    "reconectando": "🔄 Reconectando...",
+    "sistemaOnline": "Sistema Online",
+    "ultimaAtualizacao": "Última Atualização"
+  },
+  "configuracoes": {
+    "atualizacaoAutomatica": true,
+    "intervalAtualizacao": 5000,
+    "notificacoes": true,
+    "somNotificacao": true,
+    "temaEscuroAutomatico": false,
+    "salvarSessaoLogin": true,
+    "logoutAutomatico": false,
+    "tempoLogoutAutomatico": 3600000
+  }
+}
