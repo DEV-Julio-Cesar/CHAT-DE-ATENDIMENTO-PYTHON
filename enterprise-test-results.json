@@ -1,0 +1,103 @@
+{
+  "timestamp": "2026-01-31T23:54:36.388670",
+  "system": "ISP Chat Enterprise",
+  "version": "1.0.0",
+  "tests": [
+    {
+      "test": "services_health",
+      "status": "partial",
+      "services": {
+        "API Gateway": {
+          "status": "error",
+          "error": "Cannot connect to host localhost:8000 ssl:default [O computador remoto recusou a conexão de rede]"
+        },
+        "Auth Service": {
+          "status": "healthy",
+          "response_time": "0.076781",
+          "data": {
+            "status": "healthy",
+            "service": "auth-service",
+            "version": "1.0.0",
+            "timestamp": "2026-01-31T23:54:39.039387",
+            "components": {
+              "database": {
+                "status": "healthy",
+                "info": {
+                  "version": "Microsoft SQL Server 2025 (RTM) - 17.0.1000.7 (X64) \n\tOct 21 2025 12:05:57 \n\tCopyright (C) 2025 Microsoft Corporation\n\tEnterprise Evaluation Edition (64-bit) on Windows 10 Home 10.0 <X64> (Build 26200: )\n",
+                  "database": "ISPChat",
+                  "tables_count": 7,
+                  "size_mb": 7.12
+                }
+              },
+              "cache": {
+                "status": "healthy",
+                "type": "memory"
+              }
+            },
+            "uptime": "running"
+          }
+        },
+        "Chat Service": {
+          "status": "error",
+          "error": "Cannot connect to host localhost:8002 ssl:default [O computador remoto recusou a conexão de rede]"
+        },
+        "Web Interface": {
+          "status": "healthy",
+          "response_time": "unknown",
+          "data": {
+            "status": "ok"
+          }
+        }
+      }
+    },
+    {
+      "test": "gateway_routing",
+      "status": "partial",
+      "routes": [
+        {
+          "path": "/api/auth",
+          "status": "error",
+          "error": "Cannot connect to host localhost:8000 ssl:default [O computador remoto recusou a conexão de rede]"
+        },
+        {
+          "path": "/api/chat",
+          "status": "error",
+          "error": "Cannot connect to host localhost:8000 ssl:default [O computador remoto recusou a conexão de rede]"
+        },
+        {
+          "path": "/webhook/whatsapp",
+          "status": "error",
+          "error": "Cannot connect to host localhost:8000 ssl:default [O computador remoto recusou a conexão de rede]"
+        }
+      ]
+    },
+    {
+      "test": "authentication_flow",
+      "status": "error",
+      "error": "Cannot connect to host localhost:8000 ssl:default [O computador remoto recusou a conexão de rede]"
+    },
+    {
+      "test": "chat_functionality",
+      "status": "skipped",
+      "reason": "No authentication token"
+    },
+    {
+      "test": "websocket_connection",
+      "status": "skipped",
+      "reason": "websockets library not installed"
+    },
+    {
+      "test": "system_metrics",
+      "status": "error",
+      "error": "Cannot connect to host localhost:8000 ssl:default [O computador remoto recusou a conexão de rede]"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "successful": 0,
+    "partial": 2,
+    "failed": 2,
+    "skipped": 2,
+    "success_rate": 33.33333333333333
+  }
+}
