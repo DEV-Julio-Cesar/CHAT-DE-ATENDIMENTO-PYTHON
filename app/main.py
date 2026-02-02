@@ -20,6 +20,9 @@ from app.core.circuit_breaker import circuit_breaker_manager
 from app.core.cache_strategy import cache_manager
 from app.core.query_optimizer import query_optimizer
 from app.core.compression import compression_manager, CompressionMiddleware
+from app.core.rate_limiter import rate_limiter, RateLimitConfig  # SEMANA 1
+from app.core.audit_logger import audit_logger  # SEMANA 1
+from app.core.security_headers import SecurityHeadersMiddleware, SecurityPresets  # SEMANA 1 - Security Headers
 from app.services.whatsapp_enterprise import whatsapp_api
 from app.services.chatbot_ai import chatbot_ai
 from app.services.data_migration import migration_service
@@ -75,39 +78,75 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting ISP Customer Support application", version=settings.VERSION)
     
+    # Flags para rastrear o que foi inicializado
+    db_initialized = False
+    redis_initialized = False
+    whatsapp_initialized = False
+    chatbot_initialized = False
+    monitoring_started = False
+    
     try:
-        # Inicializar banco de dados
-        await create_tables()
-        logger.info("Database initialized")
+        # Inicializar banco de dados (opcional - modo gracioso)
+        try:
+            await create_tables()
+            logger.info("Database initialized")
+            db_initialized = True
+        except Exception as e:
+            logger.warning("Database unavailable - running in limited mode", error=str(e))
         
-        # Inicializar Redis
-        await redis_manager.initialize()
-        logger.info("Redis initialized")
+        # Inicializar Redis (DESABILITADO - para performance local)
+        # Para habilitar Redis: remover comentário abaixo e instalar Redis
+        # try:
+        #     await redis_manager.initialize()
+        #     logger.info("Redis initialized")
+        #     redis_initialized = True
+        # except Exception as e:
+        #     logger.warning("Redis unavailable - running without cache", error=str(e))
+        redis_initialized = False  # Redis desabilitado para performance
         
         # Inicializar WhatsApp Enterprise API
-        await whatsapp_api.initialize()
-        logger.info("WhatsApp Enterprise API initialized")
+        try:
+            await whatsapp_api.initialize()
+            logger.info("WhatsApp Enterprise API initialized")
+            whatsapp_initialized = True
+        except Exception as e:
+            logger.warning("WhatsApp API initialization failed", error=str(e))
         
         # Inicializar Chatbot AI
-        await chatbot_ai.initialize()
-        logger.info("Chatbot AI initialized")
+        try:
+            await chatbot_ai.initialize()
+            logger.info("Chatbot AI initialized")
+            chatbot_initialized = True
+        except Exception as e:
+            logger.warning("Chatbot AI initialization failed", error=str(e))
         
         # Inicializar Performance Optimizer
-        await performance_optimizer.initialize()
-        logger.info("Performance Optimizer initialized")
+        try:
+            await performance_optimizer.initialize()
+            logger.info("Performance Optimizer initialized")
+        except Exception as e:
+            logger.warning("Performance Optimizer initialization failed", error=str(e))
         
         # Inicializar sistema de monitoramento
-        await monitoring.start()
-        logger.info("Advanced monitoring started")
+        try:
+            await monitoring.start()
+            logger.info("Advanced monitoring started")
+            monitoring_started = True
+        except Exception as e:
+            logger.warning("Monitoring initialization failed", error=str(e))
         
         # Inicializar sistema de cache
-        await cache_manager.warm_cache({
-            "system_config": {
-                "fetch_func": lambda: {"initialized": True, "timestamp": time.time()},
-                "ttl": 3600
-            }
-        })
-        logger.info("Cache system initialized and warmed")
+        if redis_initialized:
+            try:
+                await cache_manager.warm_cache({
+                    "system_config": {
+                        "fetch_func": lambda: {"initialized": True, "timestamp": time.time()},
+                        "ttl": 3600
+                    }
+                })
+                logger.info("Cache system initialized and warmed")
+            except Exception as e:
+                logger.warning("Cache warm-up failed", error=str(e))
         
         # Inicializar métricas
         logger.info("Metrics collector initialized")
@@ -115,20 +154,40 @@ async def lifespan(app: FastAPI):
         # Verificar integrações externas
         await check_external_services()
         
-        logger.info("Application startup completed")
+        logger.info("Application startup completed", 
+                   db=db_initialized, 
+                   redis=redis_initialized,
+                   whatsapp=whatsapp_initialized,
+                   chatbot=chatbot_initialized)
         yield
         
     except Exception as e:
-        logger.error("Failed to start application", error=str(e))
+        logger.error("Critical failure during startup", error=str(e))
         raise
     
     finally:
         # Shutdown
         logger.info("Shutting down application")
-        await monitoring.stop()
-        await whatsapp_api.close()
-        await db_manager.close()
-        await redis_manager.close()
+        if monitoring_started:
+            try:
+                await monitoring.stop()
+            except Exception:
+                pass
+        if whatsapp_initialized:
+            try:
+                await whatsapp_api.close()
+            except Exception:
+                pass
+        if db_initialized:
+            try:
+                await db_manager.close()
+            except Exception:
+                pass
+        if redis_initialized:
+            try:
+                await redis_manager.close()
+            except Exception:
+                pass
         logger.info("Application shutdown completed")
 
 
@@ -139,8 +198,8 @@ async def check_external_services():
     # Verificar banco de dados
     services_status['database'] = await db_manager.health_check()
     
-    # Verificar Redis
-    services_status['redis'] = await redis_manager.health_check()
+    # Redis DESABILITADO para performance local
+    services_status['redis'] = False  # Desabilitado
     
     # Verificar WhatsApp Business API (se configurado)
     if settings.WHATSAPP_ACCESS_TOKEN:
@@ -160,18 +219,121 @@ async def check_external_services():
         logger.warning("Some external services are unavailable", failed_services=failed_services)
 
 
-# Criar aplicação FastAPI
+# Criar aplicação FastAPI com documentação completa
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
-    description="Sistema profissional de atendimento ao cliente via WhatsApp para provedores de internet",
-    docs_url="/docs" if settings.DEBUG else None,
-    redoc_url="/redoc" if settings.DEBUG else None,
-    lifespan=lifespan
+    description="""
+## 🚀 Sistema de Chat de Atendimento - Telecomunicações
+
+Sistema profissional de atendimento ao cliente via WhatsApp para provedores de internet (ISP).
+Desenvolvido para escalar até **10.000+ clientes** com alta disponibilidade.
+
+### 📋 Funcionalidades Principais
+
+* **🤖 Chatbot com IA** - Atendimento automático inicial usando Google Gemini
+* **💬 WhatsApp Business API** - Integração completa com Meta Cloud API
+* **🔄 WebSocket** - Comunicação em tempo real para atendentes
+* **🔐 Autenticação JWT** - Segurança com tokens e roles (admin/atendente/user)
+* **📊 Métricas** - Dashboard com Prometheus/Grafana
+* **🛡️ Rate Limiting** - Proteção contra brute force e DDoS
+
+### 🏗️ Arquitetura
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Nginx     │────▶│  FastAPI    │────▶│  SQL Server │
+│ (Load Bal)  │     │  (API)      │     │  (Auth)     │
+└─────────────┘     └─────────────┘     └─────────────┘
+                          │
+                          ▼
+                    ┌─────────────┐     ┌─────────────┐
+                    │   Redis     │────▶│  PostgreSQL │
+                    │  (Cache)    │     │   (Data)    │
+                    └─────────────┘     └─────────────┘
+```
+
+### 🔑 Autenticação
+
+Todos os endpoints protegidos requerem o header:
+```
+Authorization: Bearer <seu_token_jwt>
+```
+
+### 📞 Contato
+
+* **Documentação**: [docs/README.md](docs/README.md)
+* **Repositório**: GitHub
+""",
+    openapi_tags=[
+        {
+            "name": "auth",
+            "description": "🔐 **Autenticação e Autorização** - Login, logout, registro e gerenciamento de tokens JWT",
+        },
+        {
+            "name": "users",
+            "description": "👥 **Gerenciamento de Usuários** - CRUD de usuários com RBAC (Role-Based Access Control)",
+        },
+        {
+            "name": "conversations",
+            "description": "💬 **Conversas** - Gerenciamento de atendimentos e histórico de mensagens",
+        },
+        {
+            "name": "whatsapp",
+            "description": "📱 **WhatsApp Business API** - Webhook, envio de mensagens e templates",
+        },
+        {
+            "name": "chatbot",
+            "description": "🤖 **Chatbot IA** - Respostas automáticas com Google Gemini AI",
+        },
+        {
+            "name": "campaigns",
+            "description": "📢 **Campanhas** - Envio em massa e agendamento de mensagens",
+        },
+        {
+            "name": "dashboard",
+            "description": "📊 **Dashboard** - Métricas, relatórios e analytics em tempo real",
+        },
+        {
+            "name": "websocket",
+            "description": "🔄 **WebSocket** - Comunicação em tempo real para chat",
+        },
+        {
+            "name": "health",
+            "description": "❤️ **Health Check** - Status da aplicação e dependências",
+        },
+    ],
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+    lifespan=lifespan,
+    swagger_ui_parameters={
+        "persistAuthorization": True,
+        "filter": True,
+        "displayRequestDuration": True,
+        "docExpansion": "list",
+        "defaultModelsExpandDepth": 2,
+        "syntaxHighlight.theme": "monokai"
+    },
+    license_info={
+        "name": "Proprietary",
+        "url": "https://yourdomain.com/license",
+    },
+    contact={
+        "name": "Suporte Técnico",
+        "email": "suporte@yourdomain.com",
+    },
 )
 
 # Middleware de compressão (deve vir antes de outros middlewares)
 app.add_middleware(CompressionMiddleware)
+
+# Middleware de Security Headers (CSP, HSTS, X-Frame-Options, etc.)
+# DESATIVADO TEMPORARIAMENTE - estava bloqueando estilos inline
+# app.add_middleware(
+#     SecurityHeadersMiddleware,
+#     config=SecurityPresets.telecom_isp()
+# )
 
 # Middleware de CORS - Configuração segura
 allowed_origins = ["*"] if settings.DEBUG else [
@@ -196,6 +358,94 @@ if not settings.DEBUG:
         TrustedHostMiddleware,
         allowed_hosts=["yourdomain.com", "*.yourdomain.com"]
     )
+
+
+# ============================================================================
+# MIDDLEWARE DE RATE LIMITING (SEMANA 1)
+# ============================================================================
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    """
+    Middleware de rate limiting global
+    Protege contra brute force e DDoS
+    """
+    
+    # Endpoints que precisam de rate limiting
+    path = request.url.path
+    method = request.method
+    
+    # Identificar cliente
+    client_ip = request.client.host if request.client else "unknown"
+    
+    # ===== LOGIN: 5 tentativas em 15 minutos =====
+    if method == "POST" and "/auth/login" in path:
+        allowed, remaining = await rate_limiter.is_allowed(
+            identifier=f"login:{client_ip}",
+            max_requests=RateLimitConfig.LOGIN["max_requests"],
+            window_seconds=RateLimitConfig.LOGIN["window_seconds"]
+        )
+        
+        if not allowed:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too many login attempts. Try again later."},
+                headers={
+                    "X-RateLimit-Limit": str(RateLimitConfig.LOGIN["max_requests"]),
+                    "X-RateLimit-Remaining": "0",
+                    "Retry-After": str(RateLimitConfig.LOGIN["window_seconds"])
+                }
+            )
+    
+    # ===== GENERAL API: 100 requisições por minuto =====
+    elif "/api/" in path and method in ["GET", "POST", "PUT", "DELETE", "PATCH"]:
+        allowed, remaining = await rate_limiter.is_allowed(
+            identifier=f"api:{client_ip}",
+            max_requests=RateLimitConfig.API_DEFAULT["max_requests"],
+            window_seconds=RateLimitConfig.API_DEFAULT["window_seconds"]
+        )
+        
+        if not allowed:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Rate limit exceeded."},
+                headers={
+                    "X-RateLimit-Limit": str(RateLimitConfig.API_DEFAULT["max_requests"]),
+                    "X-RateLimit-Remaining": "0",
+                    "Retry-After": str(RateLimitConfig.API_DEFAULT["window_seconds"])
+                }
+            )
+    
+    response = await call_next(request)
+    return response
+
+
+# ============================================================================
+# MIDDLEWARE DE AUDITORIA (SEMANA 1)
+# ============================================================================
+@app.middleware("http")
+async def audit_middleware(request: Request, call_next):
+    """
+    Middleware de auditoria para endpoints sensíveis
+    """
+    
+    # Endpoints auditados
+    if request.url.path.startswith("/api/users") or \
+       request.url.path.startswith("/api/gdpr") or \
+       request.url.path.startswith("/api/auth"):
+        
+        client_ip = request.client.host if request.client else "unknown"
+        
+        # Log de tentativa de acesso
+        if request.method in ["POST", "PUT", "DELETE", "PATCH"]:
+            logger.info(
+                "Sensitive endpoint access",
+                method=request.method,
+                path=request.url.path,
+                client_ip=client_ip
+            )
+    
+    response = await call_next(request)
+    return response
 
 
 # Middleware para métricas
@@ -336,12 +586,12 @@ async def health_check():
     """Verificação de saúde da aplicação"""
     checks = {
         "database": await db_manager.health_check(),
-        "redis": await redis_manager.health_check(),
+        "redis": False,  # Redis desabilitado para performance
         "timestamp": time.time(),
     }
     
-    # Verificar se todos os serviços estão funcionando
-    all_healthy = all(checks.values())
+    # Verificar se todos os serviços estão funcionando (ignora Redis)
+    all_healthy = checks["database"]
     status_code = 200 if all_healthy else 503
     
     return JSONResponse(
@@ -359,11 +609,10 @@ async def health_check():
 async def cache_stats():
     """Estatísticas do sistema de cache"""
     cache_stats = cache_manager.get_stats()
-    redis_health = await redis_manager.health_check()
     
     return {
         "cache_stats": cache_stats,
-        "redis_health": redis_health,
+        "redis_health": False,  # Redis desabilitado
         "timestamp": time.time()
     }
 
@@ -436,7 +685,76 @@ async def root():
         "message": f"Welcome to {settings.APP_NAME}",
         "version": settings.VERSION,
         "docs": "/docs" if settings.DEBUG else None,
+        "chatbot_admin": "/chatbot-admin",
     }
+
+
+# ============================================================================
+# ROTAS DE PÁGINAS WEB
+# ============================================================================
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+
+TEMPLATES_DIR = Path(__file__).parent / "web" / "templates"
+STATIC_DIR = Path(__file__).parent / "web" / "static"
+
+# Montar arquivos estáticos
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.get("/login", include_in_schema=False)
+async def login_page():
+    """Página de login"""
+    return FileResponse(TEMPLATES_DIR / "login.html", media_type="text/html")
+
+
+@app.get("/dashboard", include_in_schema=False)
+async def dashboard_page():
+    """Dashboard principal"""
+    return FileResponse(TEMPLATES_DIR / "dashboard.html", media_type="text/html")
+
+
+@app.get("/chat", include_in_schema=False)
+async def chat_page():
+    """Página de chat/atendimento"""
+    return FileResponse(TEMPLATES_DIR / "chat.html", media_type="text/html")
+
+
+@app.get("/chatbot-admin", include_in_schema=False)
+async def chatbot_admin_page():
+    """Interface de treinamento do chatbot"""
+    return FileResponse(TEMPLATES_DIR / "chatbot_admin.html", media_type="text/html")
+
+
+@app.get("/customers", include_in_schema=False)
+async def customers_page():
+    """Página de clientes"""
+    return FileResponse(TEMPLATES_DIR / "customers.html", media_type="text/html")
+
+
+@app.get("/whatsapp", include_in_schema=False)
+async def whatsapp_config_page():
+    """Página de configuração do WhatsApp"""
+    return FileResponse(TEMPLATES_DIR / "whatsapp_config.html", media_type="text/html")
+
+
+@app.get("/agents", include_in_schema=False)
+async def agents_page():
+    """Página de agentes"""
+    return FileResponse(TEMPLATES_DIR / "agents.html", media_type="text/html")
+
+
+@app.get("/settings", include_in_schema=False)
+async def settings_page():
+    """Página de configurações"""
+    return FileResponse(TEMPLATES_DIR / "settings.html", media_type="text/html")
+
+
+@app.get("/teste", include_in_schema=False)
+async def teste_page():
+    """Página de teste"""
+    return FileResponse(TEMPLATES_DIR / "teste.html", media_type="text/html")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,1012 @@
+openapi: 3.1.0
+info:
+  title: Chat de Atendimento - API
+  description: |
+    API RESTful para sistema de atendimento ao cliente via WhatsApp.
+    
+    ## Funcionalidades Principais
+    
+    - 🔐 **Autenticação JWT** com SQL Server
+    - 💬 **WhatsApp Business API** (Meta Cloud)
+    - 🤖 **Chatbot IA** com Google Gemini
+    - ⚡ **WebSocket** para tempo real
+    - 📊 **Dashboard** com métricas
+    
+    ## Fluxo de Autenticação
+    
+    1. Faça login via `POST /auth/login`
+    2. Use o token retornado no header `Authorization: Bearer <token>`
+    3. Token expira em 24 horas
+    
+  version: 2.0.0
+  contact:
+    name: Suporte API
+    email: api@empresa.com
+    url: https://empresa.com/suporte
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Ambiente de Desenvolvimento
+  - url: https://api.empresa.com/api/v1
+    description: Ambiente de Produção
+
+tags:
+  - name: auth
+    description: Endpoints de autenticação e sessão
+  - name: users
+    description: Gerenciamento de usuários
+  - name: conversations
+    description: Gerenciamento de conversas de atendimento
+  - name: whatsapp
+    description: Integração com WhatsApp Business API
+  - name: chatbot
+    description: Chatbot com Inteligência Artificial
+  - name: dashboard
+    description: Dashboard e métricas em tempo real
+  - name: health
+    description: Verificação de saúde do sistema
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: Autenticar usuário
+      description: |
+        Autentica um usuário e retorna um token JWT.
+        
+        **Rate Limit:** 5 tentativas / 15 minutos por IP
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: usuario@email.com
+              password: senha123
+      responses:
+        '200':
+          description: Login bem-sucedido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit excedido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags:
+        - auth
+      summary: Fazer logout
+      description: Revoga o token JWT atual
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout bem-sucedido
+        '401':
+          description: Token inválido
+
+  /auth/me:
+    get:
+      tags:
+        - auth
+      summary: Obter usuário atual
+      description: Retorna informações do usuário autenticado
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dados do usuário
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /users:
+    get:
+      tags:
+        - users
+      summary: Listar usuários
+      description: Lista todos os usuários (somente admin)
+      operationId: listUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Número da página
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Itens por página
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: role
+          in: query
+          description: Filtrar por role
+          schema:
+            type: string
+            enum: [admin, atendente, supervisor, user]
+        - name: is_active
+          in: query
+          description: Filtrar por status
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Lista de usuários
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserList'
+        '403':
+          description: Sem permissão
+
+    post:
+      tags:
+        - users
+      summary: Criar usuário
+      description: Cria um novo usuário (somente admin)
+      operationId: createUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Usuário criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Dados inválidos
+        '403':
+          description: Sem permissão
+
+  /users/{user_id}:
+    get:
+      tags:
+        - users
+      summary: Obter usuário
+      operationId: getUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Dados do usuário
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: Usuário não encontrado
+
+    put:
+      tags:
+        - users
+      summary: Atualizar usuário
+      operationId: updateUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Usuário atualizado
+        '404':
+          description: Usuário não encontrado
+
+    delete:
+      tags:
+        - users
+      summary: Desativar usuário
+      operationId: deleteUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Usuário desativado
+        '404':
+          description: Usuário não encontrado
+
+  /conversations:
+    get:
+      tags:
+        - conversations
+      summary: Listar conversas
+      description: Lista conversas do atendente logado
+      operationId: listConversations
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [queue, in_progress, resolved, closed]
+        - name: channel
+          in: query
+          schema:
+            type: string
+            enum: [whatsapp, web, api]
+        - name: assigned_to
+          in: query
+          schema:
+            type: integer
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Lista de conversas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationList'
+
+  /conversations/{conversation_id}:
+    get:
+      tags:
+        - conversations
+      summary: Obter conversa
+      description: Retorna detalhes de uma conversa com mensagens
+      operationId: getConversation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalhes da conversa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationDetail'
+        '404':
+          description: Conversa não encontrada
+
+  /conversations/{conversation_id}/messages:
+    post:
+      tags:
+        - conversations
+      summary: Enviar mensagem
+      description: Envia uma mensagem em uma conversa
+      operationId: sendMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '200':
+          description: Mensagem enviada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+
+  /conversations/{conversation_id}/transfer:
+    post:
+      tags:
+        - conversations
+      summary: Transferir conversa
+      operationId: transferConversation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+      responses:
+        '200':
+          description: Conversa transferida
+
+  /conversations/{conversation_id}/close:
+    post:
+      tags:
+        - conversations
+      summary: Encerrar conversa
+      operationId: closeConversation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloseConversationRequest'
+      responses:
+        '200':
+          description: Conversa encerrada
+
+  /whatsapp/webhook:
+    get:
+      tags:
+        - whatsapp
+      summary: Verificação do webhook
+      description: Endpoint de verificação (challenge) do WhatsApp
+      operationId: verifyWebhook
+      parameters:
+        - name: hub.mode
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: hub.verify_token
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: hub.challenge
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Challenge aceito
+        '403':
+          description: Token de verificação inválido
+
+    post:
+      tags:
+        - whatsapp
+      summary: Webhook de eventos
+      description: Recebe eventos do WhatsApp Business API
+      operationId: handleWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Evento processado
+
+  /whatsapp/send:
+    post:
+      tags:
+        - whatsapp
+      summary: Enviar mensagem
+      description: Envia mensagem WhatsApp
+      operationId: sendWhatsAppMessage
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WhatsAppMessageRequest'
+      responses:
+        '200':
+          description: Mensagem enviada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhatsAppMessageResponse'
+
+  /whatsapp/send-template:
+    post:
+      tags:
+        - whatsapp
+      summary: Enviar template
+      description: Envia template pré-aprovado pelo WhatsApp
+      operationId: sendWhatsAppTemplate
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WhatsAppTemplateRequest'
+      responses:
+        '200':
+          description: Template enviado
+
+  /chatbot/message:
+    post:
+      tags:
+        - chatbot
+      summary: Processar mensagem
+      description: Processa mensagem com IA (Google Gemini)
+      operationId: processChatbotMessage
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatbotMessageRequest'
+      responses:
+        '200':
+          description: Resposta do chatbot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatbotResponse'
+
+  /chatbot/escalate:
+    post:
+      tags:
+        - chatbot
+      summary: Escalar conversa
+      description: Escala conversa para atendente humano
+      operationId: escalateConversation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscalateRequest'
+      responses:
+        '200':
+          description: Conversa escalada
+
+  /dashboard/metrics:
+    get:
+      tags:
+        - dashboard
+      summary: Métricas em tempo real
+      operationId: getDashboardMetrics
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Métricas do sistema
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardMetrics'
+
+  /dashboard/agents:
+    get:
+      tags:
+        - dashboard
+      summary: Status dos atendentes
+      operationId: getAgentsStatus
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de atendentes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentsList'
+
+  /dashboard/queue:
+    get:
+      tags:
+        - dashboard
+      summary: Fila de espera
+      operationId: getQueue
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Fila de atendimento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueStatus'
+
+  /health:
+    get:
+      tags:
+        - health
+      summary: Verificar saúde
+      description: Retorna status de saúde da aplicação
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Sistema saudável
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT obtido via /auth/login
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: usuario@email.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: senha123
+
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        token_type:
+          type: string
+          example: bearer
+        expires_in:
+          type: integer
+          example: 86400
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        email:
+          type: string
+          format: email
+          example: usuario@email.com
+        nome:
+          type: string
+          example: João Silva
+        role:
+          type: string
+          enum: [admin, atendente, supervisor, user]
+          example: atendente
+        is_active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+
+    UserList:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        total:
+          type: integer
+        page:
+          type: integer
+        pages:
+          type: integer
+
+    CreateUserRequest:
+      type: object
+      required:
+        - email
+        - password
+        - nome
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        nome:
+          type: string
+        role:
+          type: string
+          enum: [admin, atendente, supervisor, user]
+          default: user
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        nome:
+          type: string
+        role:
+          type: string
+        is_active:
+          type: boolean
+
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        customer_phone:
+          type: string
+          example: "+5511999999999"
+        customer_name:
+          type: string
+        status:
+          type: string
+          enum: [queue, in_progress, resolved, closed]
+        channel:
+          type: string
+          enum: [whatsapp, web, api]
+        assigned_to:
+          type: integer
+        started_at:
+          type: string
+          format: date-time
+        last_message_at:
+          type: string
+          format: date-time
+        messages_count:
+          type: integer
+
+    ConversationList:
+      type: object
+      properties:
+        conversations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Conversation'
+        total:
+          type: integer
+
+    ConversationDetail:
+      allOf:
+        - $ref: '#/components/schemas/Conversation'
+        - type: object
+          properties:
+            messages:
+              type: array
+              items:
+                $ref: '#/components/schemas/Message'
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        direction:
+          type: string
+          enum: [incoming, outgoing]
+        content:
+          type: string
+        type:
+          type: string
+          enum: [text, image, document, template]
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [sent, delivered, read, failed]
+        sent_by:
+          type: string
+          enum: [agent, bot, customer]
+
+    SendMessageRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+        type:
+          type: string
+          enum: [text, image, document]
+          default: text
+
+    TransferRequest:
+      type: object
+      required:
+        - to_agent_id
+      properties:
+        to_agent_id:
+          type: integer
+        reason:
+          type: string
+
+    CloseConversationRequest:
+      type: object
+      properties:
+        resolution:
+          type: string
+          enum: [resolved, unresolved, abandoned]
+        notes:
+          type: string
+
+    WhatsAppMessageRequest:
+      type: object
+      required:
+        - to
+        - type
+        - content
+      properties:
+        to:
+          type: string
+          example: "+5511999999999"
+        type:
+          type: string
+          enum: [text, image, document]
+        content:
+          oneOf:
+            - type: string
+            - type: object
+
+    WhatsAppMessageResponse:
+      type: object
+      properties:
+        message_id:
+          type: string
+        status:
+          type: string
+
+    WhatsAppTemplateRequest:
+      type: object
+      required:
+        - to
+        - template_name
+      properties:
+        to:
+          type: string
+        template_name:
+          type: string
+        language:
+          type: string
+          default: pt_BR
+        components:
+          type: array
+          items:
+            type: object
+
+    ChatbotMessageRequest:
+      type: object
+      required:
+        - conversation_id
+        - message
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+        message:
+          type: string
+        context:
+          type: object
+          additionalProperties: true
+
+    ChatbotResponse:
+      type: object
+      properties:
+        response:
+          type: string
+        intent:
+          type: string
+        confidence:
+          type: number
+          format: float
+        should_transfer:
+          type: boolean
+        suggested_actions:
+          type: array
+          items:
+            type: string
+
+    EscalateRequest:
+      type: object
+      required:
+        - conversation_id
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+
+    DashboardMetrics:
+      type: object
+      properties:
+        conversations:
+          type: object
+          properties:
+            active:
+              type: integer
+            in_queue:
+              type: integer
+            resolved_today:
+              type: integer
+        agents:
+          type: object
+          properties:
+            online:
+              type: integer
+            busy:
+              type: integer
+            available:
+              type: integer
+        performance:
+          type: object
+          properties:
+            avg_response_time_seconds:
+              type: number
+            avg_resolution_time_minutes:
+              type: number
+            satisfaction_rate:
+              type: number
+
+    AgentsList:
+      type: object
+      properties:
+        agents:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentStatus'
+
+    AgentStatus:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        status:
+          type: string
+          enum: [online, offline, busy, away]
+        current_conversations:
+          type: integer
+        max_conversations:
+          type: integer
+        avg_response_time:
+          type: number
+
+    QueueStatus:
+      type: object
+      properties:
+        queue:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueueItem'
+        total_in_queue:
+          type: integer
+        avg_wait_time_minutes:
+          type: number
+
+    QueueItem:
+      type: object
+      properties:
+        position:
+          type: integer
+        customer_phone:
+          type: string
+        customer_name:
+          type: string
+        waiting_since:
+          type: string
+          format: date-time
+        estimated_wait_minutes:
+          type: number
+        priority:
+          type: string
+          enum: [low, normal, high, urgent]
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        version:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        services:
+          type: object
+          additionalProperties:
+            type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+        error_code:
+          type: string
+        field:
+          type: string
+
+security:
+  - bearerAuth: []

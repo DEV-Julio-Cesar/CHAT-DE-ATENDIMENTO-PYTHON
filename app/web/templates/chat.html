@@ -1,485 +1,2779 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ISP Customer Support - Chat WhatsApp</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body>
-    <div class="app-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h1><i class="fas fa-headset"></i> ISP Support</h1>
-                <p>Sistema de Atendimento WhatsApp</p>
-            </div>
-            
-            <nav class="nav-menu">
-                <ul>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link active" data-section="chat">
-                            <i class="fas fa-comments"></i>
-                            Chat
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link" data-section="stats">
-                            <i class="fas fa-chart-bar"></i>
-                            Estatísticas
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link" data-section="agents">
-                            <i class="fas fa-users"></i>
-                            Agentes
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link" data-section="settings">
-                            <i class="fas fa-cog"></i>
-                            Configurações
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Chat Section -->
-            <div id="chat-section" class="content-section active">
-                <div class="page-header">
-                    <div>
-                        <h1 class="page-title">Chat WhatsApp</h1>
-                        <p class="page-subtitle">Gerenciamento de conversas com fluxo de 3 etapas</p>
-                    </div>
-                    <div class="header-actions">
-                        <button class="btn btn-primary" onclick="createTestConversation()">
-                            <i class="fas fa-plus"></i> Nova Conversa
-                        </button>
-                        <button class="btn btn-success" onclick="refreshConversations()">
-                            <i class="fas fa-sync"></i> Atualizar
-                        </button>
-                    </div>
-                </div>
-
-                <div class="chat-container">
-                    <!-- Lista de Conversas -->
-                    <div class="conversations-panel">
-                        <div class="conversations-header">
-                            <h3><i class="fas fa-list"></i> Conversas</h3>
-                            <span class="conversation-count" id="total-conversations">0</span>
-                        </div>
-                        <div class="conversations-list" id="conversations-list">
-                            <!-- Conversas serão carregadas aqui -->
-                        </div>
-                    </div>
-
-                    <!-- Área do Chat -->
-                    <div class="chat-panel">
-                        <div class="chat-header" id="chat-header">
-                            <div class="empty-state">
-                                <i class="fas fa-comments"></i>
-                                <p>Selecione uma conversa para começar</p>
-                            </div>
-                        </div>
-                        
-                        <div class="chat-messages" id="chat-messages">
-                            <!-- Mensagens serão carregadas aqui -->
-                        </div>
-                        
-                        <div class="chat-input">
-                            <input 
-                                type="text" 
-                                id="message-input" 
-                                placeholder="Digite sua mensagem..."
-                                disabled
-                            >
-                            <button class="send-btn" id="send-btn" disabled>
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Stats Section -->
-            <div id="stats-section" class="content-section">
-                <div class="page-header">
-                    <h1 class="page-title">Estatísticas</h1>
-                    <p class="page-subtitle">Métricas do sistema de chat</p>
-                </div>
-
-                <div class="stats-grid" id="stats-grid">
-                    <!-- Stats serão carregadas aqui -->
-                </div>
-            </div>
-
-            <!-- Agents Section -->
-            <div id="agents-section" class="content-section">
-                <div class="page-header">
-                    <h1 class="page-title">Agentes</h1>
-                    <p class="page-subtitle">Gerenciamento de atendentes</p>
-                </div>
-
-                <div class="agents-grid" id="agents-grid">
-                    <!-- Agentes serão carregados aqui -->
-                </div>
-            </div>
-
-            <!-- Settings Section -->
-            <div id="settings-section" class="content-section">
-                <div class="page-header">
-                    <h1 class="page-title">Configurações</h1>
-                    <p class="page-subtitle">Configurações do sistema</p>
-                </div>
-
-                <div class="settings-panel">
-                    <div class="setting-group">
-                        <h3>Automação</h3>
-                        <div class="setting-item">
-                            <label>
-                                <input type="checkbox" id="auto-assign" checked>
-                                Atribuição automática
-                            </label>
-                        </div>
-                        <div class="setting-item">
-                            <label>
-                                <input type="checkbox" id="auto-responses" checked>
-                                Respostas automáticas
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="setting-group">
-                        <h3>Notificações</h3>
-                        <div class="setting-item">
-                            <label>
-                                <input type="checkbox" id="sound-notifications" checked>
-                                Notificações sonoras
-                            </label>
-                        </div>
-                        <div class="setting-item">
-                            <label>
-                                <input type="checkbox" id="desktop-notifications" checked>
-                                Notificações desktop
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Notification Container -->
-    <div id="notification-container"></div>
-
-    <!-- Scripts -->
-    <script src="/static/js/chat.js"></script>
-    <script>
-        // Navigation
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                
-                // Remove active class from all links and sections
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-                
-                // Add active class to clicked link
-                link.classList.add('active');
-                
-                // Show corresponding section
-                const section = link.dataset.section;
-                document.getElementById(`${section}-section`).classList.add('active');
-                
-                // Load section data
-                loadSectionData(section);
-            });
-        });
-
-        // Load section data
-        function loadSectionData(section) {
-            switch(section) {
-                case 'stats':
-                    loadStats();
-                    break;
-                case 'agents':
-                    loadAgents();
-                    break;
-            }
-        }
-
-        // Load stats
-        async function loadStats() {
-            try {
-                const response = await fetch('/api/chat/stats');
-                const data = await response.json();
-                
-                if (data.success) {
-                    renderStats(data.data);
-                }
-            } catch (error) {
-                console.error('Erro ao carregar estatísticas:', error);
-            }
-        }
-
-        // Render stats
-        function renderStats(stats) {
-            const container = document.getElementById('stats-grid');
-            container.innerHTML = `
-                <div class="stat-card primary">
-                    <div class="stat-number">${stats.total_conversations}</div>
-                    <div class="stat-label">Total de Conversas</div>
-                </div>
-                <div class="stat-card success">
-                    <div class="stat-number">${stats.active_conversations}</div>
-                    <div class="stat-label">Conversas Ativas</div>
-                </div>
-                <div class="stat-card warning">
-                    <div class="stat-number">${stats.by_status.waiting || 0}</div>
-                    <div class="stat-label">Em Espera</div>
-                </div>
-                <div class="stat-card info">
-                    <div class="stat-number">${stats.by_status.assigned || 0}</div>
-                    <div class="stat-label">Atribuídas</div>
-                </div>
-                <div class="stat-card success">
-                    <div class="stat-number">${stats.by_status.automation || 0}</div>
-                    <div class="stat-label">Em Automação</div>
-                </div>
-                <div class="stat-card danger">
-                    <div class="stat-number">${stats.by_status.closed || 0}</div>
-                    <div class="stat-label">Encerradas</div>
-                </div>
-            `;
-        }
-
-        // Load agents
-        function loadAgents() {
-            const container = document.getElementById('agents-grid');
-            container.innerHTML = `
-                <div class="agent-card">
-                    <div class="agent-avatar">A1</div>
-                    <div class="agent-info">
-                        <h4>Agente 1</h4>
-                        <p class="agent-status online">Online</p>
-                        <p class="agent-workload">3 conversas ativas</p>
-                    </div>
-                </div>
-                <div class="agent-card">
-                    <div class="agent-avatar">A2</div>
-                    <div class="agent-info">
-                        <h4>Agente 2</h4>
-                        <p class="agent-status offline">Offline</p>
-                        <p class="agent-workload">0 conversas ativas</p>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Create test conversation
-        async function createTestConversation() {
-            try {
-                const customerName = prompt('Nome do cliente:');
-                if (!customerName) return;
-                
-                const customerPhone = prompt('Telefone do cliente:');
-                if (!customerPhone) return;
-                
-                const initialMessage = prompt('Mensagem inicial (opcional):') || 'Olá, preciso de ajuda';
-                
-                const response = await fetch('/api/conversations', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        customer_name: customerName,
-                        customer_phone: customerPhone,
-                        initial_message: initialMessage
-                    })
-                });
-                
-                if (response.ok) {
-                    chatManager.showNotification('Conversa criada com sucesso', 'success');
-                    chatManager.loadConversations();
-                } else {
-                    throw new Error('Erro ao criar conversa');
-                }
-            } catch (error) {
-                chatManager.showNotification('Erro ao criar conversa', 'error');
-            }
-        }
-
-        // Refresh conversations
-        function refreshConversations() {
-            if (window.chatManager) {
-                chatManager.loadConversations();
-                chatManager.showNotification('Conversas atualizadas', 'info');
-            }
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            loadStats();
-        });
-    </script>
-
+    <title>Atendimentos - CIANET PROVEDOR</title>
+    <link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <!-- Audio para notificações -->
+    <audio id="notificationSound" preload="auto" src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3"></audio>
+    
     <style>
-        /* Additional styles for the interface */
-        .content-section {
-            display: none;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f8fafc; height: 100vh; overflow: hidden; }
+        
+        .chat-layout {
+            display: grid;
+            grid-template-columns: 360px 1fr 340px;
+            height: 100vh;
         }
         
-        .content-section.active {
-            display: block;
-        }
-        
-        .header-actions {
+        .conversations-sidebar {
+            background: white;
+            border-right: 1px solid #e5e7eb;
             display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .conv-header {
+            padding: 20px 24px;
+            background: linear-gradient(135deg, #166534 0%, #22c55e 50%, #f97316 100%);
+        }
+        
+        .conv-header h2 {
+            color: white;
+            font-size: 22px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        
+        .conv-search {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 10px 14px;
             gap: 10px;
         }
         
-        .empty-state {
-            text-align: center;
-            color: #718096;
-            padding: 40px;
+        .conv-search i { color: rgba(255, 255, 255, 0.8); }
+        
+        .conv-search input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            outline: none;
+            color: white;
+            font-size: 14px;
         }
         
-        .empty-state i {
-            font-size: 3rem;
-            margin-bottom: 15px;
-            opacity: 0.5;
-        }
+        .conv-search input::placeholder { color: rgba(255, 255, 255, 0.7); }
         
-        .conversation-count {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-        }
-        
-        .settings-panel {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: var(--shadow);
-        }
-        
-        .setting-group {
-            margin-bottom: 30px;
-        }
-        
-        .setting-group h3 {
-            margin-bottom: 15px;
-            color: var(--dark-text);
-        }
-        
-        .setting-item {
-            margin-bottom: 10px;
-        }
-        
-        .setting-item label {
+        .conv-tabs {
             display: flex;
-            align-items: center;
+            padding: 12px 16px;
+            gap: 8px;
+            border-bottom: 1px solid #f4f4f5;
+            background: #fafafa;
+        }
+        
+        .conv-tab {
+            flex: 1;
+            padding: 10px 12px;
+            border: none;
+            background: transparent;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #6b7280;
             cursor: pointer;
+            transition: all 0.3s;
         }
         
-        .setting-item input[type="checkbox"] {
-            margin-right: 10px;
+        .conv-tab:hover { background: #f0fdf4; color: #22c55e; }
+        .conv-tab.active {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
         }
         
-        .agents-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
+        .conv-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
         }
         
-        .agent-card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: var(--shadow);
+        .conv-item {
             display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            margin-bottom: 6px;
+        }
+        
+        .conv-item:hover { background: #f0fdf4; }
+        .conv-item.active {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(249, 115, 22, 0.05));
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .conv-item.unread {
+            background: #fffbeb;
+            border: 1px solid rgba(249, 115, 22, 0.2);
+        }
+        
+        .conv-avatar {
+            position: relative;
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #22c55e, #f97316);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        
+        .conv-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 16px;
+        }
+        
+        .conv-online {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
+            background: #22c55e;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        
+        .conv-info { flex: 1; min-width: 0; }
+        .conv-name { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .conv-name h4 { font-size: 15px; font-weight: 600; color: #18181b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .conv-name span { font-size: 12px; color: #9ca3af; flex-shrink: 0; }
+        .conv-preview { font-size: 13px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .conv-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            min-width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            border-radius: 11px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 6px;
+        }
+        
+        .chat-main {
+            display: flex;
+            flex-direction: column;
+            background: #f8fafc;
+        }
+        
+        .chat-header {
+            padding: 18px 28px;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
             align-items: center;
         }
         
-        .agent-avatar {
+        .chat-user {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .chat-user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #22c55e, #f97316);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            overflow: hidden;
+        }
+        
+        .chat-user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .chat-user-info h3 { font-size: 17px; font-weight: 700; color: #18181b; }
+        .chat-user-info span { font-size: 13px; color: #22c55e; }
+        
+        .chat-actions { display: flex; gap: 8px; }
+        
+        .chat-action-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .chat-action-btn:hover {
+            border-color: #22c55e;
+            color: #22c55e;
+            background: #f0fdf4;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+        }
+        
+        .chat-action-btn.danger:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+            background: #fef2f2;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+        
+        .chat-action-btn.success {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-color: transparent;
+            color: white;
+        }
+        
+        .chat-action-btn.success:hover {
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+        }
+        
+        .chat-empty {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .chat-empty-icon {
+            width: 120px;
+            height: 120px;
+            border-radius: 30px;
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(249, 115, 22, 0.1));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: #22c55e;
+            margin-bottom: 24px;
+        }
+        
+        .chat-empty h3 {
+            font-size: 22px;
+            color: #18181b;
+            margin-bottom: 8px;
+        }
+        
+        .chat-empty p {
+            color: #6b7280;
+            font-size: 15px;
+            max-width: 300px;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .message {
+            display: flex;
+            gap: 12px;
+            max-width: 75%;
+            animation: messageIn 0.3s ease;
+        }
+        
+        @keyframes messageIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message.sent { margin-left: auto; flex-direction: row-reverse; }
+        
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #22c55e, #f97316);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        
+        .message-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .message.sent .message-avatar {
+            background: linear-gradient(135deg, #166534, #22c55e);
+        }
+        
+        .message-bubble {
+            padding: 14px 18px;
+            border-radius: 18px;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        
+        .message.sent .message-bubble {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+        
+        .message-text { font-size: 15px; line-height: 1.5; margin-bottom: 6px; word-wrap: break-word; }
+        .message-time { font-size: 11px; color: #9ca3af; display: flex; align-items: center; gap: 4px; }
+        .message.sent .message-time { color: rgba(255, 255, 255, 0.8); justify-content: flex-end; }
+        
+        .chat-input-area {
+            padding: 20px 28px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .chat-input-wrapper {
+            display: flex;
+            align-items: flex-end;
+            gap: 14px;
+            background: #f4f4f5;
+            padding: 12px 18px;
+            border-radius: 20px;
+            transition: all 0.3s;
+        }
+        
+        .chat-input-wrapper:focus-within {
+            background: white;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+        }
+        
+        .input-actions { display: flex; gap: 4px; }
+        
+        .input-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            border: none;
+            background: transparent;
+            color: #9ca3af;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .input-btn:hover {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(249, 115, 22, 0.1));
+            color: #22c55e;
+            transform: scale(1.1);
+        }
+        
+        .chat-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 15px;
+            resize: none;
+            min-height: 24px;
+            max-height: 120px;
+            line-height: 1.5;
+        }
+        
+        .send-btn {
             width: 50px;
             height: 50px;
-            border-radius: 50%;
-            background: var(--primary-color);
+            border-radius: 16px;
+            border: none;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .send-btn:hover {
+            transform: scale(1.08) translateY(-2px);
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.4);
+        }
+        
+        .send-btn:active { transform: scale(0.95); }
+        
+        .customer-panel {
+            width: 340px;
+            background: white;
+            border-left: 1px solid #e5e7eb;
+            overflow-y: auto;
+        }
+        
+        .panel-header {
+            padding: 28px;
+            text-align: center;
+            background: linear-gradient(135deg, #166534, #22c55e, #f97316);
+            color: white;
+        }
+        
+        .panel-avatar {
+            width: 90px;
+            height: 90px;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 700;
+            margin: 0 auto 16px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+        }
+        
+        .panel-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .panel-header h3 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+        .panel-header p { font-size: 14px; opacity: 0.85; }
+        
+        .panel-section {
+            padding: 24px;
+            border-bottom: 1px solid #f4f4f5;
+        }
+        
+        .panel-section h4 {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #9ca3af;
+            margin-bottom: 16px;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+        
+        .info-item:last-child { margin-bottom: 0; }
+        
+        .info-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: #f0fdf4;
+            color: #22c55e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .info-content span { font-size: 12px; color: #9ca3af; display: block; }
+        .info-content p { font-size: 14px; color: #18181b; font-weight: 500; margin: 0; }
+        
+        .plan-card {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            padding: 20px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        
+        .plan-icon {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-weight: bold;
-            margin-right: 15px;
+            font-size: 24px;
         }
         
-        .agent-status.online {
-            color: var(--success-color);
-        }
+        .plan-info h5 { font-size: 17px; font-weight: 700; color: #92400e; }
+        .plan-info p { font-size: 13px; color: #b45309; margin: 0; }
         
-        .agent-status.offline {
-            color: #718096;
-        }
+        .quick-actions-panel { display: flex; flex-direction: column; gap: 10px; }
         
-        .conversation-group-header {
-            padding: 15px 20px;
-            background: #f8f9fa;
-            border-bottom: 1px solid var(--border-color);
-            font-weight: 600;
-            color: var(--dark-text);
-        }
-        
-        .conversation-group-header h4 {
-            margin: 0;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        #notification-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-        }
-        
-        .notification {
+        .quick-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
             background: white;
-            padding: 15px 20px;
+            color: #374151;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .quick-action-btn:hover {
+            border-color: #22c55e;
+            background: linear-gradient(135deg, #f0fdf4, #fefce8);
+            color: #16a34a;
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+        }
+        
+        .quick-action-btn i { font-size: 20px; width: 24px; color: #f97316; }
+        
+        .loading-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #f4f4f5;
+            border-top-color: #22c55e;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            margin-top: 16px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .panel-empty {
+            padding: 60px 40px;
+            text-align: center;
+        }
+        
+        .panel-empty i {
+            font-size: 64px;
+            color: #e5e7eb;
+            margin-bottom: 20px;
+        }
+        
+        .panel-empty h4 {
+            color: #9ca3af;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        /* CRM/ERP - Seção Financeira */
+        .financial-status { margin-bottom: 16px; }
+        
+        .financial-card {
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .financial-card.status-ok {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+        }
+        
+        .financial-card.status-pending {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+        }
+        
+        .financial-card.status-overdue {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+        }
+        
+        .financial-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        
+        .status-ok .financial-badge { color: #16a34a; }
+        .status-pending .financial-badge { color: #ca8a04; }
+        .status-overdue .financial-badge { color: #dc2626; }
+        
+        .financial-summary { display: flex; flex-direction: column; gap: 8px; }
+        
+        .financial-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dashed #e5e7eb;
+        }
+        
+        .financial-item:last-child { border-bottom: none; }
+        .fin-label { font-size: 12px; color: #6b7280; }
+        .fin-value { font-size: 13px; font-weight: 600; color: #18181b; }
+        
+        /* CRM/ERP - Histórico de Pagamentos */
+        .payment-history { display: flex; flex-direction: column; gap: 8px; }
+        
+        .payment-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: #f9fafb;
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+        
+        .payment-item:hover { background: #f0fdf4; }
+        
+        .payment-item.paid .payment-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #dcfce7;
+            color: #16a34a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .payment-item.pending .payment-icon {
+            background: #fef3c7;
+            color: #ca8a04;
+        }
+        
+        .payment-info { flex: 1; display: flex; justify-content: space-between; }
+        .payment-date { font-size: 13px; color: #6b7280; }
+        .payment-amount { font-size: 13px; font-weight: 600; color: #18181b; }
+        
+        .view-all-payments-btn {
+            width: 100%;
+            padding: 10px;
+            margin-top: 12px;
+            border: 2px dashed #e5e7eb;
+            border-radius: 10px;
+            background: transparent;
+            color: #6b7280;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .view-all-payments-btn:hover {
+            border-color: #22c55e;
+            color: #22c55e;
+            background: #f0fdf4;
+        }
+        
+        /* CRM/ERP - Chamados Técnicos */
+        .tickets-list { display: flex; flex-direction: column; gap: 8px; }
+        
+        .ticket-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: #f9fafb;
+            border-radius: 10px;
+        }
+        
+        .ticket-item.resolved .ticket-status {
+            color: #16a34a;
+            font-size: 16px;
+        }
+        
+        .ticket-item.open .ticket-status {
+            color: #f97316;
+            font-size: 16px;
+        }
+        
+        .ticket-info { flex: 1; }
+        .ticket-title { font-size: 13px; font-weight: 500; color: #18181b; display: block; }
+        .ticket-date { font-size: 11px; color: #9ca3af; }
+        
+        @media (max-width: 1200px) { .customer-panel { display: none; } }
+        @media (max-width: 768px) { .conversations-sidebar { display: none; } }
+        
+        /* ========== TYPING INDICATOR ========== */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: #f4f4f5;
+            border-radius: 18px 18px 18px 4px;
+            width: fit-content;
+            margin: 8px 0 8px 56px;
+        }
+        
+        .typing-indicator span {
+            font-size: 13px;
+            color: #6b7280;
+            font-style: italic;
+        }
+        
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .typing-dots div {
+            width: 8px;
+            height: 8px;
+            background: #9ca3af;
+            border-radius: 50%;
+            animation: typingBounce 1.4s ease-in-out infinite;
+        }
+        
+        .typing-dots div:nth-child(1) { animation-delay: 0s; }
+        .typing-dots div:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots div:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
+        }
+        
+        /* ========== MODAL BASE ========== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            transform: translateY(20px) scale(0.95);
+            transition: all 0.3s;
+        }
+        
+        .modal-overlay.active .modal-content {
+            transform: translateY(0) scale(1);
+        }
+        
+        .modal-header {
+            padding: 24px;
+            background: linear-gradient(135deg, #166534, #22c55e, #f97316);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .modal-header h3 {
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+        
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+        
+        .modal-body {
+            padding: 24px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        /* ========== QUICK REPLIES MODAL ========== */
+        .quick-reply-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .quick-reply-item:hover {
+            background: #f0fdf4;
+            border-color: #22c55e;
+            transform: translateX(4px);
+        }
+        
+        .quick-reply-item .qr-shortcut {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            padding: 6px 12px;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-size: 12px;
+            font-weight: 700;
+            font-family: monospace;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        .quick-reply-item .qr-text {
+            flex: 1;
+            font-size: 14px;
+            color: #374151;
+            line-height: 1.5;
+        }
+        
+        .quick-reply-item .qr-actions {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .quick-reply-item .qr-actions button {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: #e5e7eb;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .quick-reply-item .qr-actions button:hover {
+            background: #22c55e;
+            color: white;
+        }
+        
+        .quick-reply-item .qr-actions button.delete:hover {
+            background: #ef4444;
+        }
+        
+        .add-quick-reply-form {
+            background: #fef3c7;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 16px;
+        }
+        
+        .add-quick-reply-form h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 12px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .form-group {
+            flex: 1;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 6px;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+        }
+        
+        .variables-hint {
+            font-size: 12px;
+            color: #92400e;
+            margin-top: 8px;
+        }
+        
+        .variables-hint code {
+            background: rgba(249, 115, 22, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        /* ========== HISTORY MODAL ========== */
+        .history-filters {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .history-filters select,
+        .history-filters input {
+            padding: 10px 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+        
+        .history-filters select:focus,
+        .history-filters input:focus {
+            outline: none;
+            border-color: #22c55e;
+        }
+        
+        .history-timeline {
+            position: relative;
+            padding-left: 32px;
+        }
+        
+        .history-timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, #22c55e, #f97316);
+            border-radius: 2px;
+        }
+        
+        .history-item {
+            position: relative;
+            padding: 16px 20px;
+            background: #f9fafb;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            border-left: 4px solid #22c55e;
+            transition: all 0.2s;
+        }
+        
+        .history-item:hover {
+            background: #f0fdf4;
+            transform: translateX(4px);
+        }
+        
+        .history-item::before {
+            content: '';
+            position: absolute;
+            left: -26px;
+            top: 24px;
+            width: 14px;
+            height: 14px;
+            background: #22c55e;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+        }
+        
+        .history-item.resolved { border-left-color: #22c55e; }
+        .history-item.resolved::before { background: #22c55e; }
+        
+        .history-item.cancelled { border-left-color: #ef4444; }
+        .history-item.cancelled::before { background: #ef4444; }
+        
+        .history-item.transferred { border-left-color: #f97316; }
+        .history-item.transferred::before { background: #f97316; }
+        
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
             margin-bottom: 10px;
-            border-left: 4px solid var(--info-color);
-            animation: slideIn 0.3s ease-out;
         }
         
-        .notification-success {
-            border-left-color: var(--success-color);
+        .history-item-title {
+            font-weight: 600;
+            color: #18181b;
+            font-size: 15px;
         }
         
-        .notification-error {
-            border-left-color: var(--danger-color);
+        .history-item-date {
+            font-size: 12px;
+            color: #9ca3af;
         }
         
-        .notification-warning {
-            border-left-color: var(--warning-color);
+        .history-item-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
         }
         
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+        .history-item-status.resolved {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .history-item-status.cancelled {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .history-item-status.transferred {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .history-item-details {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        
+        .history-item-details span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #f4f4f5;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+        }
+        
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+        
+        .btn-orange {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+        }
+        
+        .btn-orange:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3);
+        }
+        
+        /* ========== NOTIFICATION TOAST ========== */
+        .notification-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            max-width: 360px;
+            transform: translateX(120%);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 2000;
+            border-left: 4px solid #22c55e;
+        }
+        
+        .notification-toast.show {
+            transform: translateX(0);
+        }
+        
+        .notification-toast-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        
+        .notification-toast-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .notification-toast-content h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #18181b;
+            margin-bottom: 4px;
+        }
+        
+        .notification-toast-content p {
+            font-size: 13px;
+            color: #6b7280;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 240px;
+        }
+        
+        .notification-toast-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: #f4f4f5;
+            border-radius: 6px;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .notification-toast-close:hover {
+            background: #ef4444;
+            color: white;
+        }
+        
+        /* Quick Reply Suggestion Dropdown */
+        .quick-reply-dropdown {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15);
+            max-height: 240px;
+            overflow-y: auto;
+            display: none;
+            margin-bottom: 8px;
+            border: 2px solid #22c55e;
+        }
+        
+        .quick-reply-dropdown.show {
+            display: block;
+        }
+        
+        .quick-reply-dropdown-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 1px solid #f4f4f5;
+        }
+        
+        .quick-reply-dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        .quick-reply-dropdown-item:hover {
+            background: #f0fdf4;
+        }
+        
+        .quick-reply-dropdown-item .shortcut {
+            display: inline-block;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            font-family: monospace;
+            margin-right: 8px;
+        }
+        
+        .quick-reply-dropdown-item .text {
+            color: #374151;
+            font-size: 13px;
         }
     </style>
+</head>
+<body>
+    <div class="chat-layout">
+        <aside class="conversations-sidebar">
+            <div class="conv-header">
+                <h2><i class="bi bi-chat-dots-fill"></i> Conversas</h2>
+                <div class="conv-search">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="searchInput" placeholder="Buscar conversas..." oninput="filterConversations()">
+                </div>
+            </div>
+            
+            <div class="conv-tabs">
+                <button class="conv-tab active" data-filter="active" onclick="setFilter('active')">Ativos (<span id="activeCount">0</span>)</button>
+                <button class="conv-tab" data-filter="waiting" onclick="setFilter('waiting')">Em espera (<span id="waitingCount">0</span>)</button>
+                <button class="conv-tab" data-filter="all" onclick="setFilter('all')">Todos</button>
+            </div>
+            
+            <div class="conv-list" id="convList">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p class="loading-text">Carregando conversas...</p>
+                </div>
+            </div>
+        </aside>
+        
+        <main class="chat-main">
+            <div id="chatEmptyState" class="chat-empty">
+                <div class="chat-empty-icon">
+                    <i class="bi bi-chat-square-text"></i>
+                </div>
+                <h3>Nenhuma conversa selecionada</h3>
+                <p>Selecione uma conversa na lista ao lado para começar o atendimento.</p>
+            </div>
+            
+            <div id="chatContent" style="display: none; flex-direction: column; flex: 1;">
+                <header class="chat-header">
+                    <div class="chat-user">
+                        <div class="chat-user-avatar" id="chatUserAvatar">
+                            <span id="chatUserInitials">--</span>
+                        </div>
+                        <div class="chat-user-info">
+                            <h3 id="chatUserName">Selecione uma conversa</h3>
+                            <span id="chatUserStatus">Offline</span>
+                        </div>
+                    </div>
+                    <div class="chat-actions">
+                        <button class="chat-action-btn success" title="Marcar como resolvido" onclick="resolveChat()">
+                            <i class="bi bi-check2-circle"></i>
+                        </button>
+                        <button class="chat-action-btn" title="Transferir atendimento" onclick="transferChat()">
+                            <i class="bi bi-arrow-left-right"></i>
+                        </button>
+                        <button class="chat-action-btn" title="Ver histórico" onclick="showHistory()">
+                            <i class="bi bi-clock-history"></i>
+                        </button>
+                        <button class="chat-action-btn" title="Informações do cliente" onclick="toggleCustomerPanel()">
+                            <i class="bi bi-info-circle"></i>
+                        </button>
+                        <button class="chat-action-btn danger" title="Encerrar atendimento" onclick="closeChat()">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </header>
+                
+                <div class="chat-messages" id="chatMessages"></div>
+                
+                <div class="chat-input-area">
+                    <div class="quick-reply-dropdown" id="quickReplyDropdown"></div>
+                    <div class="chat-input-wrapper">
+                        <div class="input-actions">
+                            <button class="input-btn" title="Anexar arquivo" onclick="attachFile()">
+                                <i class="bi bi-paperclip"></i>
+                            </button>
+                            <button class="input-btn" title="Enviar emoji" onclick="showEmojis()">
+                                <i class="bi bi-emoji-smile"></i>
+                            </button>
+                            <button class="input-btn" title="Respostas rápidas" onclick="showQuickReplies()">
+                                <i class="bi bi-lightning-fill"></i>
+                            </button>
+                        </div>
+                        <textarea class="chat-input" id="messageInput" placeholder="Digite sua mensagem..." rows="1"></textarea>
+                        <button class="send-btn" onclick="sendMessage()" title="Enviar mensagem">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <aside class="customer-panel" id="customerPanel">
+            <div id="panelEmptyState" class="panel-empty">
+                <i class="bi bi-person-circle"></i>
+                <h4>Selecione um cliente</h4>
+            </div>
+            
+            <div id="panelContent" style="display: none;">
+                <div class="panel-header">
+                    <div class="panel-avatar" id="panelAvatar">
+                        <span id="panelInitials">--</span>
+                    </div>
+                    <h3 id="panelName">Nome do Cliente</h3>
+                    <p id="panelSince">Cliente desde --</p>
+                </div>
+                
+                <div class="panel-section">
+                    <h4>Informações</h4>
+                    <div class="info-item">
+                        <div class="info-icon"><i class="bi bi-whatsapp"></i></div>
+                        <div class="info-content">
+                            <span>WhatsApp</span>
+                            <p id="panelPhone">--</p>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-icon"><i class="bi bi-envelope"></i></div>
+                        <div class="info-content">
+                            <span>Email</span>
+                            <p id="panelEmail">--</p>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-icon"><i class="bi bi-geo-alt"></i></div>
+                        <div class="info-content">
+                            <span>Endereço</span>
+                            <p id="panelAddress">--</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel-section">
+                    <h4>Plano Atual</h4>
+                    <div class="plan-card">
+                        <div class="plan-icon"><i class="bi bi-wifi"></i></div>
+                        <div class="plan-info">
+                            <h5 id="panelPlan">--</h5>
+                            <p id="panelPlanPrice">--</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Seção CRM/ERP - Histórico Financeiro -->
+                <div class="panel-section">
+                    <h4><i class="bi bi-wallet2" style="color: #f97316;"></i> Situação Financeira</h4>
+                    <div class="financial-status" id="financialStatus">
+                        <div class="financial-card status-ok">
+                            <span class="financial-badge"><i class="bi bi-check-circle-fill"></i> Em dia</span>
+                        </div>
+                        <div class="financial-summary">
+                            <div class="financial-item">
+                                <span class="fin-label">Última Fatura</span>
+                                <span class="fin-value" id="lastInvoice">R$ 99,90 - Pago</span>
+                            </div>
+                            <div class="financial-item">
+                                <span class="fin-label">Próximo Vencimento</span>
+                                <span class="fin-value" id="nextDue">15/03/2026</span>
+                            </div>
+                            <div class="financial-item">
+                                <span class="fin-label">Valor Próxima Fatura</span>
+                                <span class="fin-value" id="nextInvoiceValue">R$ 99,90</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Seção CRM - Histórico de Pagamentos -->
+                <div class="panel-section">
+                    <h4><i class="bi bi-receipt" style="color: #22c55e;"></i> Últimos Pagamentos</h4>
+                    <div class="payment-history" id="paymentHistory">
+                        <div class="payment-item paid">
+                            <div class="payment-icon"><i class="bi bi-check-lg"></i></div>
+                            <div class="payment-info">
+                                <span class="payment-date">Fev/2026</span>
+                                <span class="payment-amount">R$ 99,90</span>
+                            </div>
+                        </div>
+                        <div class="payment-item paid">
+                            <div class="payment-icon"><i class="bi bi-check-lg"></i></div>
+                            <div class="payment-info">
+                                <span class="payment-date">Jan/2026</span>
+                                <span class="payment-amount">R$ 99,90</span>
+                            </div>
+                        </div>
+                        <div class="payment-item paid">
+                            <div class="payment-icon"><i class="bi bi-check-lg"></i></div>
+                            <div class="payment-info">
+                                <span class="payment-date">Dez/2025</span>
+                                <span class="payment-amount">R$ 99,90</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="view-all-payments-btn" onclick="viewAllPayments()">
+                        <i class="bi bi-list-ul"></i> Ver Todos os Pagamentos
+                    </button>
+                </div>
+                
+                <!-- Seção CRM - Chamados Técnicos -->
+                <div class="panel-section">
+                    <h4><i class="bi bi-tools" style="color: #3b82f6;"></i> Chamados Técnicos</h4>
+                    <div class="tickets-list" id="ticketsList">
+                        <div class="ticket-item resolved">
+                            <div class="ticket-status"><i class="bi bi-check-circle-fill"></i></div>
+                            <div class="ticket-info">
+                                <span class="ticket-title">Internet lenta</span>
+                                <span class="ticket-date">Resolvido em 10/02/2026</span>
+                            </div>
+                        </div>
+                        <div class="ticket-item resolved">
+                            <div class="ticket-status"><i class="bi bi-check-circle-fill"></i></div>
+                            <div class="ticket-info">
+                                <span class="ticket-title">Sem conexão</span>
+                                <span class="ticket-date">Resolvido em 28/01/2026</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel-section">
+                    <h4>Ações Rápidas</h4>
+                    <div class="quick-actions-panel">
+                        <button class="quick-action-btn" onclick="generateBoleto()">
+                            <i class="bi bi-receipt"></i> Gerar 2ª Via de Boleto
+                        </button>
+                        <button class="quick-action-btn" onclick="upgradePlan()">
+                            <i class="bi bi-arrow-up-circle"></i> Upgrade de Plano
+                        </button>
+                        <button class="quick-action-btn" onclick="openTicket()">
+                            <i class="bi bi-tools"></i> Abrir Chamado Técnico
+                        </button>
+                        <button class="quick-action-btn" onclick="viewHistory()">
+                            <i class="bi bi-clock-history"></i> Ver Histórico Completo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+    
+    <!-- Modal de Respostas Rápidas -->
+    <div class="modal-overlay" id="quickRepliesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="bi bi-lightning-fill"></i> Respostas Rápidas</h3>
+                <button class="modal-close" onclick="closeQuickRepliesModal()">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="quickRepliesList"></div>
+                
+                <div class="add-quick-reply-form">
+                    <h4><i class="bi bi-plus-circle"></i> Adicionar Nova Resposta</h4>
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 0 0 120px;">
+                            <label>Atalho</label>
+                            <input type="text" id="newReplyShortcut" placeholder="/ola" maxlength="15">
+                        </div>
+                        <div class="form-group">
+                            <label>Texto da Resposta</label>
+                            <input type="text" id="newReplyText" placeholder="Digite o texto da resposta rápida...">
+                        </div>
+                    </div>
+                    <div class="variables-hint">
+                        <strong>Variáveis disponíveis:</strong> 
+                        <code>{nome}</code> - Nome do cliente | 
+                        <code>{plano}</code> - Plano atual | 
+                        <code>{telefone}</code> - Telefone
+                    </div>
+                    <button class="btn btn-primary" onclick="addQuickReply()" style="margin-top: 12px;">
+                        <i class="bi bi-plus-lg"></i> Adicionar Resposta
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Histórico -->
+    <div class="modal-overlay" id="historyModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3><i class="bi bi-clock-history"></i> Histórico de Atendimentos</h3>
+                <button class="modal-close" onclick="closeHistoryModal()">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="history-filters">
+                    <select id="historyStatusFilter" onchange="filterHistory()">
+                        <option value="all">Todos os Status</option>
+                        <option value="resolved">Resolvidos</option>
+                        <option value="cancelled">Cancelados</option>
+                        <option value="transferred">Transferidos</option>
+                    </select>
+                    <input type="date" id="historyDateFrom" onchange="filterHistory()" placeholder="Data Início">
+                    <input type="date" id="historyDateTo" onchange="filterHistory()" placeholder="Data Fim">
+                    <select id="historyAgentFilter" onchange="filterHistory()">
+                        <option value="all">Todos os Atendentes</option>
+                        <option value="me">Meus Atendimentos</option>
+                    </select>
+                </div>
+                
+                <div class="history-timeline" id="historyTimeline">
+                    <!-- Itens do histórico serão renderizados aqui -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="export-buttons">
+                    <button class="btn btn-secondary" onclick="exportHistory('excel')">
+                        <i class="bi bi-file-earmark-excel"></i> Excel
+                    </button>
+                    <button class="btn btn-orange" onclick="exportHistory('pdf')">
+                        <i class="bi bi-file-earmark-pdf"></i> PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast de Notificação -->
+    <div class="notification-toast" id="notificationToast">
+        <div class="notification-toast-avatar" id="toastAvatar">
+            <span id="toastInitials">--</span>
+        </div>
+        <div class="notification-toast-content">
+            <h4 id="toastName">Nova Mensagem</h4>
+            <p id="toastMessage">...</p>
+        </div>
+        <button class="notification-toast-close" onclick="closeNotificationToast()">
+            <i class="bi bi-x"></i>
+        </button>
+    </div>
+
+    <script>
+        const WHATSAPP_SERVICE_URL = 'http://localhost:3001';
+        const API_URL = '/api/v1';
+        const SESSION_ID = 'cianet_main';
+        
+        let conversations = [];
+        let currentChat = null;
+        let currentFilter = 'active';
+        let isWhatsAppConnected = false;
+        let notificationsEnabled = false;
+        let unreadTotalCount = 0;
+        let typingTimeout = null;
+        let isTyping = false;
+        let quickReplies = [];
+        let historyData = [];
+        
+        // ============ INICIALIZAÇÃO ============
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            initializeNotifications();
+            loadQuickReplies();
+            checkWhatsAppConnection();
+            loadConversations();
+            setupMessageInput();
+            setInterval(loadConversations, 30000);
+            setInterval(checkNewMessages, 5000);
+        });
+        
+        // ============ PASSO 1: NOTIFICAÇÕES EM TEMPO REAL ============
+        function initializeNotifications() {
+            if ('Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    notificationsEnabled = true;
+                } else if (Notification.permission !== 'denied') {
+                    Notification.requestPermission().then(permission => {
+                        notificationsEnabled = permission === 'granted';
+                    });
+                }
+            }
+        }
+        
+        function playNotificationSound() {
+            const audio = document.getElementById('notificationSound');
+            if (audio) {
+                audio.currentTime = 0;
+                audio.volume = 0.5;
+                audio.play().catch(e => console.log('Audio autoplay blocked'));
+            }
+        }
+        
+        function updateFaviconBadge(count) {
+            const favicon = document.getElementById('favicon');
+            if (count > 0) {
+                const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+                    <text y='.9em' font-size='90'>💬</text>
+                    <circle cx='75' cy='25' r='25' fill='%23ef4444'/>
+                    <text x='75' y='32' text-anchor='middle' fill='white' font-size='24' font-weight='bold'>${count > 9 ? '9+' : count}</text>
+                </svg>`;
+                favicon.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+                document.title = `(${count}) Atendimentos - CIANET PROVEDOR`;
+            } else {
+                favicon.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>";
+                document.title = 'Atendimentos - CIANET PROVEDOR';
+            }
+        }
+        
+        function showBrowserNotification(name, message, avatar) {
+            if (!notificationsEnabled) return;
+            
+            const notification = new Notification(`Nova mensagem de ${name}`, {
+                body: message.length > 100 ? message.substring(0, 100) + '...' : message,
+                icon: avatar || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle fill="%2322c55e" cx="50" cy="50" r="50"/><text x="50" y="65" text-anchor="middle" fill="white" font-size="40">' + getInitials(name) + '</text></svg>',
+                tag: 'cianet-message',
+                requireInteraction: false
+            });
+            
+            notification.onclick = () => {
+                window.focus();
+                notification.close();
+            };
+            
+            setTimeout(() => notification.close(), 5000);
+        }
+        
+        function showToastNotification(name, message, avatar) {
+            const toast = document.getElementById('notificationToast');
+            const toastAvatar = document.getElementById('toastAvatar');
+            const toastName = document.getElementById('toastName');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            const initials = getInitials(name);
+            if (avatar) {
+                toastAvatar.innerHTML = `<img src="${avatar}" alt="${name}" onerror="this.parentElement.innerHTML='${initials}'">`;
+            } else {
+                toastAvatar.innerHTML = initials;
+            }
+            
+            toastName.textContent = name;
+            toastMessage.textContent = message.length > 60 ? message.substring(0, 60) + '...' : message;
+            
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+        
+        function closeNotificationToast() {
+            document.getElementById('notificationToast').classList.remove('show');
+        }
+        
+        async function checkNewMessages() {
+            if (!isWhatsAppConnected) return;
+            
+            let newUnread = 0;
+            conversations.forEach(conv => {
+                newUnread += conv.unreadCount || 0;
+            });
+            
+            if (newUnread > unreadTotalCount && unreadTotalCount >= 0) {
+                const newConv = conversations.find(c => c.unreadCount > 0 && (!currentChat || currentChat.id !== c.id));
+                if (newConv) {
+                    playNotificationSound();
+                    showBrowserNotification(newConv.name, newConv.lastMessage, newConv.profilePicUrl);
+                    showToastNotification(newConv.name, newConv.lastMessage, newConv.profilePicUrl);
+                }
+            }
+            
+            unreadTotalCount = newUnread;
+            updateFaviconBadge(newUnread);
+        }
+        
+        // ============ PASSO 2: RESPOSTAS RÁPIDAS ============
+        function loadQuickReplies() {
+            const saved = localStorage.getItem('cianet_quick_replies');
+            if (saved) {
+                quickReplies = JSON.parse(saved);
+            } else {
+                quickReplies = [
+                    { shortcut: '/ola', text: 'Olá {nome}! Como posso ajudá-lo hoje?' },
+                    { shortcut: '/momento', text: 'Um momento, estou verificando no sistema.' },
+                    { shortcut: '/registrado', text: 'Sua solicitação foi registrada com sucesso!' },
+                    { shortcut: '/boleto', text: 'Estou gerando a 2ª via do seu boleto. Em instantes enviarei o link.' },
+                    { shortcut: '/tecnico', text: 'Vou abrir um chamado técnico para resolver seu problema. Um técnico entrará em contato em breve.' },
+                    { shortcut: '/plano', text: '{nome}, seu plano atual é {plano}. Deseja conhecer nossas opções de upgrade?' },
+                    { shortcut: '/obrigado', text: 'Obrigado pelo contato, {nome}! Se precisar de mais alguma coisa, estamos à disposição.' },
+                    { shortcut: '/aguarde', text: 'Por favor, aguarde enquanto verifico as informações.' }
+                ];
+                saveQuickReplies();
+            }
+        }
+        
+        function saveQuickReplies() {
+            localStorage.setItem('cianet_quick_replies', JSON.stringify(quickReplies));
+        }
+        
+        function renderQuickReplies() {
+            const container = document.getElementById('quickRepliesList');
+            if (quickReplies.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #9ca3af; padding: 20px;">Nenhuma resposta rápida configurada.</p>';
+                return;
+            }
+            
+            container.innerHTML = quickReplies.map((qr, index) => `
+                <div class="quick-reply-item" onclick="useQuickReply(${index})">
+                    <span class="qr-shortcut">${escapeHtml(qr.shortcut)}</span>
+                    <span class="qr-text">${escapeHtml(qr.text)}</span>
+                    <div class="qr-actions">
+                        <button onclick="event.stopPropagation(); editQuickReply(${index})" title="Editar">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="delete" onclick="event.stopPropagation(); deleteQuickReply(${index})" title="Excluir">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function showQuickReplies() {
+            renderQuickReplies();
+            document.getElementById('quickRepliesModal').classList.add('active');
+        }
+        
+        function closeQuickRepliesModal() {
+            document.getElementById('quickRepliesModal').classList.remove('active');
+        }
+        
+        function addQuickReply() {
+            const shortcut = document.getElementById('newReplyShortcut').value.trim();
+            const text = document.getElementById('newReplyText').value.trim();
+            
+            if (!shortcut || !text) {
+                alert('Preencha o atalho e o texto da resposta.');
+                return;
+            }
+            
+            const formattedShortcut = shortcut.startsWith('/') ? shortcut : '/' + shortcut;
+            
+            if (quickReplies.find(qr => qr.shortcut === formattedShortcut)) {
+                alert('Este atalho já existe. Escolha outro.');
+                return;
+            }
+            
+            quickReplies.push({ shortcut: formattedShortcut, text });
+            saveQuickReplies();
+            renderQuickReplies();
+            
+            document.getElementById('newReplyShortcut').value = '';
+            document.getElementById('newReplyText').value = '';
+        }
+        
+        function editQuickReply(index) {
+            const qr = quickReplies[index];
+            const newText = prompt('Editar texto da resposta:', qr.text);
+            if (newText !== null && newText.trim()) {
+                quickReplies[index].text = newText.trim();
+                saveQuickReplies();
+                renderQuickReplies();
+            }
+        }
+        
+        function deleteQuickReply(index) {
+            if (confirm('Deseja excluir esta resposta rápida?')) {
+                quickReplies.splice(index, 1);
+                saveQuickReplies();
+                renderQuickReplies();
+            }
+        }
+        
+        function useQuickReply(index) {
+            const qr = quickReplies[index];
+            const text = replaceVariables(qr.text);
+            document.getElementById('messageInput').value = text;
+            closeQuickRepliesModal();
+            document.getElementById('messageInput').focus();
+        }
+        
+        function replaceVariables(text) {
+            if (!currentChat) return text;
+            
+            const variables = {
+                '{nome}': currentChat.name || 'Cliente',
+                '{telefone}': formatPhone(currentChat.phone) || '--',
+                '{plano}': document.getElementById('panelPlan')?.textContent || 'Não identificado'
+            };
+            
+            let result = text;
+            for (const [key, value] of Object.entries(variables)) {
+                result = result.replace(new RegExp(key, 'g'), value);
+            }
+            return result;
+        }
+        
+        function showQuickReplyDropdown(searchText) {
+            const dropdown = document.getElementById('quickReplyDropdown');
+            const matches = quickReplies.filter(qr => qr.shortcut.toLowerCase().startsWith(searchText.toLowerCase()));
+            
+            if (matches.length === 0) {
+                dropdown.classList.remove('show');
+                return;
+            }
+            
+            dropdown.innerHTML = matches.map((qr, i) => `
+                <div class="quick-reply-dropdown-item" onclick="selectQuickReplyFromDropdown('${qr.shortcut}')">
+                    <span class="shortcut">${escapeHtml(qr.shortcut)}</span>
+                    <span class="text">${escapeHtml(qr.text.substring(0, 50))}${qr.text.length > 50 ? '...' : ''}</span>
+                </div>
+            `).join('');
+            
+            dropdown.classList.add('show');
+        }
+        
+        function selectQuickReplyFromDropdown(shortcut) {
+            const qr = quickReplies.find(r => r.shortcut === shortcut);
+            if (qr) {
+                const text = replaceVariables(qr.text);
+                document.getElementById('messageInput').value = text;
+                document.getElementById('quickReplyDropdown').classList.remove('show');
+            }
+        }
+        
+        // ============ PASSO 3: INDICADOR DE DIGITAÇÃO ============
+        function showTypingIndicator() {
+            const chatMessages = document.getElementById('chatMessages');
+            if (!document.getElementById('typingIndicator') && currentChat) {
+                const typingDiv = document.createElement('div');
+                typingDiv.id = 'typingIndicator';
+                typingDiv.className = 'typing-indicator';
+                typingDiv.innerHTML = `
+                    <div class="typing-dots">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                    </div>
+                    <span>${currentChat.name} está digitando...</span>
+                `;
+                chatMessages.appendChild(typingDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+        
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+        
+        function emitTypingEvent(isTyping) {
+            if (!currentChat || !isWhatsAppConnected) return;
+            
+            // Se o serviço WhatsApp suportar, enviar evento de digitação
+            fetch(`${WHATSAPP_SERVICE_URL}/session/${SESSION_ID}/typing`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chatId: currentChat.whatsappId || currentChat.phone,
+                    isTyping: isTyping
+                })
+            }).catch(() => {});
+        }
+        
+        function handleTyping() {
+            if (!isTyping) {
+                isTyping = true;
+                emitTypingEvent(true);
+            }
+            
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                isTyping = false;
+                emitTypingEvent(false);
+            }, 2000);
+        }
+        
+        // ============ PASSO 4: HISTÓRICO DE ATENDIMENTOS ============
+        function showHistory() {
+            if (!currentChat) {
+                alert('Selecione uma conversa primeiro.');
+                return;
+            }
+            loadHistoryData();
+            document.getElementById('historyModal').classList.add('active');
+        }
+        
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.remove('active');
+        }
+        
+        async function loadHistoryData() {
+            // Simular dados de histórico (em produção, carregar da API)
+            historyData = [
+                {
+                    id: 1,
+                    title: 'Solicitação de 2ª via de boleto',
+                    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+                    status: 'resolved',
+                    agent: 'Carlos Silva',
+                    duration: '8 min',
+                    messages: 12
+                },
+                {
+                    id: 2,
+                    title: 'Problema com conexão',
+                    date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                    status: 'resolved',
+                    agent: 'Maria Santos',
+                    duration: '25 min',
+                    messages: 34
+                },
+                {
+                    id: 3,
+                    title: 'Upgrade de plano',
+                    date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+                    status: 'transferred',
+                    agent: 'Pedro Costa',
+                    duration: '15 min',
+                    messages: 18
+                },
+                {
+                    id: 4,
+                    title: 'Cancelamento solicitado',
+                    date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+                    status: 'cancelled',
+                    agent: 'Ana Lima',
+                    duration: '45 min',
+                    messages: 52
+                },
+                {
+                    id: 5,
+                    title: 'Dúvida sobre fatura',
+                    date: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
+                    status: 'resolved',
+                    agent: 'Carlos Silva',
+                    duration: '5 min',
+                    messages: 8
+                }
+            ];
+            
+            // Tentar carregar da API se disponível
+            if (currentChat && currentChat.customerId) {
+                try {
+                    const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+                    const response = await fetch(`${API_URL}/tickets?customer_id=${currentChat.customerId}&limit=20`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (Array.isArray(data) && data.length > 0) {
+                            historyData = data.map(ticket => ({
+                                id: ticket.id,
+                                title: ticket.description || 'Atendimento',
+                                date: new Date(ticket.created_at),
+                                status: ticket.status === 'closed' ? 'resolved' : (ticket.status === 'cancelled' ? 'cancelled' : 'resolved'),
+                                agent: ticket.assigned_to || 'Não atribuído',
+                                duration: '--',
+                                messages: '--'
+                            }));
+                        }
+                    }
+                } catch (error) {
+                    console.log('Usando dados simulados de histórico');
+                }
+            }
+            
+            renderHistory();
+        }
+        
+        function renderHistory() {
+            const container = document.getElementById('historyTimeline');
+            const statusFilter = document.getElementById('historyStatusFilter').value;
+            const dateFrom = document.getElementById('historyDateFrom').value;
+            const dateTo = document.getElementById('historyDateTo').value;
+            const agentFilter = document.getElementById('historyAgentFilter').value;
+            
+            let filtered = [...historyData];
+            
+            if (statusFilter !== 'all') {
+                filtered = filtered.filter(h => h.status === statusFilter);
+            }
+            
+            if (dateFrom) {
+                const from = new Date(dateFrom);
+                filtered = filtered.filter(h => h.date >= from);
+            }
+            
+            if (dateTo) {
+                const to = new Date(dateTo);
+                to.setHours(23, 59, 59);
+                filtered = filtered.filter(h => h.date <= to);
+            }
+            
+            if (agentFilter === 'me') {
+                filtered = filtered.filter(h => h.agent === 'Carlos Silva'); // Simular usuário atual
+            }
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #9ca3af; padding: 40px;">Nenhum atendimento encontrado com os filtros selecionados.</p>';
+                return;
+            }
+            
+            container.innerHTML = filtered.map(item => {
+                const statusLabels = {
+                    resolved: { text: 'Resolvido', icon: 'bi-check-circle-fill' },
+                    cancelled: { text: 'Cancelado', icon: 'bi-x-circle-fill' },
+                    transferred: { text: 'Transferido', icon: 'bi-arrow-left-right' }
+                };
+                const status = statusLabels[item.status] || statusLabels.resolved;
+                
+                return `
+                    <div class="history-item ${item.status}">
+                        <div class="history-item-header">
+                            <div>
+                                <div class="history-item-title">${escapeHtml(item.title)}</div>
+                                <div class="history-item-date">${formatFullDate(item.date)}</div>
+                            </div>
+                            <span class="history-item-status ${item.status}">
+                                <i class="bi ${status.icon}"></i> ${status.text}
+                            </span>
+                        </div>
+                        <div class="history-item-details">
+                            <span><i class="bi bi-person"></i> ${escapeHtml(item.agent)}</span>
+                            <span><i class="bi bi-clock"></i> ${item.duration}</span>
+                            <span><i class="bi bi-chat-dots"></i> ${item.messages} mensagens</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function filterHistory() {
+            renderHistory();
+        }
+        
+        function exportHistory(format) {
+            const customerName = currentChat ? currentChat.name : 'Cliente';
+            
+            if (format === 'excel') {
+                // Criar CSV para Excel
+                let csv = 'Data,Assunto,Status,Atendente,Duração,Mensagens\n';
+                historyData.forEach(item => {
+                    csv += `"${formatFullDate(item.date)}","${item.title}","${item.status}","${item.agent}","${item.duration}","${item.messages}"\n`;
+                });
+                
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `historico_${customerName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+                
+                showToastNotification('Exportação', 'Arquivo Excel gerado com sucesso!', null);
+            } else if (format === 'pdf') {
+                // Criar HTML para impressão como PDF
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(`
+                    <html>
+                    <head>
+                        <title>Histórico - ${customerName}</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; padding: 40px; }
+                            h1 { color: #22c55e; border-bottom: 3px solid #f97316; padding-bottom: 10px; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+                            th { background: #f4f4f5; font-weight: bold; }
+                            .resolved { color: #16a34a; }
+                            .cancelled { color: #dc2626; }
+                            .transferred { color: #ea580c; }
+                            .footer { margin-top: 40px; font-size: 12px; color: #666; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>Histórico de Atendimentos</h1>
+                        <p><strong>Cliente:</strong> ${customerName}</p>
+                        <p><strong>Data de Geração:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
+                        <table>
+                            <tr>
+                                <th>Data</th>
+                                <th>Assunto</th>
+                                <th>Status</th>
+                                <th>Atendente</th>
+                                <th>Duração</th>
+                            </tr>
+                            ${historyData.map(item => `
+                                <tr>
+                                    <td>${formatFullDate(item.date)}</td>
+                                    <td>${item.title}</td>
+                                    <td class="${item.status}">${item.status === 'resolved' ? 'Resolvido' : (item.status === 'cancelled' ? 'Cancelado' : 'Transferido')}</td>
+                                    <td>${item.agent}</td>
+                                    <td>${item.duration}</td>
+                                </tr>
+                            `).join('')}
+                        </table>
+                        <div class="footer">
+                            <p>Relatório gerado pelo Sistema CIANET PROVEDOR</p>
+                        </div>
+                    </body>
+                    </html>
+                `);
+                printWindow.document.close();
+                printWindow.print();
+                
+                showToastNotification('Exportação', 'PDF pronto para impressão!', null);
+            }
+        }
+        
+        function formatFullDate(date) {
+            return date.toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        // ============ FUNÇÕES EXISTENTES (ATUALIZADAS) ============
+        async function checkWhatsAppConnection() {
+            try {
+                const response = await fetch(`${WHATSAPP_SERVICE_URL}/session/${SESSION_ID}/status`);
+                const data = await response.json();
+                isWhatsAppConnected = data.connected === true;
+                if (isWhatsAppConnected) {
+                    console.log('WhatsApp conectado');
+                    loadWhatsAppChats();
+                }
+            } catch (error) {
+                console.log('Serviço WhatsApp não disponível');
+                isWhatsAppConnected = false;
+            }
+        }
+        
+        async function loadConversations() {
+            try {
+                const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+                const response = await fetch(`${API_URL}/tickets?status=open&limit=50`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (Array.isArray(data)) {
+                        conversations = data.map(ticket => ({
+                            id: ticket.id,
+                            name: ticket.customer_name || `Cliente ${ticket.customer_id}`,
+                            phone: ticket.customer_phone || '',
+                            lastMessage: ticket.description || '',
+                            timestamp: new Date(ticket.created_at).getTime() / 1000,
+                            unreadCount: 0,
+                            isOnline: false,
+                            profilePicUrl: null,
+                            status: ticket.status || 'active',
+                            customerId: ticket.customer_id
+                        }));
+                    }
+                }
+            } catch (error) {
+                console.log('Erro ao carregar tickets:', error);
+            }
+            
+            if (isWhatsAppConnected) {
+                await loadWhatsAppChats();
+            }
+            renderConversations();
+        }
+        
+        async function loadWhatsAppChats() {
+            try {
+                const response = await fetch(`${WHATSAPP_SERVICE_URL}/session/${SESSION_ID}/chats?limit=30`);
+                const data = await response.json();
+                
+                if (data.success && data.chats) {
+                    data.chats.forEach(chat => {
+                        const existing = conversations.find(c => c.phone === chat.phoneNumber);
+                        if (existing) {
+                            existing.profilePicUrl = chat.profilePicUrl;
+                            existing.isOnline = chat.isOnline;
+                            if (chat.lastMessage) {
+                                existing.lastMessage = chat.lastMessage;
+                                existing.timestamp = chat.timestamp;
+                            }
+                            existing.unreadCount = chat.unreadCount;
+                        } else {
+                            conversations.push({
+                                id: `wa_${chat.id}`,
+                                name: chat.name,
+                                phone: chat.phoneNumber,
+                                lastMessage: chat.lastMessage,
+                                timestamp: chat.timestamp,
+                                unreadCount: chat.unreadCount,
+                                isOnline: chat.isOnline,
+                                profilePicUrl: chat.profilePicUrl,
+                                status: 'active',
+                                whatsappId: chat.id
+                            });
+                        }
+                    });
+                }
+            } catch (error) {
+                console.log('Erro ao carregar chats WhatsApp:', error);
+            }
+        }
+        
+        function renderConversations() {
+            const convList = document.getElementById('convList');
+            
+            let filtered = conversations;
+            if (currentFilter === 'active') {
+                filtered = conversations.filter(c => c.status === 'active' || c.unreadCount > 0);
+            } else if (currentFilter === 'waiting') {
+                filtered = conversations.filter(c => c.status === 'waiting');
+            }
+            
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            if (search) {
+                filtered = filtered.filter(c => 
+                    c.name.toLowerCase().includes(search) ||
+                    c.phone.includes(search) ||
+                    c.lastMessage.toLowerCase().includes(search)
+                );
+            }
+            
+            filtered.sort((a, b) => b.timestamp - a.timestamp);
+            
+            document.getElementById('activeCount').textContent = conversations.filter(c => c.status === 'active' || c.unreadCount > 0).length;
+            document.getElementById('waitingCount').textContent = conversations.filter(c => c.status === 'waiting').length;
+            
+            if (filtered.length === 0) {
+                convList.innerHTML = '<div style="padding: 40px 20px; text-align: center; color: #9ca3af;"><i class="bi bi-chat-square-text" style="font-size: 48px; margin-bottom: 12px; display: block;"></i><p>Nenhuma conversa encontrada</p></div>';
+                return;
+            }
+            
+            convList.innerHTML = filtered.map(conv => {
+                const initials = getInitials(conv.name);
+                const time = formatTime(conv.timestamp);
+                const isActive = currentChat && currentChat.id === conv.id;
+                
+                return `<div class="conv-item ${isActive ? 'active' : ''} ${conv.unreadCount > 0 ? 'unread' : ''}" onclick="selectConversation('${conv.id}')">
+                    <div class="conv-avatar">
+                        ${conv.profilePicUrl ? `<img src="${conv.profilePicUrl}" alt="${conv.name}" onerror="this.parentElement.innerHTML='${initials}'">` : initials}
+                        ${conv.isOnline ? '<span class="conv-online"></span>' : ''}
+                    </div>
+                    <div class="conv-info">
+                        <div class="conv-name">
+                            <h4>${escapeHtml(conv.name)}</h4>
+                            <span>${time}</span>
+                        </div>
+                        <p class="conv-preview">${escapeHtml(conv.lastMessage || 'Nova conversa')}</p>
+                    </div>
+                    ${conv.unreadCount > 0 ? `<span class="conv-badge">${conv.unreadCount}</span>` : ''}
+                </div>`;
+            }).join('');
+        }
+        
+        async function selectConversation(convId) {
+            const conv = conversations.find(c => c.id === convId);
+            if (!conv) return;
+            
+            currentChat = conv;
+            
+            document.getElementById('chatEmptyState').style.display = 'none';
+            document.getElementById('chatContent').style.display = 'flex';
+            
+            const initials = getInitials(conv.name);
+            const avatarEl = document.getElementById('chatUserAvatar');
+            
+            if (conv.profilePicUrl) {
+                avatarEl.innerHTML = `<img src="${conv.profilePicUrl}" alt="${conv.name}" onerror="this.parentElement.innerHTML='<span>${initials}</span>'">`;
+            } else {
+                avatarEl.innerHTML = `<span>${initials}</span>`;
+            }
+            
+            document.getElementById('chatUserName').textContent = conv.name;
+            document.getElementById('chatUserStatus').innerHTML = conv.isOnline ? '<span style="color: #22c55e;">● Online agora</span>' : '<span style="color: #9ca3af;">Offline</span>';
+            
+            updateCustomerPanel(conv);
+            await loadMessages(conv);
+            conv.unreadCount = 0;
+            renderConversations();
+            checkNewMessages();
+        }
+        
+        async function loadMessages(conv) {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p class="loading-text">Carregando mensagens...</p></div>';
+            
+            let messages = [];
+            
+            if (conv.whatsappId && isWhatsAppConnected) {
+                try {
+                    const response = await fetch(`${WHATSAPP_SERVICE_URL}/session/${SESSION_ID}/messages/${conv.whatsappId}?limit=50`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.messages) {
+                        messages = data.messages.map(msg => ({
+                            id: msg.id,
+                            text: msg.body,
+                            fromMe: msg.fromMe,
+                            timestamp: msg.timestamp
+                        }));
+                    }
+                } catch (error) {
+                    console.log('Erro ao carregar mensagens:', error);
+                }
+            }
+            
+            renderMessages(messages, conv);
+        }
+        
+        function renderMessages(messages, conv) {
+            const chatMessages = document.getElementById('chatMessages');
+            
+            if (messages.length === 0) {
+                chatMessages.innerHTML = '<div style="text-align: center; padding: 40px; color: #9ca3af;"><i class="bi bi-chat-dots" style="font-size: 48px; margin-bottom: 12px; display: block;"></i><p>Nenhuma mensagem ainda</p><p style="font-size: 13px;">Envie uma mensagem para iniciar o atendimento</p></div>';
+                return;
+            }
+            
+            const initials = getInitials(conv.name);
+            
+            chatMessages.innerHTML = messages.map(msg => {
+                const time = formatTime(msg.timestamp);
+                return `<div class="message ${msg.fromMe ? 'sent' : 'received'}">
+                    <div class="message-avatar">
+                        ${msg.fromMe ? 'AT' : (conv.profilePicUrl ? `<img src="${conv.profilePicUrl}" alt="${conv.name}" onerror="this.parentElement.innerHTML='${initials}'">` : initials)}
+                    </div>
+                    <div class="message-bubble">
+                        <p class="message-text">${escapeHtml(msg.text)}</p>
+                        <div class="message-time">${time} ${msg.fromMe ? '<i class="bi bi-check2-all"></i>' : ''}</div>
+                    </div>
+                </div>`;
+            }).join('');
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function updateCustomerPanel(conv) {
+            document.getElementById('panelEmptyState').style.display = 'none';
+            document.getElementById('panelContent').style.display = 'block';
+            
+            const initials = getInitials(conv.name);
+            const avatarEl = document.getElementById('panelAvatar');
+            
+            if (conv.profilePicUrl) {
+                avatarEl.innerHTML = `<img src="${conv.profilePicUrl}" alt="${conv.name}" onerror="this.parentElement.innerHTML='<span>${initials}</span>'">`;
+            } else {
+                avatarEl.innerHTML = `<span>${initials}</span>`;
+            }
+            
+            document.getElementById('panelName').textContent = conv.name;
+            document.getElementById('panelSince').textContent = 'Cliente CIANET';
+            document.getElementById('panelPhone').textContent = formatPhone(conv.phone);
+            document.getElementById('panelEmail').textContent = '--';
+            document.getElementById('panelAddress').textContent = '--';
+            document.getElementById('panelPlan').textContent = 'Verificando...';
+            document.getElementById('panelPlanPrice').textContent = '--';
+            
+            if (conv.customerId) {
+                loadCustomerData(conv.customerId);
+            }
+        }
+        
+        async function loadCustomerData(customerId) {
+            try {
+                const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+                const response = await fetch(`${API_URL}/customers/${customerId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const customer = await response.json();
+                    if (customer.email) document.getElementById('panelEmail').textContent = customer.email;
+                    if (customer.address) document.getElementById('panelAddress').textContent = customer.address;
+                    if (customer.plan_name) {
+                        document.getElementById('panelPlan').textContent = customer.plan_name;
+                        document.getElementById('panelPlanPrice').textContent = customer.plan_price ? `R$ ${customer.plan_price}/mês` : '--';
+                    }
+                }
+            } catch (error) {
+                console.log('Erro ao carregar dados do cliente:', error);
+            }
+        }
+        
+        function setupMessageInput() {
+            const input = document.getElementById('messageInput');
+            
+            input.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+                
+                // Detectar atalhos de resposta rápida
+                const text = this.value;
+                if (text.startsWith('/') && text.length > 1) {
+                    showQuickReplyDropdown(text);
+                } else {
+                    document.getElementById('quickReplyDropdown').classList.remove('show');
+                }
+                
+                // Emitir evento de digitação
+                handleTyping();
+            });
+            
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+                
+                // Escape para fechar dropdown
+                if (e.key === 'Escape') {
+                    document.getElementById('quickReplyDropdown').classList.remove('show');
+                }
+                
+                // Tab para selecionar primeira sugestão
+                if (e.key === 'Tab') {
+                    const dropdown = document.getElementById('quickReplyDropdown');
+                    if (dropdown.classList.contains('show')) {
+                        e.preventDefault();
+                        const firstItem = dropdown.querySelector('.quick-reply-dropdown-item');
+                        if (firstItem) firstItem.click();
+                    }
+                }
+            });
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!text || !currentChat) return;
+            
+            // Esconder dropdown se visível
+            document.getElementById('quickReplyDropdown').classList.remove('show');
+            
+            input.value = '';
+            input.style.height = 'auto';
+            
+            // Parar indicador de digitação
+            isTyping = false;
+            emitTypingEvent(false);
+            
+            const chatMessages = document.getElementById('chatMessages');
+            const time = formatTime(Date.now() / 1000);
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message sent';
+            messageDiv.innerHTML = `<div class="message-avatar">AT</div><div class="message-bubble"><p class="message-text">${escapeHtml(text)}</p><div class="message-time">${time} <i class="bi bi-check2"></i></div></div>`;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            if (isWhatsAppConnected && currentChat.phone) {
+                try {
+                    const response = await fetch(`${WHATSAPP_SERVICE_URL}/session/${SESSION_ID}/send`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ to: currentChat.phone, message: text, type: 'text' })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        messageDiv.querySelector('.bi-check2').className = 'bi bi-check2-all';
+                    }
+                } catch (error) {
+                    console.log('Erro ao enviar mensagem:', error);
+                }
+            }
+        }
+        
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.conv-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.filter === filter);
+            });
+            renderConversations();
+        }
+        
+        function filterConversations() {
+            renderConversations();
+        }
+        
+        function resolveChat() {
+            if (!currentChat) return;
+            showToastNotification('Sucesso', 'Atendimento marcado como resolvido!', null);
+            currentChat.status = 'resolved';
+            currentChat = null;
+            document.getElementById('chatEmptyState').style.display = 'flex';
+            document.getElementById('chatContent').style.display = 'none';
+            document.getElementById('panelEmptyState').style.display = 'block';
+            document.getElementById('panelContent').style.display = 'none';
+            loadConversations();
+        }
+        
+        function transferChat() {
+            if (!currentChat) return;
+            const agent = prompt('Digite o nome do atendente para transferir:');
+            if (agent) {
+                showToastNotification('Transferido', `Atendimento transferido para ${agent}`, null);
+                currentChat.status = 'transferred';
+                closeChat();
+            }
+        }
+        
+        function closeChat() {
+            if (!currentChat) return;
+            if (confirm('Tem certeza que deseja encerrar este atendimento?')) {
+                currentChat = null;
+                document.getElementById('chatEmptyState').style.display = 'flex';
+                document.getElementById('chatContent').style.display = 'none';
+                document.getElementById('panelEmptyState').style.display = 'block';
+                document.getElementById('panelContent').style.display = 'none';
+            }
+        }
+        
+        function toggleCustomerPanel() {
+            const panel = document.getElementById('customerPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function attachFile() { 
+            showToastNotification('Em breve', 'Upload de arquivos será implementado em breve!', null);
+        }
+        
+        function showEmojis() { 
+            const emojis = ['😊', '👍', '❤️', '🙏', '✅', '📞', '💰', '🔧', '📋', '⏰'];
+            const selected = prompt('Emojis disponíveis:\n\n' + emojis.join(' ') + '\n\nCopie e cole o emoji desejado:');
+        }
+        
+        function generateBoleto() { 
+            showToastNotification('Gerando...', 'Preparando 2ª via do boleto...', null);
+            // Integração real com sistema de faturamento
+            setTimeout(() => {
+                alert('✅ 2ª Via de Boleto gerada!\n\nCódigo de barras: 23793.38128 60000.000003 00016.301044 1 88820000009990\n\nO boleto foi enviado para o email do cliente e está disponível no portal.');
+            }, 1500);
+        }
+        
+        function upgradePlan() { 
+            showToastNotification('Upgrade', 'Abrindo opções de upgrade de plano...', null);
+            const planos = `📦 PLANOS DISPONÍVEIS PARA UPGRADE:
+
+🚀 FIBRA 200MB - R$ 119,90/mês
+   • Download: 200 Mbps | Upload: 100 Mbps
+   • Wi-Fi 5 Dual Band incluso
+
+⚡ FIBRA 400MB - R$ 159,90/mês  
+   • Download: 400 Mbps | Upload: 200 Mbps
+   • Wi-Fi 6 incluso + 1 Ponto extra
+
+🔥 FIBRA 600MB - R$ 199,90/mês
+   • Download: 600 Mbps | Upload: 300 Mbps
+   • Wi-Fi 6 incluso + 2 Pontos extras
+
+Deseja prosseguir com algum upgrade?`;
+            alert(planos);
+        }
+        
+        function openTicket() { 
+            showToastNotification('Chamado', 'Abrindo formulário de chamado técnico...', null);
+            const tipo = prompt('🔧 ABERTURA DE CHAMADO TÉCNICO\n\nTipo do Problema:\n1 - Internet sem conexão\n2 - Internet lenta\n3 - Instabilidade\n4 - Wi-Fi não funciona\n5 - Outros\n\nDigite o número:');
+            if (tipo) {
+                const tipos = ['Internet sem conexão', 'Internet lenta', 'Instabilidade', 'Wi-Fi não funciona', 'Outros'];
+                const tipoNome = tipos[parseInt(tipo) - 1] || 'Outros';
+                const protocolo = 'CT' + Date.now().toString().slice(-8);
+                alert(`✅ Chamado Técnico Aberto!\n\nProtocolo: ${protocolo}\nTipo: ${tipoNome}\nPrevisão de atendimento: 24-48 horas\n\nO cliente receberá SMS com atualizações.`);
+            }
+        }
+        
+        function viewHistory() { 
+            showHistory();
+        }
+        
+        function viewAllPayments() {
+            const historico = `📋 HISTÓRICO COMPLETO DE PAGAMENTOS
+
+✅ Fev/2026 - R$ 99,90 - Pago em 10/02/2026
+✅ Jan/2026 - R$ 99,90 - Pago em 09/01/2026
+✅ Dez/2025 - R$ 99,90 - Pago em 12/12/2025
+✅ Nov/2025 - R$ 99,90 - Pago em 10/11/2025
+✅ Out/2025 - R$ 99,90 - Pago em 08/10/2025
+✅ Set/2025 - R$ 99,90 - Pago em 11/09/2025
+✅ Ago/2025 - R$ 99,90 - Pago em 10/08/2025
+✅ Jul/2025 - R$ 99,90 - Pago em 09/07/2025
+
+Cliente desde: Janeiro/2024
+Total de faturas: 14
+Faturas em dia: 100%
+Status: ADIMPLENTE`;
+            alert(historico);
+        }
+        
+        // Função para atualizar dados CRM do painel
+        function updateCRMPanel(customer) {
+            // Atualizar situação financeira (simulado - integrar com API real)
+            const financialCard = document.querySelector('.financial-card');
+            const financialBadge = document.querySelector('.financial-badge');
+            
+            // Simular dados do CRM/ERP
+            const crmData = {
+                status: 'ok', // ok, pending, overdue
+                lastInvoice: 'R$ 99,90 - Pago',
+                nextDue: '15/03/2026',
+                nextValue: 'R$ 99,90'
+            };
+            
+            if (crmData.status === 'ok') {
+                financialCard.className = 'financial-card status-ok';
+                financialBadge.innerHTML = '<i class="bi bi-check-circle-fill"></i> Em dia';
+            } else if (crmData.status === 'pending') {
+                financialCard.className = 'financial-card status-pending';
+                financialBadge.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i> Pendente';
+            } else {
+                financialCard.className = 'financial-card status-overdue';
+                financialBadge.innerHTML = '<i class="bi bi-x-circle-fill"></i> Em atraso';
+            }
+            
+            document.getElementById('lastInvoice').textContent = crmData.lastInvoice;
+            document.getElementById('nextDue').textContent = crmData.nextDue;
+            document.getElementById('nextInvoiceValue').textContent = crmData.nextValue;
+        }
+        
+        function getInitials(name) {
+            if (!name) return '??';
+            const parts = name.trim().split(' ');
+            if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+            return name.substring(0, 2).toUpperCase();
+        }
+        
+        function formatTime(timestamp) {
+            if (!timestamp) return '--';
+            const date = new Date(timestamp * 1000);
+            const now = new Date();
+            if (date.toDateString() === now.toDateString()) {
+                return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            }
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            if (date.toDateString() === yesterday.toDateString()) return 'Ontem';
+            if (now - date < 7 * 24 * 60 * 60 * 1000) {
+                const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                return days[date.getDay()];
+            }
+            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        }
+        
+        function formatPhone(phone) {
+            if (!phone) return '--';
+            const cleaned = phone.replace(/\D/g, '');
+            if (cleaned.length === 13 && cleaned.startsWith('55')) {
+                return `(${cleaned.substring(2, 4)}) ${cleaned.substring(4, 9)}-${cleaned.substring(9, 13)}`;
+            }
+            if (cleaned.length === 11) {
+                return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7, 11)}`;
+            }
+            return phone;
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
 </body>
 </html>

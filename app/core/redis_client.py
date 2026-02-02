@@ -332,6 +332,75 @@ class AdvancedRedisManager:
             logger.error("Rate limit check failed", key=key, error=str(e))
             # Em caso de erro, permitir a operação
             return True, limit
+    
+    # Pub/Sub para WebSocket
+    async def publish(self, channel: str, message: str) -> int:
+        """Publicar mensagem em canal pub/sub"""
+        try:
+            return await self.client.publish(channel, message)
+        except Exception as e:
+            logger.error("Redis PUBLISH failed", channel=channel, error=str(e))
+            return 0
+    
+    async def subscribe(self, *channels: str):
+        """Inscrever em canais pub/sub"""
+        try:
+            pubsub = self.client.pubsub()
+            await pubsub.subscribe(*channels)
+            return pubsub
+        except Exception as e:
+            logger.error("Redis SUBSCRIBE failed", channels=channels, error=str(e))
+            return None
+    
+    async def listen(self, pubsub):
+        """Escutar mensagens de pub/sub"""
+        try:
+            async for message in pubsub.listen():
+                if message["type"] == "message":
+                    yield message
+        except Exception as e:
+            logger.error("Redis LISTEN failed", error=str(e))
+    
+    # Operações de List para filas
+    async def lpush(self, key: str, *values: str) -> int:
+        """Adicionar no início da lista"""
+        try:
+            return await self.client.lpush(key, *values)
+        except Exception as e:
+            logger.error("Redis LPUSH failed", key=key, error=str(e))
+            return 0
+    
+    async def rpush(self, key: str, *values: str) -> int:
+        """Adicionar no final da lista"""
+        try:
+            return await self.client.rpush(key, *values)
+        except Exception as e:
+            logger.error("Redis RPUSH failed", key=key, error=str(e))
+            return 0
+    
+    async def lpop(self, key: str) -> Optional[str]:
+        """Remover e retornar do início da lista"""
+        try:
+            return await self.client.lpop(key)
+        except Exception as e:
+            logger.error("Redis LPOP failed", key=key, error=str(e))
+            return None
+    
+    async def lrange(self, key: str, start: int, stop: int) -> List[str]:
+        """Obter elementos da lista"""
+        try:
+            return await self.client.lrange(key, start, stop)
+        except Exception as e:
+            logger.error("Redis LRANGE failed", key=key, error=str(e))
+            return []
+    
+    async def llen(self, key: str) -> int:
+        """Obter tamanho da lista"""
+        try:
+            return await self.client.llen(key)
+        except Exception as e:
+            logger.error("Redis LLEN failed", key=key, error=str(e))
+            return 0
 
 
 # Instância global

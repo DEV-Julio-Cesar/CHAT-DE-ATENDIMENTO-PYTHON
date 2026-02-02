@@ -1,0 +1,394 @@
+# =============================================================================
+# Docker Compose - Sistema de Chat de Atendimento
+# Versão completa com SQL Server, PostgreSQL, Redis e monitoramento
+# =============================================================================
+
+services:
+  # =========================================================================
+  # API Principal FastAPI
+  # =========================================================================
+  api:
+    build: 
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: chat-api
+    ports:
+      - "8000:8000"
+    environment:
+      # Aplicação
+      - APP_NAME=ISP Customer Support
+      - DEBUG=false
+      - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-in-production}
+      
+      # SQL Server (Autenticação)
+      - SQLSERVER_HOST=sqlserver
+      - SQLSERVER_PORT=1433
+      - SQLSERVER_DATABASE=chat_atendimento
+      - SQLSERVER_USER=sa
+      - SQLSERVER_PASSWORD=${SQLSERVER_PASSWORD:-YourStrong@Passw0rd}
+      - SQLSERVER_DRIVER=ODBC Driver 17 for SQL Server
+      
+      # PostgreSQL (Dados)
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/isp_support
+      
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      
+      # APIs Externas
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - WHATSAPP_ACCESS_TOKEN=${WHATSAPP_ACCESS_TOKEN}
+      - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}
+      - WHATSAPP_WEBHOOK_VERIFY_TOKEN=${WHATSAPP_WEBHOOK_VERIFY_TOKEN}
+      - WHATSAPP_APP_SECRET=${WHATSAPP_APP_SECRET}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ../app:/app/app:ro
+      - uploads:/app/uploads
+      - logs:/app/logs
+    networks:
+      - chat-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # =========================================================================
+  # WebSocket Server (Tempo Real)
+  # =========================================================================
+  websocket:
+    build: 
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: chat-websocket
+    command: uvicorn app.websocket.manager:app --host 0.0.0.0 --port 8001 --ws-max-size 16777216
+    ports:
+      - "8001:8001"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-in-production}
+      - SQLSERVER_HOST=sqlserver
+      - SQLSERVER_PORT=1433
+      - SQLSERVER_DATABASE=chat_atendimento
+      - SQLSERVER_USER=sa
+      - SQLSERVER_PASSWORD=${SQLSERVER_PASSWORD:-YourStrong@Passw0rd}
+    depends_on:
+      - redis
+      - sqlserver
+    volumes:
+      - ../app:/app/app:ro
+    networks:
+      - chat-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # =========================================================================
+  # Celery Worker (Processamento Assíncrono)
+  # =========================================================================
+  worker:
+    build: 
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: chat-worker
+    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=4
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/isp_support
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - WHATSAPP_ACCESS_TOKEN=${WHATSAPP_ACCESS_TOKEN}
+      - SQLSERVER_HOST=sqlserver
+      - SQLSERVER_PASSWORD=${SQLSERVER_PASSWORD:-YourStrong@Passw0rd}
+    depends_on:
+      - postgres
+      - redis
+      - sqlserver
+    volumes:
+      - ../app:/app/app:ro
+      - uploads:/app/uploads
+    networks:
+      - chat-network
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # =========================================================================
+  # Celery Beat (Agendador de Tarefas)
+  # =========================================================================
+  scheduler:
+    build: 
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: chat-scheduler
+    command: celery -A app.workers.celery_app beat --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    depends_on:
+      - redis
+    volumes:
+      - ../app:/app/app:ro
+    networks:
+      - chat-network
+    restart: unless-stopped
+
+  # =========================================================================
+  # SQL Server (Autenticação e Usuários)
+  # =========================================================================
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: chat-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${SQLSERVER_PASSWORD:-YourStrong@Passw0rd}
+      - MSSQL_PID=Express
+      - MSSQL_MEMORY_LIMIT_MB=2048
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ../scripts/sqlserver:/docker-entrypoint-initdb.d:ro
+    networks:
+      - chat-network
+    restart: unless-stopped
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -No -Q "SELECT 1" || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+
+  # =========================================================================
+  # PostgreSQL (Dados da Aplicação)
+  # =========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: chat-postgres
+    environment:
+      POSTGRES_DB: isp_support
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - chat-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d isp_support"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # =========================================================================
+  # Redis (Cache e Mensageria)
+  # =========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: chat-redis
+    command: >
+      redis-server 
+      --appendonly yes 
+      --maxmemory 512mb 
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 300
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - chat-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # =========================================================================
+  # Nginx (Load Balancer e SSL Termination)
+  # =========================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: chat-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ../app/web/static:/usr/share/nginx/html/static:ro
+    depends_on:
+      - api
+      - websocket
+    networks:
+      - chat-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =========================================================================
+  # Prometheus (Métricas)
+  # =========================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: chat-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    networks:
+      - chat-network
+    restart: unless-stopped
+
+  # =========================================================================
+  # Grafana (Dashboards)
+  # =========================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: chat-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - chat-network
+    restart: unless-stopped
+
+  # =========================================================================
+  # Adminer (Gerenciador de BD Web)
+  # =========================================================================
+  adminer:
+    image: adminer:latest
+    container_name: chat-adminer
+    ports:
+      - "8080:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+      - ADMINER_DESIGN=nette
+    depends_on:
+      - postgres
+      - sqlserver
+    networks:
+      - chat-network
+    restart: unless-stopped
+    profiles:
+      - dev
+
+  # =========================================================================
+  # Flower (Monitor Celery)
+  # =========================================================================
+  flower:
+    image: mher/flower:latest
+    container_name: chat-flower
+    command: celery --broker=redis://redis:6379/1 flower --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - FLOWER_BASIC_AUTH=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-admin123}
+    depends_on:
+      - redis
+      - worker
+    networks:
+      - chat-network
+    restart: unless-stopped
+    profiles:
+      - dev
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  sqlserver_data:
+    name: chat_sqlserver_data
+  postgres_data:
+    name: chat_postgres_data
+  redis_data:
+    name: chat_redis_data
+  prometheus_data:
+    name: chat_prometheus_data
+  grafana_data:
+    name: chat_grafana_data
+  uploads:
+    name: chat_uploads
+  logs:
+    name: chat_logs
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  chat-network:
+    name: chat-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes - CIANET PROVEDOR</title>
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); background: #f8fafc; }
+        .app-layout { display: flex; min-height: 100vh; }
+        
+        /* Sidebar Verde/Laranja */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #166534 0%, #15803d 30%, #22c55e 70%, #16a34a 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            box-shadow: 4px 0 25px rgba(22, 101, 52, 0.3);
+        }
+        
+        .sidebar-brand {
+            padding: 28px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        .sidebar-brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        
+        .sidebar-brand-icon {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
+        }
+        
+        .sidebar-brand-text h1 { font-size: 20px; font-weight: 700; color: white; }
+        .sidebar-brand-text span { font-size: 12px; color: rgba(255, 255, 255, 0.75); }
+        
+        .sidebar-nav { flex: 1; padding: 20px 16px; overflow-y: auto; }
+        
+        .nav-section { margin-bottom: 28px; }
+        
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255, 255, 255, 0.5);
+            padding: 0 12px;
+            margin-bottom: 12px;
+        }
+        
+        .nav-menu { list-style: none; }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            color: rgba(255, 255, 255, 0.85);
+            text-decoration: none;
+            border-radius: 14px;
+            margin-bottom: 6px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            transform: translateX(4px);
+        }
+        
+        .nav-link.active {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.35);
+        }
+        
+        .nav-link i { font-size: 20px; width: 24px; text-align: center; }
+        
+        .nav-badge {
+            margin-left: auto;
+            background: #f97316;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+        
+        .nav-link.active .nav-badge { background: rgba(255, 255, 255, 0.25); }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .top-header {
+            background: white;
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        
+        .page-title {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        
+        .page-title i { font-size: 28px; color: #22c55e; }
+        .page-title h1 { font-size: 24px; font-weight: 700; color: #18181b; }
+        
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+        
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(34, 197, 94, 0.35);
+        }
+        
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 24px;
+            background: white;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-secondary:hover {
+            border-color: #f97316;
+            color: #f97316;
+        }
+        
+        .page-content { padding: 32px; }
+        
+        /* Stats Cards */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+        
+        .stat-mini {
+            background: white;
+            padding: 24px;
+            border-radius: 18px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.3s;
+        }
+        
+        .stat-mini:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+        }
+        
+        .stat-mini h4 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #18181b;
+            margin-bottom: 4px;
+        }
+        
+        .stat-mini p { font-size: 14px; color: #71717a; margin: 0; }
+        
+        .stat-mini.green { border-left: 4px solid #22c55e; }
+        .stat-mini.orange { border-left: 4px solid #f97316; }
+        .stat-mini.blue { border-left: 4px solid #3b82f6; }
+        
+        .stat-mini.highlight {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+        }
+        
+        .stat-mini.highlight h4,
+        .stat-mini.highlight p { color: white; }
+        
+        /* Filters */
+        .filters-bar {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 280px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 12px 18px;
+            transition: all 0.3s;
+        }
+        
+        .search-box:focus-within {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+        }
+        
+        .search-box input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 15px;
+        }
+        
+        .search-box input::placeholder { color: #9ca3af; }
+        .search-box i { color: #9ca3af; font-size: 18px; }
+        
+        .filter-select {
+            padding: 12px 18px;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
+            font-size: 15px;
+            color: #374151;
+            background: white;
+            cursor: pointer;
+            min-width: 160px;
+            transition: all 0.3s;
+        }
+        
+        .filter-select:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+        }
+        
+        /* Table Card */
+        .table-card {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+        
+        .table-header {
+            padding: 24px 28px;
+            border-bottom: 1px solid #f4f4f5;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .table-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #18181b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .table-title i { color: #22c55e; }
+        
+        .customers-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .customers-table th {
+            text-align: left;
+            padding: 16px 24px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #71717a;
+            background: #fafafa;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .customers-table td {
+            padding: 20px 24px;
+            border-bottom: 1px solid #f4f4f5;
+            font-size: 14px;
+        }
+        
+        .customers-table tr:hover { background: #f0fdf4; }
+        .customers-table tr:last-child td { border-bottom: none; }
+        
+        .customer-cell {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        
+        .customer-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #22c55e, #f97316);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 15px;
+        }
+        
+        .customer-info h4 { font-weight: 600; color: #18181b; margin-bottom: 2px; }
+        .customer-info span { font-size: 13px; color: #71717a; }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .status-badge.active { background: #dcfce7; color: #16a34a; }
+        .status-badge.pending { background: #ffedd5; color: #ea580c; }
+        .status-badge.inactive { background: #fee2e2; color: #dc2626; }
+        
+        .status-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        
+        .plan-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .plan-badge.premium {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #92400e;
+        }
+        
+        .plan-badge.standard { background: #e0e7ff; color: #4338ca; }
+        .plan-badge.basic { background: #f4f4f5; color: #52525b; }
+        
+        .action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: none;
+            background: #f4f4f5;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 8px;
+        }
+        
+        .action-btn:hover {
+            background: #22c55e;
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .action-btn.orange:hover {
+            background: #f97316;
+        }
+        
+        .action-btn.red:hover {
+            background: #ef4444;
+        }
+        
+        /* Pagination */
+        .table-footer {
+            padding: 20px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px solid #f4f4f5;
+        }
+        
+        .pagination-info { font-size: 14px; color: #71717a; }
+        
+        .pagination {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .page-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            color: #374151;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .page-btn:hover {
+            border-color: #22c55e;
+            color: #22c55e;
+        }
+        
+        .page-btn.active {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border-color: transparent;
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal-overlay.active { display: flex; }
+        
+        .modal {
+            background: white;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 540px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .modal-header {
+            padding: 28px 32px;
+            border-bottom: 1px solid #f4f4f5;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .modal-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #18181b;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .modal-title i { color: #22c55e; }
+        
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: none;
+            background: #f4f4f5;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .modal-close:hover {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+        
+        .modal-body { padding: 28px 32px; }
+        
+        .form-group { margin-bottom: 20px; }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        
+        .modal-footer {
+            padding: 20px 32px 28px;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        @media (max-width: 1200px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+            .stats-row { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="sidebar-brand-logo">
+                    <div class="sidebar-brand-icon"><i class="bi bi-headset"></i></div>
+                    <div class="sidebar-brand-text">
+                        <h1>ISP Support</h1>
+                        <span>Atendimento Inteligente</span>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Principal</div>
+                    <ul class="nav-menu">
+                        <li><a href="/dashboard" class="nav-link"><i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span></a></li>
+                        <li><a href="/chat" class="nav-link"><i class="bi bi-chat-dots-fill"></i><span>Atendimentos</span><span class="nav-badge">5</span></a></li>
+                        <li><a href="/whatsapp" class="nav-link"><i class="bi bi-whatsapp"></i><span>WhatsApp</span></a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Gestão</div>
+                    <ul class="nav-menu">
+                        <li><a href="/customers" class="nav-link active"><i class="bi bi-people-fill"></i><span>Clientes</span></a></li>
+                        <li><a href="#" class="nav-link"><i class="bi bi-person-badge-fill"></i><span>Agentes</span></a></li>
+                        <li><a href="/chatbot-admin" class="nav-link"><i class="bi bi-robot"></i><span>Treinar Chatbot</span></a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Sistema</div>
+                    <ul class="nav-menu">
+                        <li><a href="#" class="nav-link"><i class="bi bi-gear-fill"></i><span>Configurações</span></a></li>
+                        <li><a href="/login" class="nav-link" onclick="localStorage.clear(); sessionStorage.clear();"><i class="bi bi-box-arrow-left"></i><span>Sair</span></a></li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="page-title">
+                    <i class="bi bi-people-fill"></i>
+                    <h1>Gerenciar Clientes</h1>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-secondary"><i class="bi bi-download"></i> Exportar</button>
+                    <button class="btn-primary" onclick="openModal()"><i class="bi bi-plus-lg"></i> Novo Cliente</button>
+                </div>
+            </header>
+            
+            <div class="page-content">
+                <!-- Stats -->
+                <div class="stats-row">
+                    <div class="stat-mini highlight">
+                        <h4>10,245</h4>
+                        <p>Total de Clientes</p>
+                    </div>
+                    <div class="stat-mini green">
+                        <h4>8,732</h4>
+                        <p>Clientes Ativos</p>
+                    </div>
+                    <div class="stat-mini orange">
+                        <h4>1,287</h4>
+                        <p>Novos este Mês</p>
+                    </div>
+                    <div class="stat-mini blue">
+                        <h4>3,456</h4>
+                        <p>Plano Premium</p>
+                    </div>
+                </div>
+                
+                <!-- Filters -->
+                <div class="filters-bar">
+                    <div class="search-box">
+                        <i class="bi bi-search"></i>
+                        <input type="text" id="searchInput" placeholder="Buscar por nome, email ou telefone..." onkeyup="filterCustomers()">
+                    </div>
+                    <select class="filter-select" id="statusFilter" onchange="filterCustomers()">
+                        <option value="">Todos Status</option>
+                        <option value="active">Ativo</option>
+                        <option value="pending">Pendente</option>
+                        <option value="inactive">Inativo</option>
+                    </select>
+                    <select class="filter-select" id="planFilter" onchange="filterCustomers()">
+                        <option value="">Todos Planos</option>
+                        <option value="premium">Premium</option>
+                        <option value="standard">Standard</option>
+                        <option value="basic">Básico</option>
+                    </select>
+                </div>
+                
+                <!-- Table -->
+                <div class="table-card">
+                    <div class="table-header">
+                        <h3 class="table-title"><i class="bi bi-list-ul"></i> Lista de Clientes</h3>
+                        <span style="color: #71717a; font-size: 14px;">Mostrando <strong id="showing">10</strong> de <strong id="total">247</strong></span>
+                    </div>
+                    <table class="customers-table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Telefone</th>
+                                <th>Plano</th>
+                                <th>Status</th>
+                                <th>Desde</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customersTable">
+                            <!-- Rows populated by JS -->
+                        </tbody>
+                    </table>
+                    <div class="table-footer">
+                        <div class="pagination-info">Mostrando 1-10 de 247 clientes</div>
+                        <div class="pagination">
+                            <button class="page-btn"><i class="bi bi-chevron-left"></i></button>
+                            <button class="page-btn active">1</button>
+                            <button class="page-btn">2</button>
+                            <button class="page-btn">3</button>
+                            <button class="page-btn">...</button>
+                            <button class="page-btn">25</button>
+                            <button class="page-btn"><i class="bi bi-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Modal -->
+    <div class="modal-overlay" id="customerModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="bi bi-person-plus"></i> Novo Cliente</h2>
+                <button class="modal-close" onclick="closeModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <form id="customerForm" onsubmit="saveCustomer(event)">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Nome Completo *</label>
+                            <input type="text" class="form-input" id="nome" required placeholder="Ex: João da Silva">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">CPF/CNPJ *</label>
+                            <input type="text" class="form-input" id="documento" required placeholder="000.000.000-00">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Email *</label>
+                            <input type="email" class="form-input" id="email" required placeholder="email@exemplo.com">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Telefone *</label>
+                            <input type="tel" class="form-input" id="telefone" required placeholder="(00) 00000-0000">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Endereço</label>
+                        <input type="text" class="form-input" id="endereco" placeholder="Rua, número, bairro">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Plano *</label>
+                            <select class="form-input" id="plano" required>
+                                <option value="">Selecione...</option>
+                                <option value="basic">Básico - 100 Mbps</option>
+                                <option value="standard">Standard - 300 Mbps</option>
+                                <option value="premium">Premium - 500 Mbps</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select class="form-input" id="status">
+                                <option value="active">Ativo</option>
+                                <option value="pending">Pendente</option>
+                                <option value="inactive">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn-primary"><i class="bi bi-check-lg"></i> Salvar Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Demo customers data
+        const customers = [
+            { id: 1, nome: 'João Silva', email: 'joao.silva@email.com', telefone: '(11) 99999-1234', plano: 'premium', status: 'active', data: '15/01/2023' },
+            { id: 2, nome: 'Maria Santos', email: 'maria.santos@email.com', telefone: '(11) 98888-5678', plano: 'standard', status: 'active', data: '22/03/2023' },
+            { id: 3, nome: 'Carlos Oliveira', email: 'carlos.o@email.com', telefone: '(11) 97777-9012', plano: 'premium', status: 'active', data: '10/05/2023' },
+            { id: 4, nome: 'Ana Ferreira', email: 'ana.f@email.com', telefone: '(11) 96666-3456', plano: 'basic', status: 'pending', data: '05/08/2023' },
+            { id: 5, nome: 'Pedro Costa', email: 'pedro.costa@email.com', telefone: '(11) 95555-7890', plano: 'standard', status: 'active', data: '18/09/2023' },
+            { id: 6, nome: 'Juliana Lima', email: 'juliana.l@email.com', telefone: '(11) 94444-1234', plano: 'premium', status: 'active', data: '02/11/2023' },
+            { id: 7, nome: 'Roberto Almeida', email: 'roberto.a@email.com', telefone: '(11) 93333-5678', plano: 'basic', status: 'inactive', data: '20/06/2022' },
+            { id: 8, nome: 'Fernanda Souza', email: 'fernanda.s@email.com', telefone: '(11) 92222-9012', plano: 'standard', status: 'active', data: '14/12/2023' },
+            { id: 9, nome: 'Lucas Pereira', email: 'lucas.p@email.com', telefone: '(11) 91111-3456', plano: 'premium', status: 'pending', data: '28/01/2024' },
+            { id: 10, nome: 'Camila Rodrigues', email: 'camila.r@email.com', telefone: '(11) 90000-7890', plano: 'standard', status: 'active', data: '07/02/2024' }
+        ];
+        
+        const planNames = { premium: 'Premium', standard: 'Standard', basic: 'Básico' };
+        const statusNames = { active: 'Ativo', pending: 'Pendente', inactive: 'Inativo' };
+        
+        function renderCustomers(data) {
+            const tbody = document.getElementById('customersTable');
+            tbody.innerHTML = data.map(c => `
+                <tr>
+                    <td>
+                        <div class="customer-cell">
+                            <div class="customer-avatar">${c.nome.split(' ').map(n => n[0]).join('').substring(0, 2)}</div>
+                            <div class="customer-info">
+                                <h4>${c.nome}</h4>
+                                <span>${c.email}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${c.telefone}</td>
+                    <td><span class="plan-badge ${c.plano}">${planNames[c.plano]}</span></td>
+                    <td><span class="status-badge ${c.status}">${statusNames[c.status]}</span></td>
+                    <td>${c.data}</td>
+                    <td>
+                        <button class="action-btn" title="Ver"><i class="bi bi-eye"></i></button>
+                        <button class="action-btn orange" title="Editar"><i class="bi bi-pencil"></i></button>
+                        <button class="action-btn red" title="Excluir"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+            document.getElementById('showing').textContent = data.length;
+        }
+        
+        function filterCustomers() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const status = document.getElementById('statusFilter').value;
+            const plan = document.getElementById('planFilter').value;
+            
+            const filtered = customers.filter(c => {
+                const matchSearch = c.nome.toLowerCase().includes(search) || c.email.toLowerCase().includes(search) || c.telefone.includes(search);
+                const matchStatus = !status || c.status === status;
+                const matchPlan = !plan || c.plano === plan;
+                return matchSearch && matchStatus && matchPlan;
+            });
+            
+            renderCustomers(filtered);
+        }
+        
+        function openModal() { document.getElementById('customerModal').classList.add('active'); }
+        function closeModal() { document.getElementById('customerModal').classList.remove('active'); document.getElementById('customerForm').reset(); }
+        
+        function saveCustomer(e) {
+            e.preventDefault();
+            const newCustomer = {
+                id: customers.length + 1,
+                nome: document.getElementById('nome').value,
+                email: document.getElementById('email').value,
+                telefone: document.getElementById('telefone').value,
+                plano: document.getElementById('plano').value,
+                status: document.getElementById('status').value,
+                data: new Date().toLocaleDateString('pt-BR')
+            };
+            customers.unshift(newCustomer);
+            renderCustomers(customers);
+            closeModal();
+            alert('✅ Cliente cadastrado com sucesso!');
+        }
+        
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+            if (!token) window.location.href = '/login';
+            renderCustomers(customers);
+        });
+    </script>
+</body>
+</html>

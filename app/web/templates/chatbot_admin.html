@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treinar Chatbot - CIANET PROVEDOR</title>
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); background: #f8fafc; }
+        .app-layout { display: flex; min-height: 100vh; }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #166534 0%, #15803d 30%, #22c55e 70%, #16a34a 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            box-shadow: 4px 0 25px rgba(22, 101, 52, 0.3);
+        }
+        
+        .sidebar-brand {
+            padding: 28px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        .sidebar-brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        
+        .sidebar-brand-icon {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
+        }
+        
+        .sidebar-brand-text h1 { font-size: 20px; font-weight: 700; color: white; }
+        .sidebar-brand-text span { font-size: 12px; color: rgba(255, 255, 255, 0.75); }
+        
+        .sidebar-nav { flex: 1; padding: 20px 16px; overflow-y: auto; }
+        
+        .nav-section { margin-bottom: 28px; }
+        
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255, 255, 255, 0.5);
+            padding: 0 12px;
+            margin-bottom: 12px;
+        }
+        
+        .nav-menu { list-style: none; }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            color: rgba(255, 255, 255, 0.85);
+            text-decoration: none;
+            border-radius: 14px;
+            margin-bottom: 6px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            transform: translateX(4px);
+        }
+        
+        .nav-link.active {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.35);
+        }
+        
+        .nav-link i { font-size: 20px; width: 24px; text-align: center; }
+        
+        .nav-badge {
+            margin-left: auto;
+            background: #f97316;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .top-header {
+            background: white;
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        
+        .page-title {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        
+        .page-title i { font-size: 28px; color: #f97316; }
+        .page-title h1 { font-size: 24px; font-weight: 700; color: #18181b; }
+        
+        .page-content { padding: 32px; }
+        
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, #166534 0%, #22c55e 50%, #f97316 100%);
+            border-radius: 24px;
+            padding: 40px;
+            color: white;
+            margin-bottom: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 400px;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+        }
+        
+        .hero-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 40px; }
+        
+        .hero-icon {
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .hero-text h2 { font-size: 32px; font-weight: 700; margin-bottom: 10px; }
+        .hero-text p { font-size: 16px; opacity: 0.9; max-width: 500px; }
+        
+        .hero-stats {
+            display: flex;
+            gap: 30px;
+            margin-top: 24px;
+        }
+        
+        .hero-stat {
+            text-align: center;
+            padding: 16px 24px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .hero-stat-value { font-size: 28px; font-weight: 700; }
+        .hero-stat-label { font-size: 13px; opacity: 0.85; }
+        
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            padding: 24px 28px;
+            border-bottom: 1px solid #f4f4f5;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #18181b;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .card-title i { font-size: 22px; }
+        .card-title i.green { color: #22c55e; }
+        .card-title i.orange { color: #f97316; }
+        
+        .card-body { padding: 24px 28px; }
+        
+        /* Training Form */
+        .form-group { margin-bottom: 24px; }
+        
+        .form-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 10px;
+        }
+        
+        .form-label i { color: #22c55e; }
+        
+        .form-input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+        }
+        
+        textarea.form-input {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
+            font-size: 15px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .form-select:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+        }
+        
+        .btn-train {
+            width: 100%;
+            padding: 18px 24px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        
+        .btn-train:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(34, 197, 94, 0.4);
+        }
+        
+        .btn-train i { font-size: 20px; }
+        
+        /* Intent List */
+        .intent-list { display: flex; flex-direction: column; gap: 12px; }
+        
+        .intent-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 20px;
+            background: #fafafa;
+            border-radius: 16px;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .intent-item:hover {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+        
+        .intent-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        
+        .intent-icon.green { background: #dcfce7; color: #16a34a; }
+        .intent-icon.orange { background: #ffedd5; color: #ea580c; }
+        .intent-icon.blue { background: #dbeafe; color: #2563eb; }
+        .intent-icon.purple { background: #ede9fe; color: #7c3aed; }
+        
+        .intent-info { flex: 1; }
+        .intent-name { font-size: 15px; font-weight: 600; color: #18181b; margin-bottom: 4px; }
+        .intent-desc { font-size: 13px; color: #71717a; }
+        
+        .intent-count {
+            padding: 8px 16px;
+            background: #dcfce7;
+            color: #16a34a;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 20px;
+        }
+        
+        .intent-actions { display: flex; gap: 8px; }
+        
+        .intent-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: none;
+            background: white;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        }
+        
+        .intent-btn:hover { background: #22c55e; color: white; }
+        .intent-btn.delete:hover { background: #ef4444; }
+        
+        /* Test Chat */
+        .test-chat { display: flex; flex-direction: column; height: 450px; }
+        
+        .test-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: #f8fafc;
+            border-radius: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .test-msg {
+            max-width: 85%;
+            padding: 14px 18px;
+            border-radius: 18px;
+            font-size: 14px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .test-msg.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+        
+        .test-msg.bot {
+            align-self: flex-start;
+            background: white;
+            color: #18181b;
+            border-bottom-left-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        
+        .test-msg.bot .confidence {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #f4f4f5;
+            font-size: 12px;
+            color: #71717a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .confidence-bar {
+            flex: 1;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #f97316);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        
+        .test-input-wrapper {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .test-input {
+            flex: 1;
+            padding: 16px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        
+        .test-input:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+        }
+        
+        .test-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            border: none;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .test-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
+        }
+        
+        /* Templates */
+        .templates-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        
+        .template-card {
+            padding: 20px;
+            background: #fafafa;
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .template-card:hover {
+            border-color: #22c55e;
+            background: #f0fdf4;
+            transform: translateY(-2px);
+        }
+        
+        .template-card h5 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #18181b;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .template-card h5 i { color: #f97316; }
+        
+        .template-card p { font-size: 13px; color: #71717a; }
+        
+        @media (max-width: 1200px) {
+            .content-grid { grid-template-columns: 1fr; }
+            .templates-grid { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+            .hero-content { flex-direction: column; text-align: center; }
+            .hero-stats { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="sidebar-brand-logo">
+                    <div class="sidebar-brand-icon"><i class="bi bi-headset"></i></div>
+                    <div class="sidebar-brand-text">
+                        <h1>ISP Support</h1>
+                        <span>Atendimento Inteligente</span>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Principal</div>
+                    <ul class="nav-menu">
+                        <li><a href="/dashboard" class="nav-link"><i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span></a></li>
+                        <li><a href="/chat" class="nav-link"><i class="bi bi-chat-dots-fill"></i><span>Atendimentos</span><span class="nav-badge">5</span></a></li>
+                        <li><a href="/whatsapp" class="nav-link"><i class="bi bi-whatsapp"></i><span>WhatsApp</span></a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Gestão</div>
+                    <ul class="nav-menu">
+                        <li><a href="/customers" class="nav-link"><i class="bi bi-people-fill"></i><span>Clientes</span></a></li>
+                        <li><a href="#" class="nav-link"><i class="bi bi-person-badge-fill"></i><span>Agentes</span></a></li>
+                        <li><a href="/chatbot-admin" class="nav-link active"><i class="bi bi-robot"></i><span>Treinar Chatbot</span></a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Sistema</div>
+                    <ul class="nav-menu">
+                        <li><a href="#" class="nav-link"><i class="bi bi-gear-fill"></i><span>Configurações</span></a></li>
+                        <li><a href="/login" class="nav-link" onclick="localStorage.clear(); sessionStorage.clear();"><i class="bi bi-box-arrow-left"></i><span>Sair</span></a></li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="page-title">
+                    <i class="bi bi-robot"></i>
+                    <h1>Treinar Chatbot</h1>
+                </div>
+            </header>
+            
+            <div class="page-content">
+                <!-- Hero Section -->
+                <div class="hero-section">
+                    <div class="hero-content">
+                        <div class="hero-icon"><i class="bi bi-cpu"></i></div>
+                        <div class="hero-text">
+                            <h2>🤖 Inteligência Artificial Treinável</h2>
+                            <p>Ensine seu chatbot a responder perguntas dos clientes de forma inteligente. Quanto mais você treinar, melhor ele responde!</p>
+                            <div class="hero-stats">
+                                <div class="hero-stat">
+                                    <div class="hero-stat-value" id="totalIntents">12</div>
+                                    <div class="hero-stat-label">Intenções</div>
+                                </div>
+                                <div class="hero-stat">
+                                    <div class="hero-stat-value" id="totalExamples">156</div>
+                                    <div class="hero-stat-label">Exemplos</div>
+                                </div>
+                                <div class="hero-stat">
+                                    <div class="hero-stat-value">94%</div>
+                                    <div class="hero-stat-label">Precisão</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Content Grid -->
+                <div class="content-grid">
+                    <!-- Training Form -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="bi bi-plus-circle-fill green"></i> Adicionar Treinamento</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="trainingForm" onsubmit="addTraining(event)">
+                                <div class="form-group">
+                                    <label class="form-label"><i class="bi bi-tag"></i> Categoria / Intenção</label>
+                                    <select class="form-select" id="category" required>
+                                        <option value="">Selecione ou crie uma categoria...</option>
+                                        <option value="saudacao">👋 Saudação</option>
+                                        <option value="internet_lenta">🐌 Internet Lenta</option>
+                                        <option value="sem_internet">❌ Sem Internet</option>
+                                        <option value="2via_boleto">📄 2ª Via Boleto</option>
+                                        <option value="upgrade_plano">⬆️ Upgrade de Plano</option>
+                                        <option value="horario">🕐 Horário de Funcionamento</option>
+                                        <option value="visita_tecnica">🔧 Visita Técnica</option>
+                                        <option value="nova">➕ Criar Nova Categoria</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group" id="newCategoryGroup" style="display: none;">
+                                    <label class="form-label"><i class="bi bi-bookmark-plus"></i> Nome da Nova Categoria</label>
+                                    <input type="text" class="form-input" id="newCategory" placeholder="Ex: cancelamento, wifi_instavel...">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label"><i class="bi bi-chat-left-text"></i> Exemplos de Perguntas</label>
+                                    <textarea class="form-input" id="examples" required placeholder="Digite exemplos de perguntas do cliente (uma por linha):&#10;&#10;minha internet está lenta&#10;a internet não carrega nada&#10;muito devagar a conexão"></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label"><i class="bi bi-chat-right-dots"></i> Resposta do Bot</label>
+                                    <textarea class="form-input" id="response" required placeholder="Digite a resposta que o bot deve dar para essas perguntas..."></textarea>
+                                </div>
+                                
+                                <button type="submit" class="btn-train">
+                                    <i class="bi bi-lightning-fill"></i>
+                                    Treinar Chatbot
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <!-- Test Chat -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="bi bi-chat-dots-fill orange"></i> Testar Chatbot</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="test-chat">
+                                <div class="test-messages" id="testMessages">
+                                    <div class="test-msg bot">
+                                        Olá! 👋 Sou o assistente virtual. Faça uma pergunta para testar meu treinamento!
+                                    </div>
+                                </div>
+                                <div class="test-input-wrapper">
+                                    <input type="text" class="test-input" id="testInput" placeholder="Digite uma pergunta de teste...">
+                                    <button class="test-btn" onclick="testChat()"><i class="bi bi-send-fill"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Intent List -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="bi bi-list-check green"></i> Intenções Treinadas</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="intent-list" id="intentList">
+                                <div class="intent-item">
+                                    <div class="intent-icon green"><i class="bi bi-hand-wave"></i></div>
+                                    <div class="intent-info">
+                                        <div class="intent-name">Saudação</div>
+                                        <div class="intent-desc">Oi, olá, bom dia, boa tarde...</div>
+                                    </div>
+                                    <span class="intent-count">8 exemplos</span>
+                                    <div class="intent-actions">
+                                        <button class="intent-btn"><i class="bi bi-pencil"></i></button>
+                                        <button class="intent-btn delete"><i class="bi bi-trash"></i></button>
+                                    </div>
+                                </div>
+                                
+                                <div class="intent-item">
+                                    <div class="intent-icon orange"><i class="bi bi-wifi-off"></i></div>
+                                    <div class="intent-info">
+                                        <div class="intent-name">Internet Lenta</div>
+                                        <div class="intent-desc">Lenta, devagar, travando...</div>
+                                    </div>
+                                    <span class="intent-count">15 exemplos</span>
+                                    <div class="intent-actions">
+                                        <button class="intent-btn"><i class="bi bi-pencil"></i></button>
+                                        <button class="intent-btn delete"><i class="bi bi-trash"></i></button>
+                                    </div>
+                                </div>
+                                
+                                <div class="intent-item">
+                                    <div class="intent-icon blue"><i class="bi bi-file-earmark-text"></i></div>
+                                    <div class="intent-info">
+                                        <div class="intent-name">2ª Via Boleto</div>
+                                        <div class="intent-desc">Boleto, fatura, pagamento...</div>
+                                    </div>
+                                    <span class="intent-count">12 exemplos</span>
+                                    <div class="intent-actions">
+                                        <button class="intent-btn"><i class="bi bi-pencil"></i></button>
+                                        <button class="intent-btn delete"><i class="bi bi-trash"></i></button>
+                                    </div>
+                                </div>
+                                
+                                <div class="intent-item">
+                                    <div class="intent-icon purple"><i class="bi bi-arrow-up-circle"></i></div>
+                                    <div class="intent-info">
+                                        <div class="intent-name">Upgrade de Plano</div>
+                                        <div class="intent-desc">Mudar plano, aumentar velocidade...</div>
+                                    </div>
+                                    <span class="intent-count">10 exemplos</span>
+                                    <div class="intent-actions">
+                                        <button class="intent-btn"><i class="bi bi-pencil"></i></button>
+                                        <button class="intent-btn delete"><i class="bi bi-trash"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Templates -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="bi bi-lightning-fill orange"></i> Templates Prontos</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="templates-grid">
+                                <div class="template-card" onclick="loadTemplate('internet')">
+                                    <h5><i class="bi bi-wifi"></i> Problemas de Internet</h5>
+                                    <p>Lentidão, quedas, conexão instável</p>
+                                </div>
+                                <div class="template-card" onclick="loadTemplate('financeiro')">
+                                    <h5><i class="bi bi-cash-coin"></i> Financeiro</h5>
+                                    <p>Boletos, faturas, pagamentos</p>
+                                </div>
+                                <div class="template-card" onclick="loadTemplate('tecnico')">
+                                    <h5><i class="bi bi-tools"></i> Suporte Técnico</h5>
+                                    <p>Configurações, modem, wifi</p>
+                                </div>
+                                <div class="template-card" onclick="loadTemplate('planos')">
+                                    <h5><i class="bi bi-star"></i> Planos e Serviços</h5>
+                                    <p>Upgrades, promoções, contratos</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Check auth
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+            if (!token) window.location.href = '/login';
+        });
+        
+        // Show/hide new category field
+        document.getElementById('category').addEventListener('change', function() {
+            const newCategoryGroup = document.getElementById('newCategoryGroup');
+            newCategoryGroup.style.display = this.value === 'nova' ? 'block' : 'none';
+        });
+        
+        // Test input enter key
+        document.getElementById('testInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') testChat();
+        });
+        
+        // Add training
+        function addTraining(e) {
+            e.preventDefault();
+            
+            const category = document.getElementById('category').value;
+            const examples = document.getElementById('examples').value;
+            const response = document.getElementById('response').value;
+            
+            // Simulate API call
+            alert('✅ Treinamento adicionado com sucesso!\n\nCategoria: ' + category + '\nExemplos adicionados: ' + examples.split('\n').filter(e => e.trim()).length);
+            
+            document.getElementById('trainingForm').reset();
+            document.getElementById('newCategoryGroup').style.display = 'none';
+            
+            // Update stats
+            const totalExamples = document.getElementById('totalExamples');
+            totalExamples.textContent = parseInt(totalExamples.textContent) + examples.split('\n').filter(e => e.trim()).length;
+        }
+        
+        // Test chat
+        function testChat() {
+            const input = document.getElementById('testInput');
+            const messages = document.getElementById('testMessages');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            
+            // Add user message
+            const userMsg = document.createElement('div');
+            userMsg.className = 'test-msg user';
+            userMsg.textContent = text;
+            messages.appendChild(userMsg);
+            
+            input.value = '';
+            
+            // Simulate bot response
+            setTimeout(() => {
+                const botMsg = document.createElement('div');
+                botMsg.className = 'test-msg bot';
+                
+                const confidence = Math.floor(Math.random() * 30) + 70;
+                let response = '';
+                
+                if (text.toLowerCase().includes('internet') || text.toLowerCase().includes('lenta') || text.toLowerCase().includes('devagar')) {
+                    response = 'Entendo que você está enfrentando lentidão na internet. Vamos verificar! Por favor, reinicie seu modem e aguarde 2 minutos. Se o problema persistir, nosso técnico entrará em contato.';
+                } else if (text.toLowerCase().includes('boleto') || text.toLowerCase().includes('fatura') || text.toLowerCase().includes('2via')) {
+                    response = 'Claro! Posso gerar sua 2ª via agora mesmo. Para isso, preciso confirmar seu CPF cadastrado.';
+                } else if (text.toLowerCase().includes('oi') || text.toLowerCase().includes('olá') || text.toLowerCase().includes('bom dia')) {
+                    response = 'Olá! Seja bem-vindo ao suporte da ISP. Como posso ajudar você hoje? 😊';
+                } else {
+                    response = 'Interessante! Ainda estou aprendendo sobre esse assunto. Vou encaminhar para um atendente humano que pode ajudar melhor.';
+                }
+                
+                botMsg.innerHTML = `
+                    ${response}
+                    <div class="confidence">
+                        <span>Confiança:</span>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${confidence}%"></div>
+                        </div>
+                        <span>${confidence}%</span>
+                    </div>
+                `;
+                
+                messages.appendChild(botMsg);
+                messages.scrollTop = messages.scrollHeight;
+            }, 800);
+        }
+        
+        // Load template
+        function loadTemplate(type) {
+            const templates = {
+                internet: {
+                    category: 'internet_lenta',
+                    examples: 'minha internet está muito lenta\na conexão está devagar\nnão consigo carregar nada\ninternet travando muito\nvelocidade baixa\ndemora para abrir sites',
+                    response: 'Entendo sua frustração com a lentidão da internet. Vamos resolver isso! Por favor:\n\n1. Reinicie seu modem (desligue da tomada por 30 segundos)\n2. Aguarde 2 minutos para reconectar\n3. Faça um teste em speedtest.net\n\nSe o problema persistir, nossa equipe técnica entrará em contato em até 2 horas.'
+                },
+                financeiro: {
+                    category: '2via_boleto',
+                    examples: 'preciso da segunda via do boleto\ncomo gero minha fatura\nperdi meu boleto\nonde vejo minha conta\nquero pagar minha fatura\nmeu boleto venceu',
+                    response: 'Claro! Posso gerar sua 2ª via agora mesmo! 📄\n\nPara isso, preciso confirmar seus dados:\n- Qual seu CPF cadastrado?\n\nAssim que confirmar, envio o boleto por email e WhatsApp.'
+                },
+                tecnico: {
+                    category: 'visita_tecnica',
+                    examples: 'preciso de um técnico\nquero agendar visita\nmodem não liga\nproblema no equipamento\nroteador piscando\nwifi não funciona',
+                    response: 'Entendi que você precisa de suporte técnico! 🔧\n\nNossos técnicos atendem de segunda a sábado, das 8h às 18h.\n\nPara agendar uma visita, me informe:\n- Seu endereço completo\n- Melhor dia e horário para você\n\nA visita técnica é gratuita para clientes ativos!'
+                },
+                planos: {
+                    category: 'upgrade_plano',
+                    examples: 'quero mudar meu plano\nquero mais velocidade\nquais planos disponíveis\nquero fazer upgrade\nplano mais rápido\naumentar minha internet',
+                    response: 'Que ótimo que quer conhecer nossos planos! 🚀\n\n📦 Nossos planos:\n• Básico 100 Mbps - R$ 79,90\n• Standard 300 Mbps - R$ 119,90\n• Premium 500 Mbps - R$ 149,90\n\n✨ PROMOÇÃO: Upgrade com 50% de desconto no primeiro mês!\n\nQual plano te interessa?'
+                }
+            };
+            
+            const template = templates[type];
+            if (template) {
+                document.getElementById('category').value = template.category;
+                document.getElementById('examples').value = template.examples;
+                document.getElementById('response').value = template.response;
+                
+                document.getElementById('trainingForm').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+# =============================================================================
+# Docker Compose - Modo Desenvolvimento Completo
+# Inclui SQL Server, PostgreSQL, Redis e ferramentas de debug
+# =============================================================================
+
+services:
+  # API com hot-reload
+  api:
+    build: 
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: chat-api-dev
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=true
+      - SECRET_KEY=dev-secret-key-not-for-production
+      - SQLSERVER_HOST=sqlserver
+      - SQLSERVER_PORT=1433
+      - SQLSERVER_DATABASE=chat_atendimento
+      - SQLSERVER_USER=sa
+      - SQLSERVER_PASSWORD=YourStrong@Passw0rd
+      - DATABASE_URL=postgresql+asyncpg://postgres:password@postgres:5432/isp_support
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - WHATSAPP_ACCESS_TOKEN=${WHATSAPP_ACCESS_TOKEN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      sqlserver:
+        condition: service_healthy
+    volumes:
+      - ../app:/app/app
+      - ../scripts:/app/scripts
+      - dev_uploads:/app/uploads
+    networks:
+      - chat-dev
+    restart: unless-stopped
+
+  # WebSocket com reload
+  websocket:
+    build: 
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: chat-ws-dev
+    command: uvicorn app.websocket.manager:app --host 0.0.0.0 --port 8001 --reload
+    ports:
+      - "8001:8001"
+    environment:
+      - DEBUG=true
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=dev-secret-key-not-for-production
+      - SQLSERVER_HOST=sqlserver
+      - SQLSERVER_PASSWORD=YourStrong@Passw0rd
+    depends_on:
+      - redis
+    volumes:
+      - ../app:/app/app
+    networks:
+      - chat-dev
+    restart: unless-stopped
+
+  # Celery Worker
+  worker:
+    build: 
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: chat-worker-dev
+    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=2
+    environment:
+      - DEBUG=true
+      - DATABASE_URL=postgresql+asyncpg://postgres:password@postgres:5432/isp_support
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ../app:/app/app
+    networks:
+      - chat-dev
+    restart: unless-stopped
+
+  # SQL Server
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: chat-sqlserver-dev
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourStrong@Passw0rd
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_dev:/var/opt/mssql
+    networks:
+      - chat-dev
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "YourStrong@Passw0rd" -No -Q "SELECT 1" || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: chat-postgres-dev
+    environment:
+      POSTGRES_DB: isp_support
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev:/var/lib/postgresql/data
+      - ../scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - chat-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d isp_support"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: chat-redis-dev
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev:/data
+    networks:
+      - chat-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Adminer (Gerenciador BD Web)
+  adminer:
+    image: adminer:latest
+    container_name: chat-adminer-dev
+    ports:
+      - "8080:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+    networks:
+      - chat-dev
+
+  # Redis Commander (Redis Web UI)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: chat-redis-ui-dev
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - chat-dev
+
+  # Flower (Monitor Celery)
+  flower:
+    image: mher/flower:latest
+    container_name: chat-flower-dev
+    command: celery --broker=redis://redis:6379/1 flower --port=5555
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+    networks:
+      - chat-dev
+
+volumes:
+  sqlserver_dev:
+    name: chat_sqlserver_dev
+  postgres_dev:
+    name: chat_postgres_dev
+  redis_dev:
+    name: chat_redis_dev
+  dev_uploads:
+    name: chat_uploads_dev
+
+networks:
+  chat-dev:
+    name: chat-dev-network
+    driver: bridge

@@ -26,8 +26,8 @@ aiohttp==3.9.1
 # WhatsApp Integration
 requests==2.31.0
 
-# AI Integration
-google-generativeai==0.3.2
+# AI Integration - Google Gemini
+google-generativeai>=0.8.0
 
 # Monitoring
 prometheus-client==0.19.0
@@ -36,7 +36,9 @@ structlog==23.2.0
 # Utils
 python-dateutil==2.8.2
 openpyxl==3.1.2
-qrcode[pil]==7.4.2
+qrcode[pil]==7.4.6
+colorama==0.4.6
+websockets==12.0
 
 # Development
 pytest==7.4.3

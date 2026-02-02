@@ -1,13 +1,23 @@
 """
 Sistema de Chat WhatsApp com Fluxo de 3 Etapas
 ESPERA → ATRIBUÍDO → AUTOMAÇÃO
+
+SEMANA 1: Integração de criptografia
 """
 import asyncio
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime, timedelta
 import structlog
 from dataclasses import dataclass
+import base64
+
+# SEMANA 1 - Importar módulo de criptografia
+try:
+    from app.core.encryption import encryption_manager
+    ENCRYPTION_ENABLED = True
+except ImportError:
+    ENCRYPTION_ENABLED = False
 
 logger = structlog.get_logger(__name__)
 
@@ -398,6 +408,236 @@ class WhatsAppChatFlow:
     ) -> WhatsAppMessage:
         """Enviar mensagem do bot"""
         return await self.add_message(
+            conversation_id=conversation_id,
+            sender_type=SenderType.BOT,
+            sender_id="bot",
+            content=content,
+            message_type=MessageType.TEXT
+        )
+    
+    # ========================================================================
+    # SEMANA 1 - CRIPTOGRAFIA DE MENSAGENS
+    # ========================================================================
+    
+    async def encrypt_message_content(
+        self,
+        customer_id: str,
+        content: str
+    ) -> Tuple[str, str]:
+        """
+        Criptografar conteúdo de mensagem
+        
+        Returns:
+            (conteudo_criptografado_base64, iv_base64)
+        """
+        if not ENCRYPTION_ENABLED:
+            logger.warning("Encryption module not available")
+            return content, ""
+        
+        try:
+            # Derivar chave para o cliente
+            client_key = await encryption_manager.derive_client_key(customer_id)
+            
+            # Criptografar conteúdo
+            encrypted_data, iv = encryption_manager.encrypt(
+                plaintext=content,
+                client_key=client_key
+            )
+            
+            # Converter para base64
+            encrypted_b64 = base64.b64encode(encrypted_data).decode('utf-8')
+            iv_b64 = base64.b64encode(iv).decode('utf-8')
+            
+            logger.debug("Message encrypted successfully", customer_id=customer_id)
+            
+            return encrypted_b64, iv_b64
+            
+        except Exception as e:
+            logger.error("Failed to encrypt message", error=str(e), customer_id=customer_id)
+            # Retornar plaintext em caso de erro
+            return content, ""
+    
+    async def decrypt_message_content(
+        self,
+        customer_id: str,
+        encrypted_content: str,
+        iv: str
+    ) -> str:
+        """
+        Descriptografar conteúdo de mensagem
+        
+        Args:
+            customer_id: ID do cliente para derivar chave
+            encrypted_content: Base64 do conteúdo criptografado
+            iv: Base64 do initialization vector
+        
+        Returns:
+            Conteúdo plaintext descriptografado
+        """
+        if not ENCRYPTION_ENABLED or not iv:
+            logger.warning("Encryption not available or missing IV")
+            return encrypted_content
+        
+        try:
+            # Derivar chave para o cliente
+            client_key = await encryption_manager.derive_client_key(customer_id)
+            
+            # Decodificar de base64
+            encrypted_data = base64.b64decode(encrypted_content)
+            iv_bytes = base64.b64decode(iv)
+            
+            # Descriptografar
+            plaintext = encryption_manager.decrypt(
+                ciphertext=encrypted_data,
+                iv=iv_bytes,
+                client_key=client_key
+            )
+            
+            logger.debug("Message decrypted successfully", customer_id=customer_id)
+            
+            return plaintext
+            
+        except Exception as e:
+            logger.error("Failed to decrypt message", error=str(e), customer_id=customer_id)
+            # Retornar encrypted content em caso de erro
+            return encrypted_content
+    
+    async def get_conversation_messages_decrypted(
+        self,
+        conversation_id: str,
+        customer_id: str
+    ) -> List[Dict]:
+        """
+        Obter todas as mensagens de uma conversa com conteúdo descriptografado
+        """
+        if conversation_id not in self.messages:
+            return []
+        
+        messages = self.messages[conversation_id]
+        decrypted_messages = []
+        
+        for msg in messages:
+            msg_dict = {
+                "id": msg.id,
+                "conversation_id": msg.conversation_id,
+                "sender_type": msg.sender_type.value,
+                "sender_id": msg.sender_id,
+                "content": msg.content,  # Conteúdo descriptografado
+                "message_type": msg.message_type.value,
+                "timestamp": msg.timestamp.isoformat(),
+                "whatsapp_message_id": msg.whatsapp_message_id
+            }
+            
+            # Se temos metadados de criptografia, descriptografar
+            if msg.metadata and "encrypted" in msg.metadata:
+                try:
+                    decrypted = await self.decrypt_message_content(
+                        customer_id=customer_id,
+                        encrypted_content=msg.metadata.get("conteudo_criptografado"),
+                        iv=msg.metadata.get("iv")
+                    )
+                    msg_dict["content"] = decrypted
+                except Exception as e:
+                    logger.warning(f"Could not decrypt message {msg.id}: {str(e)}")
+            
+            decrypted_messages.append(msg_dict)
+        
+        return decrypted_messages
+    
+    async def add_encrypted_message(
+        self,
+        conversation_id: str,
+        sender_type: SenderType,
+        sender_id: str,
+        content: str,
+        customer_id: str,
+        message_type: MessageType = MessageType.TEXT,
+        whatsapp_message_id: str = None
+    ) -> WhatsAppMessage:
+        """
+        Adicionar mensagem com conteúdo criptografado
+        
+        SEMANA 1: Integração com encryption_manager
+        """
+        if conversation_id not in self.conversations:
+            raise ValueError(f"Conversa {conversation_id} não encontrada")
+        
+        # Criptografar conteúdo
+        encrypted_content, iv = await self.encrypt_message_content(
+            customer_id=customer_id,
+            content=content
+        )
+        
+        # Criar mensagem com metadados de criptografia
+        message_id = f"msg_{len(self.messages.get(conversation_id, []))}_{int(datetime.now().timestamp())}"
+        
+        message = WhatsAppMessage(
+            id=message_id,
+            conversation_id=conversation_id,
+            sender_type=sender_type,
+            sender_id=sender_id,
+            content=content,  # Armazenar plaintext em memória
+            message_type=message_type,
+            timestamp=datetime.now(),
+            whatsapp_message_id=whatsapp_message_id,
+            metadata={
+                "encrypted": True,
+                "conteudo_criptografado": encrypted_content,
+                "iv": iv,
+                "encryption_type": "AES-256-CBC"
+            }
+        )
+        
+        # Adicionar à lista
+        if conversation_id not in self.messages:
+            self.messages[conversation_id] = []
+        
+        self.messages[conversation_id].append(message)
+        
+        # Atualizar conversa
+        conversation = self.conversations[conversation_id]
+        conversation.last_message = "[Encrypted message]"  # Não mostrar preview
+        conversation.messages_count += 1
+        conversation.updated_at = datetime.now()
+        
+        self.stats["messages_today"] += 1
+        
+        logger.info(
+            "Encrypted message added",
+            conversation_id=conversation_id,
+            sender_type=sender_type.value,
+            encryption_enabled=True
+        )
+        
+        return message
+    
+    async def enable_conversation_encryption(
+        self,
+        conversation_id: str,
+        customer_id: str
+    ) -> bool:
+        """
+        Ativar criptografia para conversa
+        
+        Configura metadados de criptografia para todas as futuras mensagens
+        """
+        if conversation_id not in self.conversations:
+            return False
+        
+        conversation = self.conversations[conversation_id]
+        conversation.metadata["encryption_enabled"] = True
+        conversation.metadata["customer_id"] = customer_id
+        conversation.metadata["encryption_started_at"] = datetime.now().isoformat()
+        
+        logger.info(
+            "Conversation encryption enabled",
+            conversation_id=conversation_id,
+            customer_id=customer_id
+        )
+        
+        return True
+    
+    
             conversation_id=conversation_id,
             sender_type=SenderType.BOT,
             sender_id="bot",

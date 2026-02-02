@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     AsyncEngine
 )
-from sqlalchemy.pool import NullPool, QueuePool
+from sqlalchemy.pool import NullPool, AsyncAdaptedQueuePool
 from sqlalchemy.sql import text
 from sqlalchemy import event
 from app.core.config import settings
@@ -42,7 +42,7 @@ class DatabaseManager:
                 max_overflow=settings.DATABASE_MAX_OVERFLOW,
                 pool_pre_ping=True,
                 pool_recycle=3600,  # Reciclar conexões a cada hora
-                poolclass=QueuePool if not settings.DEBUG else NullPool,
+                poolclass=AsyncAdaptedQueuePool if not settings.DEBUG else NullPool,
                 connect_args={
                     "server_settings": {
                         "application_name": settings.APP_NAME,
