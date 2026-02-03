@@ -1,0 +1,21 @@
+# Grafana Datasources Provisioning
+apiVersion: 1
+
+datasources:
+  # Prometheus - Métricas
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: "15s"
+      httpMethod: POST
+
+  # Redis (se usar Redis datasource plugin)
+  - name: Redis
+    type: redis-datasource
+    access: proxy
+    url: redis://redis:6379
+    editable: false

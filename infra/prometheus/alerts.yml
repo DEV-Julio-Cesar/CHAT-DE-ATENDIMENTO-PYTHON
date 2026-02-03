@@ -1,0 +1,155 @@
+# Prometheus Alert Rules - CIANET WhatsApp Atendimento
+# =====================================================
+
+groups:
+  # ============ APLICAÇÃO ============
+  - name: application_alerts
+    rules:
+      # API Down
+      - alert: APIDown
+        expr: up{job="fastapi"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "API FastAPI está offline"
+          description: "A API principal está inacessível há mais de 1 minuto."
+
+      # WhatsApp Service Down
+      - alert: WhatsAppServiceDown
+        expr: up{job="whatsapp-service"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: whatsapp
+        annotations:
+          summary: "Serviço WhatsApp está offline"
+          description: "O serviço de WhatsApp está inacessível há mais de 2 minutos."
+
+      # Alta latência na API
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="fastapi"}[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "Alta latência na API"
+          description: "95% das requisições estão levando mais de 2 segundos."
+
+      # Taxa de erro alta
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "Taxa de erro acima de 5%"
+          description: "Mais de 5% das requisições estão retornando erros 5xx."
+
+  # ============ INFRAESTRUTURA ============
+  - name: infrastructure_alerts
+    rules:
+      # Redis Down
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis está offline"
+          description: "O servidor Redis está inacessível."
+
+      # Redis Memory High
+      - alert: RedisHighMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis usando mais de 85% da memória"
+          description: "O Redis está consumindo {{ $value | humanizePercentage }} da memória disponível."
+
+      # SQL Server Down
+      - alert: SQLServerDown
+        expr: up{job="sqlserver"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "SQL Server está offline"
+          description: "O banco de dados SQL Server está inacessível."
+
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Uso de CPU acima de 80%"
+          description: "O servidor está usando {{ $value }}% de CPU."
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Uso de memória acima de 85%"
+          description: "O servidor está usando {{ $value | humanizePercentage }} da memória."
+
+      # Disk Space Low
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.15
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Espaço em disco abaixo de 15%"
+          description: "Apenas {{ $value | humanizePercentage }} de espaço disponível em disco."
+
+  # ============ NEGÓCIO ============
+  - name: business_alerts
+    rules:
+      # Muitas conversas na fila
+      - alert: HighQueueSize
+        expr: whatsapp_queue_size > 50
+        for: 10m
+        labels:
+          severity: warning
+          service: whatsapp
+        annotations:
+          summary: "Muitas conversas na fila de atendimento"
+          description: "{{ $value }} conversas aguardando atendimento há mais de 10 minutos."
+
+      # WhatsApp desconectado
+      - alert: WhatsAppDisconnected
+        expr: whatsapp_connection_status == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: whatsapp
+        annotations:
+          summary: "WhatsApp desconectado"
+          description: "A conexão com WhatsApp foi perdida há mais de 5 minutos."
+
+      # Tempo médio de resposta alto
+      - alert: HighResponseTime
+        expr: avg(whatsapp_response_time_seconds) > 300
+        for: 15m
+        labels:
+          severity: warning
+          service: support
+        annotations:
+          summary: "Tempo médio de resposta alto"
+          description: "O tempo médio de resposta está em {{ $value | humanizeDuration }}."

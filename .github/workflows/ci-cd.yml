@@ -1,0 +1,387 @@
+# ===========================================
+# CIANET WhatsApp Atendimento - CI/CD Pipeline
+# GitHub Actions Workflow
+# ===========================================
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main, develop]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_API: ${{ github.repository }}/api
+  IMAGE_NAME_WHATSAPP: ${{ github.repository }}/whatsapp
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  # ============ LINT & CODE QUALITY ============
+  lint:
+    name: 🔍 Lint & Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 📦 Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ruff black isort mypy
+
+      - name: 🔍 Run Ruff (linter)
+        run: ruff check app/ --output-format=github
+        continue-on-error: true
+
+      - name: 🎨 Check Black formatting
+        run: black --check app/
+        continue-on-error: true
+
+      - name: 📋 Check import sorting
+        run: isort --check-only app/
+        continue-on-error: true
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: whatsapp-service/package-lock.json
+
+      - name: 📦 Install Node dependencies
+        working-directory: whatsapp-service
+        run: npm ci
+
+      - name: 🔍 Run ESLint
+        working-directory: whatsapp-service
+        run: npm run lint --if-present
+        continue-on-error: true
+
+  # ============ TESTS ============
+  test-api:
+    name: 🧪 Test API
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-cov httpx
+
+      - name: 🧪 Run tests
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./test.db
+          REDIS_URL: redis://localhost:6379/0
+          SECRET_KEY: test-secret-key
+          DEBUG: true
+        run: |
+          pytest app/tests/ -v --cov=app --cov-report=xml --cov-report=html
+
+      - name: 📊 Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          flags: api
+          name: api-coverage
+        continue-on-error: true
+
+  test-whatsapp:
+    name: 🧪 Test WhatsApp Service
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: whatsapp-service/package-lock.json
+
+      - name: 📦 Install dependencies
+        working-directory: whatsapp-service
+        run: npm ci
+
+      - name: 🧪 Run tests
+        working-directory: whatsapp-service
+        run: npm test --if-present
+        continue-on-error: true
+
+  # ============ BUILD DOCKER IMAGES ============
+  build-api:
+    name: 🐳 Build API Image
+    runs-on: ubuntu-latest
+    needs: [test-api]
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=
+
+      - name: 🐳 Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./infra/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  build-whatsapp:
+    name: 🐳 Build WhatsApp Image
+    runs-on: ubuntu-latest
+    needs: [test-whatsapp]
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_WHATSAPP }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=
+
+      - name: 🐳 Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./whatsapp-service
+          file: ./whatsapp-service/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+  # ============ SECURITY SCAN ============
+  security-scan:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    needs: [build-api, build-whatsapp]
+    if: github.event_name != 'pull_request'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: 📤 Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
+
+  # ============ DEPLOY STAGING ============
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-api, build-whatsapp, security-scan]
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
+      url: https://staging.cianet.com.br
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+
+      - name: 🚀 Deploy to staging server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+            cd /opt/cianet
+            docker compose pull
+            docker compose up -d
+            docker system prune -f
+          EOF
+
+      - name: ✅ Health check
+        run: |
+          sleep 30
+          curl -f https://staging.cianet.com.br/health || exit 1
+
+  # ============ DEPLOY PRODUCTION ============
+  deploy-production:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-api, build-whatsapp, security-scan]
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: production
+      url: https://chat.cianet.com.br
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+
+      - name: 📦 Create backup
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+            cd /opt/cianet
+            ./scripts/backup.sh
+          EOF
+
+      - name: 🚀 Deploy to production
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+            cd /opt/cianet
+            docker compose pull
+            docker compose up -d --remove-orphans
+            docker system prune -f
+          EOF
+
+      - name: ✅ Health check
+        run: |
+          sleep 60
+          curl -f https://chat.cianet.com.br/health || exit 1
+
+      - name: 📢 Notify deployment
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: '🚀 Versão ${{ github.ref_name }} deployed to production!'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        if: always()
+        continue-on-error: true
+
+  # ============ RELEASE ============
+  release:
+    name: 📦 Create Release
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📝 Generate changelog
+        id: changelog
+        uses: orhun/git-cliff-action@v3
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+        continue-on-error: true
+
+      - name: 📦 Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body: |
+            ## 🚀 CIANET WhatsApp Atendimento ${{ github.ref_name }}
+            
+            ### 📋 Changelog
+            ${{ steps.changelog.outputs.content }}
+            
+            ### 🐳 Docker Images
+            - API: `ghcr.io/${{ github.repository }}/api:${{ github.ref_name }}`
+            - WhatsApp: `ghcr.io/${{ github.repository }}/whatsapp:${{ github.ref_name }}`
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

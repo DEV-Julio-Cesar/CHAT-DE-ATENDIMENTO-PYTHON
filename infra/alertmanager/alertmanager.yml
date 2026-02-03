@@ -1,0 +1,113 @@
+# Alertmanager Configuration - CIANET WhatsApp Atendimento
+# =========================================================
+
+global:
+  # Tempo para resolver alerta automaticamente
+  resolve_timeout: 5m
+  
+  # Configuração SMTP para emails
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alertas@cianet.com.br'
+  smtp_auth_username: '${SMTP_USER}'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_require_tls: true
+
+# Templates customizados
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Roteamento de alertas
+route:
+  # Receptor padrão
+  receiver: 'cianet-team'
+  
+  # Agrupar alertas
+  group_by: ['alertname', 'service', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  
+  # Rotas específicas
+  routes:
+    # Alertas críticos - notificação imediata
+    - match:
+        severity: critical
+      receiver: 'cianet-critical'
+      group_wait: 10s
+      repeat_interval: 1h
+      continue: true
+    
+    # Alertas de WhatsApp
+    - match:
+        service: whatsapp
+      receiver: 'whatsapp-team'
+      group_wait: 30s
+    
+    # Alertas de infraestrutura
+    - match:
+        service: infrastructure
+      receiver: 'infra-team'
+      group_wait: 1m
+
+# Receptores de alertas
+receivers:
+  # Time geral
+  - name: 'cianet-team'
+    email_configs:
+      - to: 'suporte@cianet.com.br'
+        send_resolved: true
+        headers:
+          subject: '[CIANET] {{ .Status | toUpper }} - {{ .CommonAnnotations.summary }}'
+    
+    # Webhook para integração (Discord, Slack, etc)
+    webhook_configs:
+      - url: 'http://api:8000/api/v1/webhooks/alerts'
+        send_resolved: true
+
+  # Alertas críticos
+  - name: 'cianet-critical'
+    email_configs:
+      - to: 'critico@cianet.com.br, gerencia@cianet.com.br'
+        send_resolved: true
+        headers:
+          subject: '🚨 [CRÍTICO] {{ .CommonAnnotations.summary }}'
+    
+    # Notificação via WhatsApp (webhook customizado)
+    webhook_configs:
+      - url: 'http://whatsapp:3001/api/notify-alert'
+        send_resolved: true
+
+  # Time WhatsApp
+  - name: 'whatsapp-team'
+    email_configs:
+      - to: 'whatsapp-suporte@cianet.com.br'
+        send_resolved: true
+
+  # Time Infraestrutura
+  - name: 'infra-team'
+    email_configs:
+      - to: 'infra@cianet.com.br'
+        send_resolved: true
+
+# Inibições (evitar alertas duplicados)
+inhibit_rules:
+  # Se a API está down, não alertar sobre latência
+  - source_match:
+      alertname: 'APIDown'
+    target_match:
+      alertname: 'HighAPILatency'
+    equal: ['service']
+  
+  # Se Redis está down, não alertar sobre memória
+  - source_match:
+      alertname: 'RedisDown'
+    target_match:
+      alertname: 'RedisHighMemory'
+    equal: ['service']
+  
+  # Críticos silenciam warnings do mesmo serviço
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['service']
