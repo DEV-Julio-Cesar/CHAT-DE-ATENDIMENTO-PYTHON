@@ -16,6 +16,7 @@ from app.api.endpoints.dashboard_v2 import router as dashboard_v2_router
 from app.api.endpoints.whatsapp_v2 import router as whatsapp_v2_router
 from app.api.endpoints.whatsapp_send_v2 import router as whatsapp_send_v2_router
 from app.api.endpoints.chatbot_admin_v2 import router as chatbot_admin_v2_router
+from app.api.endpoints.reports_v2 import router as reports_v2_router
 from app.core.security_headers import security_headers_manager
 
 api_router = APIRouter()
@@ -60,6 +61,12 @@ api_router.include_router(
 api_router.include_router(
     chatbot_admin_v2_router,
     tags=["chatbot-v2"]
+)
+
+# Incluir rotas de Relatórios PDF V2
+api_router.include_router(
+    reports_v2_router,
+    tags=["reports-v2"]
 )
 
 # Incluir rotas de autenticação legadas (mantidas para compatibilidade)
