@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#22c55e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="CIANET">
+    <meta name="description" content="Sistema de Atendimento WhatsApp - CIANET PROVEDOR">
+    
+    <title>CIANET Atendente</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/static/manifest.json">
+    
+    <!-- Icons -->
+    <link rel="apple-touch-icon" href="/static/icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/icons/icon-16x16.png">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="/static/css/mobile.css">
+    
+    <!-- Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+</head>
+<body>
+    <!-- ================================================================
+         LOGIN SCREEN
+         ================================================================ -->
+    <div id="login-screen" class="screen active">
+        <div class="login-container">
+            <div class="login-logo">
+                <h1>🟢 CIANET</h1>
+                <p>Sistema de Atendimento</p>
+            </div>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        placeholder="seu@email.com"
+                        autocomplete="email"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        placeholder="••••••••"
+                        autocomplete="current-password"
+                        required
+                    >
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    Entrar
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- ================================================================
+         CHAT SCREEN
+         ================================================================ -->
+    <div id="chat-screen" class="screen">
+        <!-- App Header -->
+        <header class="app-header">
+            <h1>🟢 CIANET</h1>
+            <div class="header-actions">
+                <span id="connection-status" class="offline">🔴</span>
+                <button class="icon-btn" onclick="logout()" title="Sair">
+                    ⏻
+                </button>
+            </div>
+        </header>
+        
+        <!-- Conversation List View -->
+        <div id="conversation-list-view" class="view active">
+            <div class="list-header">
+                <h2>Conversas</h2>
+                <span id="queue-badge">0</span>
+            </div>
+            
+            <div id="conversation-list">
+                <div class="empty-state">
+                    <div class="empty-icon">💬</div>
+                    <p>Carregando conversas...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat View -->
+        <div id="chat-view" class="view">
+            <div id="chat-header">
+                <!-- Populated by JS -->
+            </div>
+            
+            <div id="messages-container">
+                <!-- Messages populated by JS -->
+            </div>
+            
+            <div id="typing-indicator">
+                <span class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </span>
+                <span>Digitando...</span>
+            </div>
+            
+            <form id="message-form" class="message-input-container">
+                <input 
+                    type="text" 
+                    id="message-input" 
+                    placeholder="Digite sua mensagem..."
+                    autocomplete="off"
+                >
+                <button type="submit" class="send-btn">➤</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- ================================================================
+         LOADING OVERLAY
+         ================================================================ -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+    
+    <!-- ================================================================
+         TOAST CONTAINER
+         ================================================================ -->
+    <div id="toast-container"></div>
+    
+    <!-- ================================================================
+         AUDIO
+         ================================================================ -->
+    <audio id="notification-sound" preload="auto">
+        <source src="/static/sounds/notification.mp3" type="audio/mpeg">
+    </audio>
+    
+    <!-- ================================================================
+         SCRIPTS
+         ================================================================ -->
+    <script src="/static/js/mobile-app.js"></script>
+</body>
+</html>

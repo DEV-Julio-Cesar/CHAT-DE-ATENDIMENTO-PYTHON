@@ -17,6 +17,7 @@ from app.api.endpoints.whatsapp_v2 import router as whatsapp_v2_router
 from app.api.endpoints.whatsapp_send_v2 import router as whatsapp_send_v2_router
 from app.api.endpoints.chatbot_admin_v2 import router as chatbot_admin_v2_router
 from app.api.endpoints.reports_v2 import router as reports_v2_router
+from app.api.endpoints.mobile_pwa import router as mobile_pwa_router
 from app.core.security_headers import security_headers_manager
 
 api_router = APIRouter()
@@ -67,6 +68,12 @@ api_router.include_router(
 api_router.include_router(
     reports_v2_router,
     tags=["reports-v2"]
+)
+
+# Incluir rotas PWA Mobile
+api_router.include_router(
+    mobile_pwa_router,
+    tags=["mobile-pwa"]
 )
 
 # Incluir rotas de autenticação legadas (mantidas para compatibilidade)
