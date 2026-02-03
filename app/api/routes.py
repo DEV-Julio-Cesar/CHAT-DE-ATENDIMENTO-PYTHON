@@ -1,5 +1,6 @@
 """
 Roteador principal da API
+CIANET PROVEDOR - Sistema de Atendimento WhatsApp
 """
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -8,15 +9,22 @@ from app.api.endpoints import gdpr
 from app.api.endpoints.dashboard_functional import router as dashboard_functional_router
 from app.api.endpoints.whatsapp_webhook import router as whatsapp_webhook_router
 from app.api.endpoints.chatbot_admin import router as chatbot_admin_router
+from app.api.endpoints.auth_v2 import router as auth_v2_router
 from app.core.security_headers import security_headers_manager
 
 api_router = APIRouter()
 
-# Incluir rotas de autenticação
+# Incluir rotas de autenticação V2 (JWT completo com refresh tokens)
+api_router.include_router(
+    auth_v2_router,
+    tags=["authentication-v2"]
+)
+
+# Incluir rotas de autenticação legadas (mantidas para compatibilidade)
 api_router.include_router(
     auth.router,
-    prefix="/auth",
-    tags=["authentication"]
+    prefix="/auth-legacy",
+    tags=["authentication-legacy"]
 )
 
 # Incluir rotas de usuários

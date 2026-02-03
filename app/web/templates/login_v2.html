@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Login - CIANET PROVEDOR</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        @keyframes gradient {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.15; }
+            50% { transform: scale(1.05); opacity: 0.2; }
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        body {
+            min-height: 100vh;
+            display: flex;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #166534 0%, #22c55e 50%, #f97316 100%);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+        
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite, pulse 4s ease-in-out infinite;
+        }
+        
+        .shape-1 { width: 300px; height: 300px; background: #22c55e; top: -50px; left: -50px; animation-delay: 0s; }
+        .shape-2 { width: 200px; height: 200px; background: #f97316; top: 20%; right: -30px; animation-delay: 1s; }
+        .shape-3 { width: 250px; height: 250px; background: #4ade80; bottom: -50px; left: 30%; animation-delay: 2s; }
+        .shape-4 { width: 180px; height: 180px; background: #fb923c; bottom: 20%; right: 20%; animation-delay: 3s; }
+        
+        .container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .login-card {
+            width: 100%;
+            max-width: 440px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 28px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #166534, #22c55e, #f97316);
+            padding: 40px 32px;
+            text-align: center;
+        }
+        
+        .logo-container {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 36px;
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+        
+        .card-header h1 {
+            color: white;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .card-header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 15px;
+        }
+        
+        .card-body {
+            padding: 36px 32px;
+        }
+        
+        .whatsapp-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            border-radius: 12px;
+            margin-bottom: 28px;
+        }
+        
+        .whatsapp-badge i { color: #16a34a; font-size: 20px; }
+        .whatsapp-badge span { color: #166534; font-size: 14px; font-weight: 600; }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 10px;
+        }
+        
+        .form-group label i { color: #22c55e; }
+        
+        .form-control {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
+            font-size: 15px;
+            transition: all 0.3s;
+            outline: none;
+        }
+        
+        .form-control:focus {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+        }
+        
+        .password-container {
+            position: relative;
+        }
+        
+        .password-container input {
+            padding-right: 50px;
+        }
+        
+        .toggle-password {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        .toggle-password:hover { color: #22c55e; }
+        
+        .form-options {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+        
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .remember-me input {
+            width: 18px;
+            height: 18px;
+            accent-color: #22c55e;
+        }
+        
+        .forgot-password {
+            color: #f97316;
+            font-size: 14px;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .forgot-password:hover { text-decoration: underline; }
+        
+        .btn-login {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+        
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(34, 197, 94, 0.4);
+        }
+        
+        .btn-login:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-login .spinner {
+            animation: spin 1s linear infinite;
+        }
+        
+        .demo-box {
+            margin-top: 28px;
+            padding: 20px;
+            background: linear-gradient(135deg, #fff7ed, #ffedd5);
+            border: 2px solid #fed7aa;
+            border-radius: 16px;
+        }
+        
+        .demo-box-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        
+        .demo-box-header i { color: #f97316; font-size: 20px; }
+        .demo-box-header span { font-weight: 700; color: #c2410c; }
+        
+        .demo-credentials {
+            font-size: 14px;
+            color: #9a3412;
+        }
+        
+        .demo-credentials div { margin-bottom: 6px; }
+        .demo-credentials div:last-child { margin-bottom: 0; }
+        
+        .card-footer {
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #f4f4f5;
+        }
+        
+        .card-footer p {
+            color: #9ca3af;
+            font-size: 13px;
+        }
+        
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .toast {
+            display: none;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            animation: slideIn 0.3s ease-out;
+            max-width: 350px;
+        }
+        
+        .toast.error {
+            background: #fef2f2;
+            border: 2px solid #fecaca;
+            color: #dc2626;
+        }
+        
+        .toast.success {
+            background: #f0fdf4;
+            border: 2px solid #bbf7d0;
+            color: #16a34a;
+        }
+        
+        .toast.show { display: flex; align-items: center; gap: 10px; }
+        
+        /* Sessions modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-overlay.show { display: flex; }
+        
+        .modal {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .modal h3 {
+            color: #1f2937;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .modal h3 i { color: #f97316; }
+        
+        .modal p {
+            color: #6b7280;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .modal-buttons button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-cancel {
+            background: #f3f4f6;
+            border: none;
+            color: #4b5563;
+        }
+        
+        .btn-cancel:hover { background: #e5e7eb; }
+        
+        .btn-confirm {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border: none;
+            color: white;
+        }
+        
+        .btn-confirm:hover { transform: translateY(-1px); }
+    </style>
+</head>
+<body>
+    <!-- Formas flutuantes -->
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+    <div class="shape shape-4"></div>
+    
+    <!-- Container principal -->
+    <div class="container">
+        <div class="login-card">
+            <!-- Header -->
+            <div class="card-header">
+                <div class="logo-container">
+                    <i class="bi bi-headset"></i>
+                </div>
+                <h1>CIANET PROVEDOR</h1>
+                <p>Sistema de Atendimento Inteligente</p>
+            </div>
+            
+            <!-- Body -->
+            <div class="card-body">
+                <!-- Badge WhatsApp -->
+                <div class="whatsapp-badge">
+                    <i class="bi bi-whatsapp"></i>
+                    <span>Integrado com WhatsApp Business</span>
+                </div>
+                
+                <!-- Formulário -->
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>
+                            <i class="bi bi-envelope"></i> Email
+                        </label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            class="form-control" 
+                            placeholder="seu@email.com" 
+                            required
+                            autocomplete="email"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <i class="bi bi-lock"></i> Senha
+                        </label>
+                        <div class="password-container">
+                            <input 
+                                type="password" 
+                                id="password" 
+                                class="form-control" 
+                                placeholder="********" 
+                                required
+                                autocomplete="current-password"
+                            >
+                            <button type="button" class="toggle-password" onclick="togglePassword()">
+                                <i class="bi bi-eye" id="eyeIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-options">
+                        <label class="remember-me">
+                            <input type="checkbox" id="remember">
+                            Manter conectado
+                        </label>
+                        <a href="#" class="forgot-password">Esqueceu a senha?</a>
+                    </div>
+                    
+                    <button type="submit" id="submitBtn" class="btn-login">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        Entrar no Sistema
+                    </button>
+                </form>
+                
+                <!-- Demo box -->
+                <div class="demo-box">
+                    <div class="demo-box-header">
+                        <i class="bi bi-info-circle-fill"></i>
+                        <span>Credenciais de Demonstração</span>
+                    </div>
+                    <div class="demo-credentials">
+                        <div><strong>Admin:</strong> admin@empresa.com.br / Admin@123</div>
+                        <div><strong>Supervisor:</strong> supervisor@empresa.com.br / Admin@123</div>
+                        <div><strong>Atendente:</strong> atendente@empresa.com.br / Admin@123</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="card-footer">
+                <p>© 2026 CIANET PROVEDOR v3.0 - Sistema com JWT + Refresh Tokens</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast notifications -->
+    <div class="toast-container">
+        <div class="toast error" id="errorToast">
+            <i class="bi bi-exclamation-circle"></i>
+            <span id="errorText"></span>
+        </div>
+        <div class="toast success" id="successToast">
+            <i class="bi bi-check-circle"></i>
+            <span id="successText"></span>
+        </div>
+    </div>
+    
+    <!-- Modal de sessões ativas -->
+    <div class="modal-overlay" id="sessionsModal">
+        <div class="modal">
+            <h3><i class="bi bi-shield-exclamation"></i> Sessões Ativas</h3>
+            <p>Você já possui <span id="sessionCount">0</span> sessões ativas em outros dispositivos. Deseja encerrar todas as outras sessões?</p>
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeModal()">Manter</button>
+                <button class="btn-confirm" onclick="logoutOthers()">Encerrar Outras</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== CONFIGURAÇÃO =====
+        const API_BASE = '/api/v1';
+        
+        // ===== UTILITÁRIOS =====
+        function togglePassword() {
+            const pwd = document.getElementById('password');
+            const icon = document.getElementById('eyeIcon');
+            if (pwd.type === 'password') {
+                pwd.type = 'text';
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                pwd.type = 'password';
+                icon.className = 'bi bi-eye';
+            }
+        }
+        
+        function showToast(type, message) {
+            const toast = document.getElementById(type === 'error' ? 'errorToast' : 'successToast');
+            const text = document.getElementById(type === 'error' ? 'errorText' : 'successText');
+            text.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+        
+        function setLoading(loading) {
+            const btn = document.getElementById('submitBtn');
+            if (loading) {
+                btn.innerHTML = '<i class="bi bi-arrow-repeat spinner"></i> Entrando...';
+                btn.disabled = true;
+            } else {
+                btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Entrar no Sistema';
+                btn.disabled = false;
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('sessionsModal').classList.remove('show');
+        }
+        
+        // ===== AUTENTICAÇÃO =====
+        class AuthService {
+            constructor() {
+                this.accessToken = null;
+                this.refreshToken = null;
+                this.user = null;
+                this.sessionId = null;
+                this.loadFromStorage();
+            }
+            
+            loadFromStorage() {
+                const storage = localStorage.getItem('auth_tokens') 
+                    ? localStorage 
+                    : sessionStorage;
+                
+                const tokens = storage.getItem('auth_tokens');
+                if (tokens) {
+                    const parsed = JSON.parse(tokens);
+                    this.accessToken = parsed.access_token;
+                    this.refreshToken = parsed.refresh_token;
+                    this.sessionId = parsed.session_id;
+                }
+                
+                const user = storage.getItem('user');
+                if (user) {
+                    this.user = JSON.parse(user);
+                }
+            }
+            
+            saveToStorage(tokens, user, remember = false) {
+                const storage = remember ? localStorage : sessionStorage;
+                
+                // Limpar ambos storages primeiro
+                localStorage.removeItem('auth_tokens');
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('auth_tokens');
+                sessionStorage.removeItem('user');
+                
+                // Salvar no storage escolhido
+                storage.setItem('auth_tokens', JSON.stringify({
+                    access_token: tokens.access_token,
+                    refresh_token: tokens.refresh_token,
+                    session_id: tokens.session_id,
+                    expires_at: Date.now() + (tokens.expires_in * 1000)
+                }));
+                storage.setItem('user', JSON.stringify(user));
+                
+                this.accessToken = tokens.access_token;
+                this.refreshToken = tokens.refresh_token;
+                this.sessionId = tokens.session_id;
+                this.user = user;
+            }
+            
+            clearStorage() {
+                localStorage.removeItem('auth_tokens');
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('auth_tokens');
+                sessionStorage.removeItem('user');
+                this.accessToken = null;
+                this.refreshToken = null;
+                this.user = null;
+                this.sessionId = null;
+            }
+            
+            async login(email, password, rememberMe = false, deviceName = null) {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        remember_me: rememberMe,
+                        device_name: deviceName || this.getDeviceName()
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Erro ao fazer login');
+                }
+                
+                this.saveToStorage(data, data.user, rememberMe);
+                return data;
+            }
+            
+            async refreshTokens() {
+                if (!this.refreshToken) {
+                    throw new Error('Sem refresh token');
+                }
+                
+                const response = await fetch(`${API_BASE}/auth/refresh`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: this.refreshToken })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    this.clearStorage();
+                    throw new Error(data.detail || 'Sessão expirada');
+                }
+                
+                // Atualizar tokens mantendo o user
+                const remember = !!localStorage.getItem('auth_tokens');
+                const storage = remember ? localStorage : sessionStorage;
+                storage.setItem('auth_tokens', JSON.stringify({
+                    access_token: data.access_token,
+                    refresh_token: data.refresh_token,
+                    session_id: this.sessionId,
+                    expires_at: Date.now() + (data.expires_in * 1000)
+                }));
+                
+                this.accessToken = data.access_token;
+                this.refreshToken = data.refresh_token;
+                
+                return data;
+            }
+            
+            async logout() {
+                try {
+                    await fetch(`${API_BASE}/auth/logout`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.accessToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                } catch (e) {
+                    console.error('Logout error:', e);
+                }
+                this.clearStorage();
+            }
+            
+            async logoutAll() {
+                try {
+                    await fetch(`${API_BASE}/auth/logout-all`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.accessToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                } catch (e) {
+                    console.error('Logout all error:', e);
+                }
+            }
+            
+            async getSessions() {
+                const response = await fetch(`${API_BASE}/auth/sessions`, {
+                    headers: { 'Authorization': `Bearer ${this.accessToken}` }
+                });
+                
+                if (!response.ok) {
+                    return [];
+                }
+                
+                return await response.json();
+            }
+            
+            getDeviceName() {
+                const ua = navigator.userAgent;
+                let os = 'Desconhecido';
+                let browser = 'Navegador';
+                
+                if (ua.includes('Windows')) os = 'Windows';
+                else if (ua.includes('Mac')) os = 'Mac';
+                else if (ua.includes('Linux')) os = 'Linux';
+                else if (ua.includes('Android')) os = 'Android';
+                else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+                
+                if (ua.includes('Chrome') && !ua.includes('Edg')) browser = 'Chrome';
+                else if (ua.includes('Firefox')) browser = 'Firefox';
+                else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari';
+                else if (ua.includes('Edg')) browser = 'Edge';
+                
+                return `${browser} no ${os}`;
+            }
+            
+            isAuthenticated() {
+                return !!this.accessToken;
+            }
+            
+            getAuthHeader() {
+                return this.accessToken ? { 'Authorization': `Bearer ${this.accessToken}` } : {};
+            }
+        }
+        
+        // Instância global
+        const auth = new AuthService();
+        
+        // ===== HANDLER DE LOGIN =====
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const remember = document.getElementById('remember').checked;
+            
+            setLoading(true);
+            
+            try {
+                const result = await auth.login(email, password, remember);
+                
+                showToast('success', `Bem-vindo(a), ${result.user.nome}!`);
+                
+                // Redirecionar após 500ms
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 500);
+                
+            } catch (error) {
+                showToast('error', error.message);
+                setLoading(false);
+            }
+        }
+        
+        async function logoutOthers() {
+            closeModal();
+            try {
+                await auth.logoutAll();
+                showToast('success', 'Outras sessões encerradas');
+            } catch (e) {
+                showToast('error', 'Erro ao encerrar sessões');
+            }
+        }
+        
+        // ===== VERIFICAR SE JÁ ESTÁ LOGADO =====
+        document.addEventListener('DOMContentLoaded', () => {
+            if (auth.isAuthenticated()) {
+                // Verificar se token ainda é válido
+                fetch(`${API_BASE}/auth/validate`, {
+                    headers: auth.getAuthHeader()
+                })
+                .then(res => {
+                    if (res.ok) {
+                        window.location.href = '/dashboard';
+                    } else {
+                        auth.clearStorage();
+                    }
+                })
+                .catch(() => auth.clearStorage());
+            }
+        });
+    </script>
+</body>
+</html>

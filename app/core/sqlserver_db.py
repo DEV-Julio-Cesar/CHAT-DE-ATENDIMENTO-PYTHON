@@ -382,6 +382,88 @@ class SQLServerManager:
             logger.error(f"Error deleting user: {e}")
             return False
     
+    def get_user_permissions(self, user_id: int) -> List[Dict[str, Any]]:
+        """Obter permissões do usuário baseado em sua role"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT DISTINCT p.code, p.name, p.category
+                    FROM usuarios u
+                    INNER JOIN role_permissions rp ON u.role = rp.role
+                    INNER JOIN permissions p ON rp.permission_id = p.id
+                    WHERE u.id = ? AND u.is_active = 1
+                """, (user_id,))
+                
+                permissions = []
+                for row in cursor.fetchall():
+                    permissions.append({
+                        "code": row.code,
+                        "name": row.name,
+                        "category": row.category
+                    })
+                
+                # Se não encontrou permissões (tabelas não existem), retornar baseado na role
+                if not permissions:
+                    user = self.get_user_by_id(user_id)
+                    if user:
+                        role = user.get("role", "atendente")
+                        # Permissões padrão por role
+                        default_perms = {
+                            "admin": [
+                                {"code": "dashboard.view", "name": "Ver Dashboard", "category": "dashboard"},
+                                {"code": "dashboard.export", "name": "Exportar Relatórios", "category": "dashboard"},
+                                {"code": "conversations.view", "name": "Ver Conversas", "category": "conversations"},
+                                {"code": "conversations.respond", "name": "Responder", "category": "conversations"},
+                                {"code": "conversations.transfer", "name": "Transferir", "category": "conversations"},
+                                {"code": "conversations.close", "name": "Encerrar", "category": "conversations"},
+                                {"code": "users.view", "name": "Ver Usuários", "category": "users"},
+                                {"code": "users.create", "name": "Criar Usuários", "category": "users"},
+                                {"code": "users.edit", "name": "Editar Usuários", "category": "users"},
+                                {"code": "users.delete", "name": "Excluir Usuários", "category": "users"},
+                                {"code": "settings.view", "name": "Ver Configurações", "category": "settings"},
+                                {"code": "settings.edit", "name": "Editar Configurações", "category": "settings"},
+                            ],
+                            "supervisor": [
+                                {"code": "dashboard.view", "name": "Ver Dashboard", "category": "dashboard"},
+                                {"code": "dashboard.export", "name": "Exportar Relatórios", "category": "dashboard"},
+                                {"code": "conversations.view", "name": "Ver Conversas", "category": "conversations"},
+                                {"code": "conversations.respond", "name": "Responder", "category": "conversations"},
+                                {"code": "conversations.transfer", "name": "Transferir", "category": "conversations"},
+                                {"code": "conversations.close", "name": "Encerrar", "category": "conversations"},
+                                {"code": "users.view", "name": "Ver Usuários", "category": "users"},
+                            ],
+                            "atendente": [
+                                {"code": "dashboard.view", "name": "Ver Dashboard", "category": "dashboard"},
+                                {"code": "conversations.view", "name": "Ver Conversas", "category": "conversations"},
+                                {"code": "conversations.respond", "name": "Responder", "category": "conversations"},
+                                {"code": "conversations.transfer", "name": "Transferir", "category": "conversations"},
+                                {"code": "conversations.close", "name": "Encerrar", "category": "conversations"},
+                            ]
+                        }
+                        return default_perms.get(role, default_perms["atendente"])
+                
+                return permissions
+        except Exception as e:
+            logger.error(f"Error getting user permissions: {e}")
+            return []
+    
+    def update_user_password(self, user_id: int, password_hash: str) -> bool:
+        """Atualizar senha do usuário"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE usuarios 
+                    SET password_hash = ?, password_changed_at = GETDATE(), updated_at = GETDATE()
+                    WHERE id = ?
+                """, (password_hash, user_id))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error updating password: {e}")
+            return False
+
     def update_user(
         self, 
         user_id: int, 

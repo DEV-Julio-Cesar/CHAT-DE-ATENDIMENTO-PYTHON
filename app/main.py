@@ -705,7 +705,13 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 @app.get("/login", include_in_schema=False)
 async def login_page():
-    """Página de login"""
+    """Página de login com autenticação JWT v2"""
+    return FileResponse(TEMPLATES_DIR / "login_v2.html", media_type="text/html")
+
+
+@app.get("/login-legacy", include_in_schema=False)
+async def login_legacy_page():
+    """Página de login legada"""
     return FileResponse(TEMPLATES_DIR / "login.html", media_type="text/html")
 
 
