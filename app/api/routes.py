@@ -13,6 +13,8 @@ from app.api.endpoints.auth_v2 import router as auth_v2_router
 from app.api.endpoints.users_v2 import router as users_v2_router
 from app.api.endpoints.conversations_v2 import router as conversations_v2_router
 from app.api.endpoints.dashboard_v2 import router as dashboard_v2_router
+from app.api.endpoints.whatsapp_v2 import router as whatsapp_v2_router
+from app.api.endpoints.whatsapp_send_v2 import router as whatsapp_send_v2_router
 from app.core.security_headers import security_headers_manager
 
 api_router = APIRouter()
@@ -39,6 +41,18 @@ api_router.include_router(
 api_router.include_router(
     dashboard_v2_router,
     tags=["dashboard-v2"]
+)
+
+# Incluir rotas WhatsApp V2 (Webhook Meta Cloud API)
+api_router.include_router(
+    whatsapp_v2_router,
+    tags=["whatsapp-v2"]
+)
+
+# Incluir rotas WhatsApp Send V2 (Envio de mensagens)
+api_router.include_router(
+    whatsapp_send_v2_router,
+    tags=["whatsapp-v2-send"]
 )
 
 # Incluir rotas de autenticação legadas (mantidas para compatibilidade)
