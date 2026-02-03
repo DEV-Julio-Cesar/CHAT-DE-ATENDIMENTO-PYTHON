@@ -576,6 +576,10 @@ app.include_router(chatbot_router, prefix="/api/v1")
 app.include_router(migration_router, prefix="/api/v1")
 app.include_router(optimization_router, prefix="/api/v1")
 
+# Rotas PWA Mobile (na raiz, sem prefixo)
+from app.api.endpoints.mobile_pwa import router as mobile_pwa_router
+app.include_router(mobile_pwa_router)
+
 # Middleware de segurança
 app.add_middleware(SecurityMiddleware)
 

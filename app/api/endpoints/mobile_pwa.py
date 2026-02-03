@@ -120,7 +120,7 @@ async def js_files(filename: str):
     if file_path.exists() and file_path.is_file():
         return FileResponse(file_path, media_type="application/javascript")
     
-    return FileResponse(status_code=404)
+    raise HTTPException(status_code=404, detail="File not found")
 
 
 @router.get("/static/icons/{filename}", summary="Icon Files")
@@ -131,8 +131,8 @@ async def icon_files(filename: str):
     if file_path.exists() and file_path.is_file():
         return FileResponse(file_path, media_type="image/png")
     
-    # Retornar placeholder se ícone não existir
-    return FileResponse(status_code=404)
+    # Retornar 404 se ícone não existir
+    raise HTTPException(status_code=404, detail="Icon not found")
 
 
 @router.get("/static/sounds/{filename}", summary="Sound Files")
@@ -143,7 +143,7 @@ async def sound_files(filename: str):
     if file_path.exists() and file_path.is_file():
         return FileResponse(file_path, media_type="audio/mpeg")
     
-    return FileResponse(status_code=404)
+    raise HTTPException(status_code=404, detail="Sound not found")
 
 
 # ============================================================================
