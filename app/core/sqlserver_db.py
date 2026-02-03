@@ -342,9 +342,13 @@ class SQLServerManager:
                         nome,
                         role,
                         is_active,
+                        phone,
+                        department,
+                        avatar_url,
                         created_at,
                         last_login
                     FROM usuarios 
+                    WHERE deleted_at IS NULL
                     ORDER BY created_at DESC
                     OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
                 """, (offset, limit))
@@ -357,6 +361,9 @@ class SQLServerManager:
                         "nome": row.nome,
                         "role": row.role,
                         "is_active": row.is_active,
+                        "phone": getattr(row, 'phone', None),
+                        "department": getattr(row, 'department', None),
+                        "avatar_url": getattr(row, 'avatar_url', None),
                         "created_at": row.created_at,
                         "last_login": row.last_login
                     })
@@ -365,6 +372,184 @@ class SQLServerManager:
         except Exception as e:
             logger.error(f"Error listing users: {e}")
             return []
+    
+    def list_users_filtered(
+        self, 
+        limit: int = 100, 
+        offset: int = 0,
+        role: Optional[str] = None,
+        search: Optional[str] = None,
+        is_active: Optional[bool] = None
+    ) -> list:
+        """Listar usuários com filtros"""
+        try:
+            conditions = ["deleted_at IS NULL"]
+            params = []
+            
+            if role:
+                conditions.append("role = ?")
+                params.append(role)
+            
+            if search:
+                conditions.append("(nome LIKE ? OR email LIKE ?)")
+                search_param = f"%{search}%"
+                params.extend([search_param, search_param])
+            
+            if is_active is not None:
+                conditions.append("is_active = ?")
+                params.append(1 if is_active else 0)
+            
+            where_clause = " AND ".join(conditions)
+            params.extend([offset, limit])
+            
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(f"""
+                    SELECT 
+                        id, 
+                        email, 
+                        nome,
+                        role,
+                        is_active,
+                        phone,
+                        department,
+                        avatar_url,
+                        created_at,
+                        last_login
+                    FROM usuarios 
+                    WHERE {where_clause}
+                    ORDER BY created_at DESC
+                    OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+                """, params)
+                
+                users = []
+                for row in cursor.fetchall():
+                    users.append({
+                        "id": str(row.id),
+                        "email": row.email,
+                        "nome": row.nome,
+                        "role": row.role,
+                        "is_active": row.is_active,
+                        "phone": getattr(row, 'phone', None),
+                        "department": getattr(row, 'department', None),
+                        "avatar_url": getattr(row, 'avatar_url', None),
+                        "created_at": row.created_at,
+                        "last_login": row.last_login
+                    })
+                return users
+                
+        except Exception as e:
+            logger.error(f"Error listing users with filters: {e}")
+            return []
+    
+    def count_users(
+        self,
+        role: Optional[str] = None,
+        search: Optional[str] = None,
+        is_active: Optional[bool] = None
+    ) -> int:
+        """Contar usuários com filtros"""
+        try:
+            conditions = ["deleted_at IS NULL"]
+            params = []
+            
+            if role:
+                conditions.append("role = ?")
+                params.append(role)
+            
+            if search:
+                conditions.append("(nome LIKE ? OR email LIKE ?)")
+                search_param = f"%{search}%"
+                params.extend([search_param, search_param])
+            
+            if is_active is not None:
+                conditions.append("is_active = ?")
+                params.append(1 if is_active else 0)
+            
+            where_clause = " AND ".join(conditions)
+            
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(f"""
+                    SELECT COUNT(*) FROM usuarios WHERE {where_clause}
+                """, params)
+                
+                row = cursor.fetchone()
+                return row[0] if row else 0
+                
+        except Exception as e:
+            logger.error(f"Error counting users: {e}")
+            return 0
+    
+    def update_user_full(
+        self, 
+        user_id: int, 
+        nome: Optional[str] = None,
+        role: Optional[str] = None,
+        phone: Optional[str] = None,
+        department: Optional[str] = None,
+        is_active: Optional[bool] = None,
+        avatar_url: Optional[str] = None
+    ) -> bool:
+        """Atualizar múltiplos campos do usuário"""
+        try:
+            updates = []
+            params = []
+            
+            if nome is not None:
+                updates.append("nome = ?")
+                params.append(nome)
+            if role is not None:
+                updates.append("role = ?")
+                params.append(role)
+            if phone is not None:
+                updates.append("phone = ?")
+                params.append(phone)
+            if department is not None:
+                updates.append("department = ?")
+                params.append(department)
+            if is_active is not None:
+                updates.append("is_active = ?")
+                params.append(1 if is_active else 0)
+            if avatar_url is not None:
+                updates.append("avatar_url = ?")
+                params.append(avatar_url)
+            
+            if not updates:
+                return True
+            
+            updates.append("updated_at = GETDATE()")
+            params.append(user_id)
+            
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(f"""
+                    UPDATE usuarios 
+                    SET {', '.join(updates)}
+                    WHERE id = ?
+                """, params)
+                conn.commit()
+                return cursor.rowcount > 0
+                
+        except Exception as e:
+            logger.error(f"Error updating user: {e}")
+            return False
+    
+    def activate_user(self, user_id: int) -> bool:
+        """Ativar usuário"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE usuarios 
+                    SET is_active = 1, updated_at = GETDATE()
+                    WHERE id = ?
+                """, (user_id,))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error activating user: {e}")
+            return False
     
     def delete_user(self, user_id: int) -> bool:
         """Desativar usuário (soft delete)"""
@@ -911,6 +1096,535 @@ class SQLServerManager:
         except Exception as e:
             logger.error(f"Error getting dashboard metrics: {e}")
             return {}
+    
+    # =========================================================================
+    # OPERAÇÕES DE CLIENTES
+    # =========================================================================
+    
+    def get_client_by_phone(self, phone: str) -> Optional[Dict[str, Any]]:
+        """Buscar cliente por telefone"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT id, phone, name, email, cpf_cnpj, 
+                           contract_id, status, created_at, last_contact_at
+                    FROM clientes_whatsapp 
+                    WHERE phone = ?
+                """, (phone,))
+                
+                row = cursor.fetchone()
+                if row:
+                    return {
+                        "id": row.id,
+                        "phone": row.phone,
+                        "name": row.name,
+                        "email": row.email,
+                        "cpf_cnpj": row.cpf_cnpj,
+                        "contract_id": row.contract_id,
+                        "status": row.status,
+                        "created_at": row.created_at,
+                        "last_contact_at": row.last_contact_at
+                    }
+                return None
+        except Exception as e:
+            logger.error(f"Error getting client by phone: {e}")
+            return None
+    
+    def create_client(
+        self,
+        phone: str,
+        name: str = None,
+        email: str = None,
+        cpf_cnpj: str = None
+    ) -> Optional[Dict[str, Any]]:
+        """Criar novo cliente"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO clientes_whatsapp (phone, name, email, cpf_cnpj)
+                    OUTPUT INSERTED.id
+                    VALUES (?, ?, ?, ?)
+                """, (phone, name, email, cpf_cnpj))
+                
+                row = cursor.fetchone()
+                conn.commit()
+                
+                if row:
+                    return {"id": row.id, "phone": phone, "name": name}
+                return None
+        except Exception as e:
+            logger.error(f"Error creating client: {e}")
+            return None
+    
+    # =========================================================================
+    # OPERAÇÕES DE CONVERSAS
+    # =========================================================================
+    
+    def list_conversations(
+        self,
+        limit: int = 20,
+        offset: int = 0,
+        status: str = None,
+        priority: str = None,
+        attendant_id: int = None,
+        date_from: str = None,
+        date_to: str = None
+    ) -> List[Dict[str, Any]]:
+        """Listar conversas com filtros"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                    SELECT 
+                        c.id, c.client_id, c.attendant_id, c.status, c.priority,
+                        c.category, c.subject, c.rating, c.started_at, 
+                        c.last_message_at, c.resolved_at,
+                        cl.phone as client_phone, cl.name as client_name,
+                        u.nome as attendant_name,
+                        (SELECT COUNT(*) FROM mensagens WHERE conversa_id = c.id) as total_messages
+                    FROM conversas c
+                    LEFT JOIN clientes_whatsapp cl ON c.client_id = cl.id
+                    LEFT JOIN usuarios u ON c.attendant_id = u.id
+                    WHERE 1=1
+                """
+                params = []
+                
+                if status:
+                    query += " AND c.status = ?"
+                    params.append(status)
+                
+                if priority:
+                    query += " AND c.priority = ?"
+                    params.append(priority)
+                
+                if attendant_id:
+                    query += " AND c.attendant_id = ?"
+                    params.append(attendant_id)
+                
+                if date_from:
+                    query += " AND CAST(c.started_at AS DATE) >= ?"
+                    params.append(date_from)
+                
+                if date_to:
+                    query += " AND CAST(c.started_at AS DATE) <= ?"
+                    params.append(date_to)
+                
+                query += " ORDER BY c.last_message_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+                params.extend([offset, limit])
+                
+                cursor.execute(query, params)
+                
+                conversations = []
+                for row in cursor.fetchall():
+                    conversations.append({
+                        "id": row.id,
+                        "client_id": row.client_id,
+                        "attendant_id": row.attendant_id,
+                        "status": row.status,
+                        "priority": row.priority,
+                        "category": row.category,
+                        "subject": row.subject,
+                        "rating": row.rating,
+                        "started_at": row.started_at,
+                        "last_message_at": row.last_message_at,
+                        "resolved_at": row.resolved_at,
+                        "client_phone": row.client_phone,
+                        "client_name": row.client_name,
+                        "attendant_name": row.attendant_name,
+                        "total_messages": row.total_messages
+                    })
+                return conversations
+        except Exception as e:
+            logger.error(f"Error listing conversations: {e}")
+            return []
+    
+    def count_conversations(
+        self,
+        status: str = None,
+        priority: str = None,
+        attendant_id: int = None,
+        date_from: str = None,
+        date_to: str = None
+    ) -> int:
+        """Contar conversas com filtros"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = "SELECT COUNT(*) FROM conversas WHERE 1=1"
+                params = []
+                
+                if status:
+                    query += " AND status = ?"
+                    params.append(status)
+                
+                if priority:
+                    query += " AND priority = ?"
+                    params.append(priority)
+                
+                if attendant_id:
+                    query += " AND attendant_id = ?"
+                    params.append(attendant_id)
+                
+                if date_from:
+                    query += " AND CAST(started_at AS DATE) >= ?"
+                    params.append(date_from)
+                
+                if date_to:
+                    query += " AND CAST(started_at AS DATE) <= ?"
+                    params.append(date_to)
+                
+                cursor.execute(query, params)
+                return cursor.fetchone()[0]
+        except Exception as e:
+            logger.error(f"Error counting conversations: {e}")
+            return 0
+    
+    def get_conversation(self, conversation_id: int) -> Optional[Dict[str, Any]]:
+        """Obter conversa por ID"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT 
+                        c.id, c.client_id, c.attendant_id, c.status, c.priority,
+                        c.category, c.subject, c.rating, c.feedback, c.started_at, 
+                        c.last_message_at, c.resolved_at,
+                        cl.phone as client_phone, cl.name as client_name,
+                        u.nome as attendant_name,
+                        (SELECT COUNT(*) FROM mensagens WHERE conversa_id = c.id) as total_messages
+                    FROM conversas c
+                    LEFT JOIN clientes_whatsapp cl ON c.client_id = cl.id
+                    LEFT JOIN usuarios u ON c.attendant_id = u.id
+                    WHERE c.id = ?
+                """, (conversation_id,))
+                
+                row = cursor.fetchone()
+                if row:
+                    return {
+                        "id": row.id,
+                        "client_id": row.client_id,
+                        "attendant_id": row.attendant_id,
+                        "status": row.status,
+                        "priority": row.priority,
+                        "category": row.category,
+                        "subject": row.subject,
+                        "rating": row.rating,
+                        "feedback": row.feedback,
+                        "started_at": row.started_at,
+                        "last_message_at": row.last_message_at,
+                        "resolved_at": row.resolved_at,
+                        "client_phone": row.client_phone,
+                        "client_name": row.client_name,
+                        "attendant_name": row.attendant_name,
+                        "total_messages": row.total_messages
+                    }
+                return None
+        except Exception as e:
+            logger.error(f"Error getting conversation: {e}")
+            return None
+    
+    def create_conversation(
+        self,
+        client_id: int,
+        subject: str = None,
+        category: str = None,
+        priority: str = "normal"
+    ) -> Optional[Dict[str, Any]]:
+        """Criar nova conversa"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO conversas (client_id, subject, category, priority, status, started_at)
+                    OUTPUT INSERTED.id
+                    VALUES (?, ?, ?, ?, 'waiting', GETDATE())
+                """, (client_id, subject, category, priority))
+                
+                row = cursor.fetchone()
+                conn.commit()
+                
+                if row:
+                    return {"id": row.id, "status": "waiting"}
+                return None
+        except Exception as e:
+            logger.error(f"Error creating conversation: {e}")
+            return None
+    
+    def update_conversation(
+        self,
+        conversation_id: int,
+        **kwargs
+    ) -> bool:
+        """Atualizar conversa"""
+        try:
+            allowed_fields = ["status", "priority", "category", "subject", "attendant_id"]
+            updates = {k: v for k, v in kwargs.items() if k in allowed_fields and v is not None}
+            
+            if not updates:
+                return True
+            
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
+                query = f"UPDATE conversas SET {set_clause} WHERE id = ?"
+                params = list(updates.values()) + [conversation_id]
+                
+                cursor.execute(query, params)
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error updating conversation: {e}")
+            return False
+    
+    def assign_conversation(self, conversation_id: int, attendant_id: int) -> bool:
+        """Atribuir conversa a atendente"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE conversas 
+                    SET attendant_id = ?, status = 'in_progress', 
+                        first_response_at = CASE WHEN first_response_at IS NULL THEN GETDATE() ELSE first_response_at END
+                    WHERE id = ?
+                """, (attendant_id, conversation_id))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error assigning conversation: {e}")
+            return False
+    
+    def transfer_conversation(
+        self,
+        conversation_id: int,
+        from_attendant_id: int,
+        to_attendant_id: int
+    ) -> bool:
+        """Transferir conversa para outro atendente"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Atualizar conversa
+                cursor.execute("""
+                    UPDATE conversas 
+                    SET attendant_id = ?, transfer_count = ISNULL(transfer_count, 0) + 1
+                    WHERE id = ?
+                """, (to_attendant_id, conversation_id))
+                
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error transferring conversation: {e}")
+            return False
+    
+    def close_conversation(
+        self,
+        conversation_id: int,
+        rating: int = None,
+        feedback: str = None,
+        resolution_notes: str = None
+    ) -> bool:
+        """Encerrar conversa"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE conversas 
+                    SET status = 'resolved', 
+                        resolved_at = GETDATE(),
+                        rating = ?,
+                        feedback = ?,
+                        resolution_notes = ?
+                    WHERE id = ?
+                """, (rating, feedback, resolution_notes, conversation_id))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error closing conversation: {e}")
+            return False
+    
+    def get_waiting_conversations(self) -> List[Dict[str, Any]]:
+        """Obter conversas na fila de espera"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT 
+                        c.id, c.subject, c.priority, c.started_at,
+                        cl.phone as client_phone, cl.name as client_name,
+                        DATEDIFF(MINUTE, c.started_at, GETDATE()) as waiting_minutes
+                    FROM conversas c
+                    LEFT JOIN clientes_whatsapp cl ON c.client_id = cl.id
+                    WHERE c.status = 'waiting'
+                    ORDER BY 
+                        CASE c.priority 
+                            WHEN 'urgent' THEN 1 
+                            WHEN 'high' THEN 2 
+                            WHEN 'normal' THEN 3 
+                            ELSE 4 
+                        END,
+                        c.started_at ASC
+                """)
+                
+                conversations = []
+                for row in cursor.fetchall():
+                    conversations.append({
+                        "id": row.id,
+                        "subject": row.subject,
+                        "priority": row.priority,
+                        "started_at": row.started_at,
+                        "client_phone": row.client_phone,
+                        "client_name": row.client_name,
+                        "waiting_minutes": row.waiting_minutes
+                    })
+                return conversations
+        except Exception as e:
+            logger.error(f"Error getting waiting conversations: {e}")
+            return []
+    
+    def get_conversation_stats(self) -> Dict[str, Any]:
+        """Obter estatísticas de conversas"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT 
+                        COUNT(*) as total_today,
+                        SUM(CASE WHEN status = 'waiting' THEN 1 ELSE 0 END) as waiting,
+                        SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
+                        SUM(CASE WHEN status = 'resolved' AND CAST(resolved_at AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as resolved_today,
+                        AVG(DATEDIFF(MINUTE, started_at, first_response_at)) as avg_response_time_minutes,
+                        AVG(CASE WHEN resolved_at IS NOT NULL THEN DATEDIFF(MINUTE, started_at, resolved_at) ELSE NULL END) as avg_resolution_time_minutes
+                    FROM conversas
+                    WHERE CAST(started_at AS DATE) = CAST(GETDATE() AS DATE)
+                """)
+                
+                row = cursor.fetchone()
+                if row:
+                    return {
+                        "total_today": row.total_today or 0,
+                        "waiting": row.waiting or 0,
+                        "in_progress": row.in_progress or 0,
+                        "resolved_today": row.resolved_today or 0,
+                        "avg_response_time_minutes": float(row.avg_response_time_minutes) if row.avg_response_time_minutes else None,
+                        "avg_resolution_time_minutes": float(row.avg_resolution_time_minutes) if row.avg_resolution_time_minutes else None
+                    }
+                return {}
+        except Exception as e:
+            logger.error(f"Error getting conversation stats: {e}")
+            return {}
+    
+    # =========================================================================
+    # OPERAÇÕES DE MENSAGENS
+    # =========================================================================
+    
+    def list_messages(
+        self,
+        conversation_id: int,
+        limit: int = 50,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """Listar mensagens de uma conversa"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT 
+                        m.id, m.conversa_id, m.sender_type, m.sender_id,
+                        m.content, m.message_type, m.status, m.is_from_me,
+                        m.created_at, m.read_at
+                    FROM mensagens m
+                    WHERE m.conversa_id = ?
+                    ORDER BY m.created_at ASC
+                    OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+                """, (conversation_id, offset, limit))
+                
+                messages = []
+                for row in cursor.fetchall():
+                    messages.append({
+                        "id": row.id,
+                        "conversation_id": row.conversa_id,
+                        "sender_type": row.sender_type,
+                        "sender_id": row.sender_id,
+                        "content": row.content,
+                        "message_type": row.message_type,
+                        "status": row.status,
+                        "is_from_me": row.is_from_me,
+                        "created_at": row.created_at,
+                        "read_at": row.read_at
+                    })
+                return messages
+        except Exception as e:
+            logger.error(f"Error listing messages: {e}")
+            return []
+    
+    def create_message(
+        self,
+        conversation_id: int,
+        sender_type: str,
+        sender_id: int,
+        content: str,
+        message_type: str = "text",
+        media_url: str = None
+    ) -> Optional[Dict[str, Any]]:
+        """Criar nova mensagem"""
+        try:
+            is_from_me = sender_type in ["attendant", "bot", "system"]
+            
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO mensagens 
+                        (conversa_id, sender_type, sender_id, content, message_type, media_url, is_from_me, status)
+                    OUTPUT INSERTED.id
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'sent')
+                """, (conversation_id, sender_type, sender_id, content, message_type, media_url, is_from_me))
+                
+                row = cursor.fetchone()
+                
+                # Atualizar last_message_at na conversa
+                cursor.execute("""
+                    UPDATE conversas SET last_message_at = GETDATE() WHERE id = ?
+                """, (conversation_id,))
+                
+                conn.commit()
+                
+                if row:
+                    return {"id": row.id, "status": "sent"}
+                return None
+        except Exception as e:
+            logger.error(f"Error creating message: {e}")
+            return None
+    
+    def mark_messages_read(self, conversation_id: int, up_to_message_id: int = None) -> bool:
+        """Marcar mensagens como lidas"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                if up_to_message_id:
+                    cursor.execute("""
+                        UPDATE mensagens 
+                        SET status = 'read', read_at = GETDATE()
+                        WHERE conversa_id = ? AND id <= ? AND status != 'read'
+                    """, (conversation_id, up_to_message_id))
+                else:
+                    cursor.execute("""
+                        UPDATE mensagens 
+                        SET status = 'read', read_at = GETDATE()
+                        WHERE conversa_id = ? AND status != 'read'
+                    """, (conversation_id,))
+                
+                conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Error marking messages read: {e}")
+            return False
 
 
 # Instância singleton

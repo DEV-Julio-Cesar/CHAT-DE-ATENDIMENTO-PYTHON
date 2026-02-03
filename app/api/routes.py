@@ -10,6 +10,9 @@ from app.api.endpoints.dashboard_functional import router as dashboard_functiona
 from app.api.endpoints.whatsapp_webhook import router as whatsapp_webhook_router
 from app.api.endpoints.chatbot_admin import router as chatbot_admin_router
 from app.api.endpoints.auth_v2 import router as auth_v2_router
+from app.api.endpoints.users_v2 import router as users_v2_router
+from app.api.endpoints.conversations_v2 import router as conversations_v2_router
+from app.api.endpoints.dashboard_v2 import router as dashboard_v2_router
 from app.core.security_headers import security_headers_manager
 
 api_router = APIRouter()
@@ -20,6 +23,24 @@ api_router.include_router(
     tags=["authentication-v2"]
 )
 
+# Incluir rotas de usuários V2 (CRUD completo com SQL Server)
+api_router.include_router(
+    users_v2_router,
+    tags=["users-v2"]
+)
+
+# Incluir rotas de conversas V2 (Atendimentos com SQL Server)
+api_router.include_router(
+    conversations_v2_router,
+    tags=["conversations-v2"]
+)
+
+# Incluir rotas de dashboard V2 (Métricas reais SQL Server)
+api_router.include_router(
+    dashboard_v2_router,
+    tags=["dashboard-v2"]
+)
+
 # Incluir rotas de autenticação legadas (mantidas para compatibilidade)
 api_router.include_router(
     auth.router,
@@ -27,11 +48,11 @@ api_router.include_router(
     tags=["authentication-legacy"]
 )
 
-# Incluir rotas de usuários
+# Incluir rotas de usuários (legado)
 api_router.include_router(
     users.router,
-    prefix="/users",
-    tags=["users"]
+    prefix="/users-legacy",
+    tags=["users-legacy"]
 )
 
 # Incluir rotas GDPR/LGPD
@@ -40,11 +61,11 @@ api_router.include_router(
      tags=["gdpr-lgpd"]
 )
 
-# Incluir rotas de conversas
+# Incluir rotas de conversas (legado)
 api_router.include_router(
     conversations.router,
-    prefix="/conversations",
-    tags=["conversations"]
+    prefix="/conversations-legacy",
+    tags=["conversations-legacy"]
 )
 
 # Incluir rotas de campanhas
