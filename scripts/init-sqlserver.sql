@@ -681,6 +681,45 @@ BEGIN
 END
 GO
 
+-- ============================================================================
+-- TABELA DE RESPOSTAS DO CHATBOT (TREINAMENTO)
+-- ============================================================================
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'chatbot_responses') AND type = 'U')
+BEGIN
+    CREATE TABLE chatbot_responses (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        intent NVARCHAR(50) NOT NULL UNIQUE,
+        response NVARCHAR(MAX) NOT NULL,
+        quick_replies NVARCHAR(MAX) NULL, -- JSON array
+        is_active BIT NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT GETDATE(),
+        updated_at DATETIME NOT NULL DEFAULT GETDATE(),
+        created_by INT NULL REFERENCES usuarios(id),
+        
+        INDEX IX_chatbot_responses_intent (intent)
+    );
+    PRINT 'Tabela chatbot_responses criada.';
+END
+GO
+
+-- Inserir respostas padrão do chatbot
+IF NOT EXISTS (SELECT 1 FROM chatbot_responses WHERE intent = 'saudacao')
+BEGIN
+    INSERT INTO chatbot_responses (intent, response, quick_replies) VALUES
+    ('saudacao', 'Olá! 👋 Seja bem-vindo ao atendimento da CIANET!
+
+Sou o assistente virtual e posso te ajudar com:
+• 🌐 Problemas de conexão
+• 💳 Faturas e pagamentos
+• 📶 Upgrade de plano
+• 📅 Agendamento de visita
+
+Como posso te ajudar hoje?', '["Problema na internet", "2ª via de boleto", "Falar com atendente"]');
+    
+    PRINT 'Respostas padrão do chatbot inseridas.';
+END
+GO
+
 -- Procedure para métricas do dashboard
 CREATE OR ALTER PROCEDURE sp_GetDashboardMetrics
     @start_date DATE = NULL,
