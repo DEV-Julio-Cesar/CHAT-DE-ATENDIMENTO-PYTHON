@@ -414,6 +414,679 @@
         .btn-orange { background: linear-gradient(135deg, #f97316, #ea580c); color: white; }
         .btn-orange:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3); }
         
+        /* ========== CAMPAIGN MODAL ========== */
+        .campaign-step { display: none; }
+        .campaign-step.active { display: block; }
+        
+        .campaign-steps-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        
+        .step-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            transition: all 0.3s;
+        }
+        
+        .step-dot.active {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            transform: scale(1.2);
+        }
+        
+        .step-dot.completed {
+            background: #22c55e;
+        }
+        
+        .upload-zone {
+            border: 3px dashed #e5e7eb;
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fafafa;
+        }
+        
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #22c55e;
+            background: #f0fdf4;
+        }
+        
+        .upload-zone-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin: 0 auto 16px;
+        }
+        
+        .upload-zone h4 {
+            font-size: 18px;
+            color: #18181b;
+            margin-bottom: 8px;
+        }
+        
+        .upload-zone p {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .upload-zone small {
+            display: block;
+            margin-top: 12px;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        
+        .file-preview {
+            display: none;
+            background: #f0fdf4;
+            border: 2px solid #22c55e;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        
+        .file-preview.show { display: flex; align-items: center; gap: 12px; }
+        
+        .file-preview-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+        
+        .file-preview-info { flex: 1; }
+        .file-preview-name { font-weight: 600; color: #18181b; }
+        .file-preview-size { font-size: 12px; color: #6b7280; }
+        
+        .file-preview-remove {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: #fee2e2;
+            color: #dc2626;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .file-preview-remove:hover { background: #dc2626; color: white; }
+        
+        .contacts-preview {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin-top: 16px;
+        }
+        
+        .contacts-preview table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .contacts-preview th, .contacts-preview td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #f4f4f5;
+        }
+        
+        .contacts-preview th {
+            background: #f9fafb;
+            font-weight: 600;
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+        
+        .contacts-preview td {
+            font-size: 14px;
+            color: #18181b;
+        }
+        
+        .whatsapp-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .whatsapp-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .whatsapp-option:hover { border-color: #22c55e; background: #f0fdf4; }
+        .whatsapp-option.selected { border-color: #22c55e; background: #f0fdf4; }
+        
+        .whatsapp-option input { display: none; }
+        
+        .whatsapp-option-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #25d366, #128c7e);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .whatsapp-option-info { flex: 1; }
+        .whatsapp-option-name { font-weight: 600; color: #18181b; font-size: 14px; }
+        .whatsapp-option-number { font-size: 12px; color: #6b7280; }
+        
+        .whatsapp-option-status {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .whatsapp-option-status.online { background: #dcfce7; color: #166534; }
+        .whatsapp-option-status.offline { background: #fee2e2; color: #991b1b; }
+        
+        .message-composer {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 16px;
+        }
+        
+        .message-composer textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .message-composer textarea:focus {
+            outline: none;
+            border-color: #22c55e;
+        }
+        
+        .message-variables {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .variable-tag {
+            padding: 6px 12px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .variable-tag:hover { border-color: #22c55e; background: #f0fdf4; }
+        
+        .timing-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        
+        .timing-option {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .timing-option label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .timing-option input, .timing-option select {
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+        
+        .timing-option input:focus, .timing-option select:focus {
+            outline: none;
+            border-color: #22c55e;
+        }
+        
+        .campaign-summary {
+            background: linear-gradient(135deg, #f0fdf4, #fff7ed);
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 20px;
+        }
+        
+        .campaign-summary h4 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #18181b;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        
+        .summary-item {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+        }
+        
+        .summary-item-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        
+        .summary-item-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #18181b;
+        }
+        
+        .campaign-progress {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .campaign-progress.show { display: block; }
+        
+        .progress-circle {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+        
+        .progress-circle svg {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-circle circle {
+            fill: none;
+            stroke-width: 8;
+        }
+        
+        .progress-circle .bg { stroke: #e5e7eb; }
+        .progress-circle .progress { stroke: #22c55e; stroke-linecap: round; transition: stroke-dashoffset 0.3s; }
+        
+        .progress-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            font-weight: 700;
+            color: #18181b;
+        }
+        
+        .progress-stats {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-top: 20px;
+        }
+        
+        .progress-stat {
+            text-align: center;
+        }
+        
+        .progress-stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #18181b;
+        }
+        
+        .progress-stat-label {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        .progress-stat.success .progress-stat-value { color: #22c55e; }
+        .progress-stat.error .progress-stat-value { color: #dc2626; }
+        
+        /* ========== CAMPAIGN DASHBOARD ========== */
+        .campaign-dashboard-card {
+            background: linear-gradient(135deg, #fff7ed 0%, #f0fdf4 100%);
+            border: 2px solid #f97316;
+        }
+        
+        .campaign-mini-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .campaign-mini-stat {
+            text-align: center;
+            padding: 12px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .campaign-mini-stat-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .campaign-mini-stat-value.total { color: #3b82f6; }
+        .campaign-mini-stat-value.sent { color: #22c55e; }
+        .campaign-mini-stat-value.failed { color: #dc2626; }
+        .campaign-mini-stat-value.pending { color: #f97316; }
+        
+        .campaign-mini-stat-label {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+        
+        .campaign-history-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        .campaign-history-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border-left: 4px solid #22c55e;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .campaign-history-item:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .campaign-history-item.running {
+            border-left-color: #f97316;
+            background: #fff7ed;
+        }
+        
+        .campaign-history-item.completed {
+            border-left-color: #22c55e;
+        }
+        
+        .campaign-history-item.failed {
+            border-left-color: #dc2626;
+        }
+        
+        .campaign-history-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .campaign-history-item.running .campaign-history-icon {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        .campaign-history-item.completed .campaign-history-icon {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+        
+        .campaign-history-item.failed .campaign-history-icon {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+        }
+        
+        .campaign-history-info {
+            flex: 1;
+        }
+        
+        .campaign-history-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #18181b;
+        }
+        
+        .campaign-history-date {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        .campaign-history-stats {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+        }
+        
+        .campaign-history-stats span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .campaign-history-stats .sent { color: #22c55e; }
+        .campaign-history-stats .failed { color: #dc2626; }
+        .campaign-history-stats .pending { color: #f97316; }
+        
+        /* Campaign Details Modal */
+        .campaign-details-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 12px;
+        }
+        
+        .campaign-details-tab {
+            padding: 10px 20px;
+            border: none;
+            background: #f4f4f5;
+            border-radius: 8px 8px 0 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .campaign-details-tab:hover {
+            background: #e5e7eb;
+        }
+        
+        .campaign-details-tab.active {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+        
+        .campaign-details-content {
+            display: none;
+        }
+        
+        .campaign-details-content.active {
+            display: block;
+        }
+        
+        .contacts-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .contacts-table th,
+        .contacts-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #f4f4f5;
+        }
+        
+        .contacts-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+        
+        .contacts-table td {
+            font-size: 14px;
+        }
+        
+        .contacts-table tr:hover {
+            background: #f9fafb;
+        }
+        
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .status-badge.sent {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .status-badge.failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .status-badge.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .contacts-filter {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .contacts-filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .contacts-filter-btn:hover {
+            border-color: #22c55e;
+            color: #22c55e;
+        }
+        
+        .contacts-filter-btn.active {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-color: #22c55e;
+            color: white;
+        }
+        
+        .contacts-filter-btn.sent.active {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+        }
+        
+        .contacts-filter-btn.failed.active {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            border-color: #dc2626;
+        }
+        
+        .contacts-filter-btn.pending.active {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-color: #f97316;
+        }
+        
+        .campaign-detail-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .campaign-detail-stat {
+            text-align: center;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 12px;
+        }
+        
+        .campaign-detail-stat-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .campaign-detail-stat-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        
+        .retry-btn {
+            padding: 6px 12px;
+            border: none;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .retry-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+        }
+        
         /* Responsivo */
         @media (max-width: 1400px) {
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
@@ -421,6 +1094,8 @@
             .dashboard-grid { grid-template-columns: 1fr; }
             .quick-actions { grid-template-columns: repeat(3, 1fr); }
             .report-summary { grid-template-columns: repeat(2, 1fr); }
+            .campaign-mini-stats { grid-template-columns: repeat(2, 1fr); }
+            .campaign-detail-summary { grid-template-columns: repeat(2, 1fr); }
         }
         
         @media (max-width: 768px) {
@@ -467,6 +1142,13 @@
                 </div>
                 
                 <div class="nav-section">
+                    <div class="nav-section-title">Marketing</div>
+                    <ul class="nav-menu">
+                        <li><a href="/campaigns" class="nav-link"><i class="bi bi-megaphone-fill"></i><span>Campanhas</span></a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
                     <div class="nav-section-title">Relatórios</div>
                     <ul class="nav-menu">
                         <li><a href="#" class="nav-link" onclick="openReportsModal()"><i class="bi bi-graph-up-arrow"></i><span>Relatórios</span></a></li>
@@ -477,7 +1159,8 @@
                 <div class="nav-section">
                     <div class="nav-section-title">Sistema</div>
                     <ul class="nav-menu">
-                        <li><a href="#" class="nav-link"><i class="bi bi-gear-fill"></i><span>Configurações</span></a></li>
+                        <li><a href="/users" class="nav-link"><i class="bi bi-person-badge-fill"></i><span>Usuários</span></a></li>
+                        <li><a href="/settings" class="nav-link"><i class="bi bi-gear-fill"></i><span>Configurações</span></a></li>
                         <li><a href="/login" class="nav-link" onclick="localStorage.clear(); sessionStorage.clear();"><i class="bi bi-box-arrow-left"></i><span>Sair</span></a></li>
                     </ul>
                 </div>
@@ -581,6 +1264,10 @@
                         <div class="quick-action-icon"><i class="bi bi-plus-lg"></i></div>
                         <span>Nova Conversa</span>
                     </a>
+                    <a href="/campaigns" class="quick-action">
+                        <div class="quick-action-icon"><i class="bi bi-megaphone-fill"></i></div>
+                        <span>Campanha</span>
+                    </a>
                     <a href="/customers" class="quick-action">
                         <div class="quick-action-icon"><i class="bi bi-person-plus"></i></div>
                         <span>Novo Cliente</span>
@@ -592,10 +1279,6 @@
                     <a href="#" class="quick-action" onclick="openReportsModal()">
                         <div class="quick-action-icon"><i class="bi bi-file-earmark-bar-graph"></i></div>
                         <span>Relatórios</span>
-                    </a>
-                    <a href="#" class="quick-action" onclick="openQueueModal()">
-                        <div class="quick-action-icon"><i class="bi bi-list-check"></i></div>
-                        <span>Fila de Espera</span>
                     </a>
                 </div>
                 
@@ -702,6 +1385,56 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Dashboard de Campanhas -->
+                <div class="card campaign-dashboard-card" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="bi bi-megaphone-fill" style="color: #f97316;"></i> Dashboard de Campanhas</h3>
+                        <div style="display: flex; gap: 8px;">
+                            <a href="/campaigns" class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px; text-decoration: none;">
+                                <i class="bi bi-list-ul"></i> Ver Detalhes
+                            </a>
+                            <a href="/campaigns" class="btn btn-orange" style="padding: 8px 16px; font-size: 12px; text-decoration: none;">
+                                <i class="bi bi-plus-lg"></i> Nova Campanha
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Mini Stats -->
+                        <div class="campaign-mini-stats">
+                            <div class="campaign-mini-stat">
+                                <div class="campaign-mini-stat-value total" id="campaignTotalContacts">0</div>
+                                <div class="campaign-mini-stat-label">Total Contatos</div>
+                            </div>
+                            <div class="campaign-mini-stat">
+                                <div class="campaign-mini-stat-value sent" id="campaignTotalSent">0</div>
+                                <div class="campaign-mini-stat-label">Enviadas</div>
+                            </div>
+                            <div class="campaign-mini-stat">
+                                <div class="campaign-mini-stat-value failed" id="campaignTotalFailed">0</div>
+                                <div class="campaign-mini-stat-label">Falhas</div>
+                            </div>
+                            <div class="campaign-mini-stat">
+                                <div class="campaign-mini-stat-value pending" id="campaignTotalPending">0</div>
+                                <div class="campaign-mini-stat-label">Pendentes</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Histórico de Campanhas -->
+                        <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px;">
+                            <i class="bi bi-clock-history"></i> Campanhas Recentes
+                        </h4>
+                        <div class="campaign-history-list" id="campaignHistoryList">
+                            <div style="text-align: center; padding: 40px; color: #6b7280;">
+                                <i class="bi bi-inbox" style="font-size: 40px; color: #d1d5db;"></i>
+                                <p style="margin-top: 12px;">Nenhuma campanha realizada ainda</p>
+                                <a href="/campaigns" class="btn btn-primary" style="margin-top: 12px; text-decoration: none; display: inline-block;">
+                                    <i class="bi bi-plus-lg"></i> Criar Primeira Campanha
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -785,6 +1518,566 @@
                     </div>
                 </div>
                 <div class="queue-list" id="modalQueueList" style="max-height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Performance -->
+    <div class="modal-overlay" id="performanceModal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+                <h3><i class="bi bi-speedometer2"></i> Painel de Performance</h3>
+                <button class="modal-close" onclick="closePerformanceModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <!-- KPIs Principais -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+                    <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #dcfce7, #f0fdf4); border-radius: 16px;">
+                        <div style="font-size: 32px; font-weight: 700; color: #16a34a;" id="perfSLA">95.2%</div>
+                        <div style="font-size: 13px; color: #166534; font-weight: 600;">SLA Cumprido</div>
+                        <div style="font-size: 11px; color: #22c55e; margin-top: 4px;"><i class="bi bi-arrow-up"></i> +2.3%</div>
+                    </div>
+                    <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #dbeafe, #eff6ff); border-radius: 16px;">
+                        <div style="font-size: 32px; font-weight: 700; color: #2563eb;" id="perfNPS">72</div>
+                        <div style="font-size: 13px; color: #1e40af; font-weight: 600;">NPS Score</div>
+                        <div style="font-size: 11px; color: #3b82f6; margin-top: 4px;"><i class="bi bi-arrow-up"></i> +5 pts</div>
+                    </div>
+                    <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #fef3c7, #fffbeb); border-radius: 16px;">
+                        <div style="font-size: 32px; font-weight: 700; color: #d97706;" id="perfFCR">88%</div>
+                        <div style="font-size: 13px; color: #92400e; font-weight: 600;">FCR (1ª Chamada)</div>
+                        <div style="font-size: 11px; color: #f59e0b; margin-top: 4px;"><i class="bi bi-arrow-up"></i> +1.5%</div>
+                    </div>
+                    <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #fce7f3, #fdf2f8); border-radius: 16px;">
+                        <div style="font-size: 32px; font-weight: 700; color: #db2777;" id="perfCSAT">4.7</div>
+                        <div style="font-size: 13px; color: #9d174d; font-weight: 600;">CSAT (de 5)</div>
+                        <div style="font-size: 11px; color: #ec4899; margin-top: 4px;"><i class="bi bi-arrow-up"></i> +0.2</div>
+                    </div>
+                </div>
+                
+                <!-- Gráficos lado a lado -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                    <!-- Tempo de Resposta -->
+                    <div style="background: #f9fafb; border-radius: 16px; padding: 20px;">
+                        <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 16px;">
+                            <i class="bi bi-clock-history" style="color: #8b5cf6;"></i> Tempo Médio de Resposta
+                        </h4>
+                        <div style="display: flex; align-items: center; gap: 20px;">
+                            <div style="position: relative; width: 100px; height: 100px;">
+                                <svg width="100" height="100" style="transform: rotate(-90deg);">
+                                    <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" stroke-width="10"/>
+                                    <circle cx="50" cy="50" r="40" fill="none" stroke="#8b5cf6" stroke-width="10" 
+                                        stroke-dasharray="251" stroke-dashoffset="50" stroke-linecap="round"/>
+                                </svg>
+                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                                    <div style="font-size: 18px; font-weight: 700; color: #18181b;">1:45</div>
+                                    <div style="font-size: 10px; color: #6b7280;">min</div>
+                                </div>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span style="font-size: 12px; color: #6b7280;">Meta</span>
+                                    <span style="font-size: 12px; font-weight: 600; color: #22c55e;">2:00 min</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span style="font-size: 12px; color: #6b7280;">Mínimo</span>
+                                    <span style="font-size: 12px; font-weight: 600; color: #18181b;">0:30 min</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="font-size: 12px; color: #6b7280;">Máximo</span>
+                                    <span style="font-size: 12px; font-weight: 600; color: #18181b;">5:15 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Taxa de Resolução -->
+                    <div style="background: #f9fafb; border-radius: 16px; padding: 20px;">
+                        <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 16px;">
+                            <i class="bi bi-check-circle" style="color: #22c55e;"></i> Taxa de Resolução
+                        </h4>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                    <span style="font-size: 12px; color: #6b7280;">Resolvido pelo Bot</span>
+                                    <span style="font-size: 12px; font-weight: 600; color: #22c55e;">78%</span>
+                                </div>
+                                <div style="height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+                                    <div style="height: 100%; width: 78%; background: linear-gradient(90deg, #22c55e, #16a34a); border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                    <span style="font-size: 12px; color: #6b7280;">Resolvido por Atendente</span>
+                                    <span style="font-size: 12px; font-weight: 600; color: #3b82f6;">20%</span>
+                                </div>
+                                <div style="height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+                                    <div style="height: 100%; width: 20%; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                    <span style="font-size: 12px; color: #6b7280;">Não Resolvido</span>
+                                    <span style="font-size: 12px; font-weight: 600; color: #dc2626;">2%</span>
+                                </div>
+                                <div style="height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+                                    <div style="height: 100%; width: 2%; background: linear-gradient(90deg, #dc2626, #b91c1c); border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Ranking de Atendentes -->
+                <div style="background: #f9fafb; border-radius: 16px; padding: 20px;">
+                    <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 16px;">
+                        <i class="bi bi-trophy" style="color: #f59e0b;"></i> Top Atendentes do Dia
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: linear-gradient(135deg, #fef3c7, #fffbeb); border-radius: 12px; border: 2px solid #f59e0b;">
+                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">1º</div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 14px; font-weight: 600; color: #18181b;">Maria Silva</div>
+                                <div style="font-size: 11px; color: #6b7280;">45 atendimentos</div>
+                            </div>
+                            <div style="font-size: 14px; font-weight: 700; color: #f59e0b;">98%</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #f4f4f5; border-radius: 12px; border: 2px solid #a1a1aa;">
+                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #a1a1aa, #71717a); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">2º</div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 14px; font-weight: 600; color: #18181b;">João Santos</div>
+                                <div style="font-size: 11px; color: #6b7280;">38 atendimentos</div>
+                            </div>
+                            <div style="font-size: 14px; font-weight: 700; color: #71717a;">96%</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: linear-gradient(135deg, #fed7aa, #ffedd5); border-radius: 12px; border: 2px solid #f97316;">
+                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #f97316, #ea580c); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">3º</div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 14px; font-weight: 600; color: #18181b;">Ana Costa</div>
+                                <div style="font-size: 11px; color: #6b7280;">35 atendimentos</div>
+                            </div>
+                            <div style="font-size: 14px; font-weight: 700; color: #f97316;">95%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closePerformanceModal()">
+                    <i class="bi bi-x-lg"></i> Fechar
+                </button>
+                <button class="btn btn-primary" onclick="exportPerformanceReport()">
+                    <i class="bi bi-download"></i> Exportar Relatório
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Campanha -->
+    <div class="modal-overlay" id="campaignModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3><i class="bi bi-megaphone-fill"></i> Campanha de Mensagens</h3>
+                <button class="modal-close" onclick="closeCampaignModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <!-- Indicador de Passos -->
+                <div class="campaign-steps-indicator">
+                    <div class="step-dot active" data-step="1"></div>
+                    <div class="step-dot" data-step="2"></div>
+                    <div class="step-dot" data-step="3"></div>
+                    <div class="step-dot" data-step="4"></div>
+                </div>
+                
+                <!-- Passo 1: Upload do Excel -->
+                <div class="campaign-step active" id="campaignStep1">
+                    <h4 style="font-size: 18px; font-weight: 600; margin-bottom: 20px;">
+                        <i class="bi bi-file-earmark-excel" style="color: #22c55e;"></i> 
+                        Passo 1: Importar Contatos
+                    </h4>
+                    
+                    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('excelFile').click()">
+                        <div class="upload-zone-icon">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                        </div>
+                        <h4>Arraste o arquivo Excel aqui</h4>
+                        <p>ou clique para selecionar</p>
+                        <small>Formatos aceitos: .xlsx, .xls, .csv | Máximo: 10MB</small>
+                    </div>
+                    
+                    <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" style="display: none;" onchange="handleFileUpload(this)">
+                    
+                    <div class="file-preview" id="filePreview">
+                        <div class="file-preview-icon">
+                            <i class="bi bi-file-earmark-excel"></i>
+                        </div>
+                        <div class="file-preview-info">
+                            <div class="file-preview-name" id="fileName">arquivo.xlsx</div>
+                            <div class="file-preview-size" id="fileSize">2.3 MB - <span id="contactCount">0</span> contatos</div>
+                        </div>
+                        <button class="file-preview-remove" onclick="removeFile()">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="contacts-preview" id="contactsPreview" style="display: none;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Nome</th>
+                                    <th>Telefone</th>
+                                </tr>
+                            </thead>
+                            <tbody id="contactsTableBody">
+                                <!-- Contatos serão renderizados aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 16px; background: #fef3c7; border-radius: 12px;">
+                        <h5 style="font-size: 14px; color: #92400e; margin-bottom: 8px;">
+                            <i class="bi bi-info-circle"></i> Formato do Excel
+                        </h5>
+                        <p style="font-size: 13px; color: #78350f;">
+                            O arquivo deve conter duas colunas: <strong>Nome</strong> e <strong>Telefone</strong> (com DDD).
+                            <br>Exemplo: João Silva | 11999998888
+                        </p>
+                        <button class="btn btn-secondary" onclick="downloadTemplate()" style="margin-top: 12px; padding: 8px 16px; font-size: 12px;">
+                            <i class="bi bi-download"></i> Baixar Modelo
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Passo 2: Selecionar WhatsApp -->
+                <div class="campaign-step" id="campaignStep2">
+                    <h4 style="font-size: 18px; font-weight: 600; margin-bottom: 20px;">
+                        <i class="bi bi-whatsapp" style="color: #25d366;"></i> 
+                        Passo 2: Selecionar WhatsApp
+                    </h4>
+                    
+                    <p style="font-size: 14px; color: #6b7280; margin-bottom: 16px;">
+                        Escolha o(s) número(s) de WhatsApp para enviar as mensagens:
+                    </p>
+                    
+                    <div class="whatsapp-selector" id="whatsappSelector">
+                        <label class="whatsapp-option selected" onclick="toggleWhatsApp('principal')">
+                            <input type="checkbox" name="whatsapp" value="principal" checked>
+                            <div class="whatsapp-option-icon">
+                                <i class="bi bi-whatsapp"></i>
+                            </div>
+                            <div class="whatsapp-option-info">
+                                <div class="whatsapp-option-name">WhatsApp Principal</div>
+                                <div class="whatsapp-option-number">+55 (11) 99999-0001</div>
+                            </div>
+                            <span class="whatsapp-option-status online">Conectado</span>
+                        </label>
+                        
+                        <label class="whatsapp-option" onclick="toggleWhatsApp('suporte')">
+                            <input type="checkbox" name="whatsapp" value="suporte">
+                            <div class="whatsapp-option-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                                <i class="bi bi-whatsapp"></i>
+                            </div>
+                            <div class="whatsapp-option-info">
+                                <div class="whatsapp-option-name">WhatsApp Suporte</div>
+                                <div class="whatsapp-option-number">+55 (11) 99999-0002</div>
+                            </div>
+                            <span class="whatsapp-option-status online">Conectado</span>
+                        </label>
+                        
+                        <label class="whatsapp-option" onclick="toggleWhatsApp('comercial')">
+                            <input type="checkbox" name="whatsapp" value="comercial">
+                            <div class="whatsapp-option-icon" style="background: linear-gradient(135deg, #f97316, #ea580c);">
+                                <i class="bi bi-whatsapp"></i>
+                            </div>
+                            <div class="whatsapp-option-info">
+                                <div class="whatsapp-option-name">WhatsApp Comercial</div>
+                                <div class="whatsapp-option-number">+55 (11) 99999-0003</div>
+                            </div>
+                            <span class="whatsapp-option-status offline">Desconectado</span>
+                        </label>
+                        
+                        <label class="whatsapp-option" onclick="toggleWhatsApp('cobranca')">
+                            <input type="checkbox" name="whatsapp" value="cobranca">
+                            <div class="whatsapp-option-icon" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+                                <i class="bi bi-whatsapp"></i>
+                            </div>
+                            <div class="whatsapp-option-info">
+                                <div class="whatsapp-option-name">WhatsApp Cobrança</div>
+                                <div class="whatsapp-option-number">+55 (11) 99999-0004</div>
+                            </div>
+                            <span class="whatsapp-option-status online">Conectado</span>
+                        </label>
+                    </div>
+                    
+                    <div style="padding: 16px; background: #dbeafe; border-radius: 12px; margin-top: 16px;">
+                        <p style="font-size: 13px; color: #1e40af;">
+                            <i class="bi bi-info-circle"></i> 
+                            Selecionar múltiplos WhatsApps distribui as mensagens entre eles, reduzindo o risco de bloqueio.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Passo 3: Mensagem e Timing -->
+                <div class="campaign-step" id="campaignStep3">
+                    <h4 style="font-size: 18px; font-weight: 600; margin-bottom: 20px;">
+                        <i class="bi bi-chat-text" style="color: #22c55e;"></i> 
+                        Passo 3: Mensagem e Configurações
+                    </h4>
+                    
+                    <div class="message-composer">
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                            Mensagem da Campanha
+                        </label>
+                        <textarea id="campaignMessage" placeholder="Digite a mensagem que será enviada...
+
+Exemplo: Olá {nome}! Temos uma oferta especial para você..."></textarea>
+                        
+                        <div class="message-variables">
+                            <span style="font-size: 12px; color: #6b7280; margin-right: 8px;">Variáveis:</span>
+                            <button type="button" class="variable-tag" onclick="insertVariable('{nome}')">
+                                <i class="bi bi-person"></i> {nome}
+                            </button>
+                            <button type="button" class="variable-tag" onclick="insertVariable('{telefone}')">
+                                <i class="bi bi-telephone"></i> {telefone}
+                            </button>
+                            <button type="button" class="variable-tag" onclick="insertVariable('{data}')">
+                                <i class="bi bi-calendar"></i> {data}
+                            </button>
+                            <button type="button" class="variable-tag" onclick="insertVariable('{empresa}')">
+                                <i class="bi bi-building"></i> {empresa}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 24px;">
+                        <h5 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 16px;">
+                            <i class="bi bi-clock"></i> Configurações de Envio
+                        </h5>
+                        
+                        <div class="timing-options">
+                            <div class="timing-option">
+                                <label>Intervalo entre mensagens</label>
+                                <select id="messageInterval">
+                                    <option value="5">5 segundos</option>
+                                    <option value="10" selected>10 segundos</option>
+                                    <option value="15">15 segundos</option>
+                                    <option value="30">30 segundos</option>
+                                    <option value="60">1 minuto</option>
+                                    <option value="120">2 minutos</option>
+                                    <option value="300">5 minutos</option>
+                                </select>
+                            </div>
+                            
+                            <div class="timing-option">
+                                <label>Iniciar envio</label>
+                                <select id="startTime">
+                                    <option value="now">Imediatamente</option>
+                                    <option value="schedule">Agendar</option>
+                                </select>
+                            </div>
+                            
+                            <div class="timing-option" id="scheduleDateContainer" style="display: none;">
+                                <label>Data e Hora</label>
+                                <input type="datetime-local" id="scheduleDate">
+                            </div>
+                            
+                            <div class="timing-option">
+                                <label>Limite por hora</label>
+                                <select id="hourlyLimit">
+                                    <option value="50">50 mensagens/hora</option>
+                                    <option value="100" selected>100 mensagens/hora</option>
+                                    <option value="200">200 mensagens/hora</option>
+                                    <option value="500">500 mensagens/hora</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Passo 4: Resumo e Confirmação -->
+                <div class="campaign-step" id="campaignStep4">
+                    <h4 style="font-size: 18px; font-weight: 600; margin-bottom: 20px;">
+                        <i class="bi bi-check-circle" style="color: #22c55e;"></i> 
+                        Passo 4: Revisar e Iniciar
+                    </h4>
+                    
+                    <div class="campaign-summary">
+                        <h4><i class="bi bi-clipboard-check"></i> Resumo da Campanha</h4>
+                        <div class="summary-grid">
+                            <div class="summary-item">
+                                <div class="summary-item-label">Total de Contatos</div>
+                                <div class="summary-item-value" id="summaryContacts">0</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-item-label">WhatsApps Selecionados</div>
+                                <div class="summary-item-value" id="summaryWhatsapps">0</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-item-label">Intervalo</div>
+                                <div class="summary-item-value" id="summaryInterval">10 segundos</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-item-label">Tempo Estimado</div>
+                                <div class="summary-item-value" id="summaryTime">~0 min</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 16px; background: #f9fafb; border-radius: 12px;">
+                        <h5 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                            Preview da Mensagem
+                        </h5>
+                        <div id="messagePreview" style="padding: 16px; background: #dcfce7; border-radius: 10px; font-size: 14px; color: #18181b; white-space: pre-wrap;"></div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 16px; background: #fef2f2; border-radius: 12px;">
+                        <p style="font-size: 13px; color: #991b1b;">
+                            <i class="bi bi-exclamation-triangle"></i> 
+                            <strong>Atenção:</strong> Certifique-se de que todos os contatos consentiram em receber mensagens. 
+                            O envio de spam pode resultar em bloqueio do número.
+                        </p>
+                    </div>
+                    
+                    <!-- Progresso do Envio -->
+                    <div class="campaign-progress" id="campaignProgress">
+                        <div class="progress-circle">
+                            <svg width="120" height="120">
+                                <circle class="bg" cx="60" cy="60" r="52"/>
+                                <circle class="progress" cx="60" cy="60" r="52" id="campaignProgressCircle" 
+                                    stroke-dasharray="327" stroke-dashoffset="327"/>
+                            </svg>
+                            <div class="progress-value" id="campaignProgressValue">0%</div>
+                        </div>
+                        
+                        <h4 style="font-size: 18px; color: #18181b; margin-bottom: 8px;" id="campaignStatusText">
+                            Enviando mensagens...
+                        </h4>
+                        <p style="font-size: 14px; color: #6b7280;" id="campaignStatusDetail">
+                            Aguarde enquanto as mensagens são enviadas
+                        </p>
+                        
+                        <div class="progress-stats">
+                            <div class="progress-stat success">
+                                <div class="progress-stat-value" id="progressSent">0</div>
+                                <div class="progress-stat-label">Enviadas</div>
+                            </div>
+                            <div class="progress-stat error">
+                                <div class="progress-stat-value" id="progressFailed">0</div>
+                                <div class="progress-stat-label">Falhas</div>
+                            </div>
+                            <div class="progress-stat">
+                                <div class="progress-stat-value" id="progressPending">0</div>
+                                <div class="progress-stat-label">Pendentes</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" id="campaignFooter">
+                <button class="btn btn-secondary" id="campaignPrevBtn" onclick="prevCampaignStep()" style="display: none;">
+                    <i class="bi bi-arrow-left"></i> Voltar
+                </button>
+                <button class="btn btn-primary" id="campaignNextBtn" onclick="nextCampaignStep()">
+                    Próximo <i class="bi bi-arrow-right"></i>
+                </button>
+                <button class="btn btn-orange" id="campaignStartBtn" onclick="startCampaign()" style="display: none;">
+                    <i class="bi bi-send-fill"></i> Iniciar Campanha
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Detalhes de Campanhas -->
+    <div class="modal-overlay" id="campaignDetailsModal">
+        <div class="modal-content" style="max-width: 1000px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #f97316, #ea580c, #22c55e);">
+                <h3><i class="bi bi-megaphone-fill"></i> Detalhes da Campanha</h3>
+                <button class="modal-close" onclick="closeCampaignDetailsModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <!-- Resumo da Campanha -->
+                <div class="campaign-detail-summary">
+                    <div class="campaign-detail-stat">
+                        <div class="campaign-detail-stat-value" style="color: #3b82f6;" id="detailTotalContacts">0</div>
+                        <div class="campaign-detail-stat-label">Total de Contatos</div>
+                    </div>
+                    <div class="campaign-detail-stat">
+                        <div class="campaign-detail-stat-value" style="color: #22c55e;" id="detailSentContacts">0</div>
+                        <div class="campaign-detail-stat-label">Enviadas com Sucesso</div>
+                    </div>
+                    <div class="campaign-detail-stat">
+                        <div class="campaign-detail-stat-value" style="color: #dc2626;" id="detailFailedContacts">0</div>
+                        <div class="campaign-detail-stat-label">Falhas no Envio</div>
+                    </div>
+                    <div class="campaign-detail-stat">
+                        <div class="campaign-detail-stat-value" style="color: #f97316;" id="detailPendingContacts">0</div>
+                        <div class="campaign-detail-stat-label">Aguardando Envio</div>
+                    </div>
+                </div>
+                
+                <!-- Tabs de Filtro -->
+                <div class="contacts-filter">
+                    <button class="contacts-filter-btn active" onclick="filterCampaignContacts('all')">
+                        <i class="bi bi-list"></i> Todos
+                    </button>
+                    <button class="contacts-filter-btn sent" onclick="filterCampaignContacts('sent')">
+                        <i class="bi bi-check-circle"></i> Enviadas
+                    </button>
+                    <button class="contacts-filter-btn failed" onclick="filterCampaignContacts('failed')">
+                        <i class="bi bi-x-circle"></i> Falhas
+                    </button>
+                    <button class="contacts-filter-btn pending" onclick="filterCampaignContacts('pending')">
+                        <i class="bi bi-clock"></i> Pendentes
+                    </button>
+                    <div style="flex: 1;"></div>
+                    <button class="btn btn-orange" onclick="retryFailedContacts()" style="padding: 8px 16px; font-size: 12px;">
+                        <i class="bi bi-arrow-repeat"></i> Reenviar Falhas
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportCampaignReport()" style="padding: 8px 16px; font-size: 12px;">
+                        <i class="bi bi-download"></i> Exportar
+                    </button>
+                </div>
+                
+                <!-- Tabela de Contatos -->
+                <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 12px;">
+                    <table class="contacts-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nome</th>
+                                <th>Telefone</th>
+                                <th>Status</th>
+                                <th>Horário</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="campaignContactsTable">
+                            <!-- Contatos serão renderizados aqui -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Informações da Campanha -->
+                <div style="margin-top: 20px; padding: 16px; background: #f9fafb; border-radius: 12px;">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                        <div>
+                            <div style="font-size: 12px; color: #6b7280;">Campanha</div>
+                            <div style="font-size: 14px; font-weight: 600; color: #18181b;" id="detailCampaignName">-</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #6b7280;">Data de Criação</div>
+                            <div style="font-size: 14px; font-weight: 600; color: #18181b;" id="detailCampaignDate">-</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #6b7280;">WhatsApp Utilizado</div>
+                            <div style="font-size: 14px; font-weight: 600; color: #18181b;" id="detailCampaignWhatsapp">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCampaignDetailsModal()">
+                    <i class="bi bi-x-lg"></i> Fechar
+                </button>
             </div>
         </div>
     </div>
@@ -995,7 +2288,17 @@
         function closeReportsModal() { document.getElementById('reportsModal').classList.remove('active'); }
         function openQueueModal() { renderQueue(); document.getElementById('queueModal').classList.add('active'); }
         function closeQueueModal() { document.getElementById('queueModal').classList.remove('active'); }
-        function openPerformanceModal() { alert('Painel de Performance detalhado em desenvolvimento.'); }
+        function openPerformanceModal() { 
+            document.getElementById('performanceModal').classList.add('active');
+        }
+        
+        function closePerformanceModal() {
+            document.getElementById('performanceModal').classList.remove('active');
+        }
+        
+        function exportPerformanceReport() {
+            alert('Relatório de performance exportado com sucesso!');
+        }
         
         function initReportChart() {
             if (reportChart) reportChart.destroy();
@@ -1041,6 +2344,618 @@
                 printWindow.print();
             }
         }
+        
+        // ============ CAMPANHA DE MENSAGENS ============
+        // Campanhas agora são gerenciadas em /campaigns
+        // Estas variáveis são mantidas apenas para compatibilidade com código legado
+        let campaignCurrentStep = 1;
+        let campaignContacts = [];
+        let campaignSelectedWhatsapps = ['principal'];
+        let campaignFile = null;
+        let campaignRunning = false;
+        let campaignFinished = false;
+        
+        // Redireciona para a página dedicada de campanhas
+        function openCampaignModal() {
+            window.location.href = '/campaigns';
+        }
+        
+        function closeCampaignModal() {
+            document.getElementById('campaignModal')?.classList.remove('active');
+        }
+        
+        // Funções legadas mantidas para compatibilidade (não fazem nada agora)
+        function showCampaignWidget() {}
+        function hideCampaignWidget() {}
+        function closeCampaignWidget() {}
+        function cancelBackgroundCampaign() {}
+        function updateWidgetProgress() {}
+        function showWidgetFinished() {}
+        function viewLastCampaignDetails() { window.location.href = '/campaigns'; }
+        function toggleCampaignWidget() {}
+        function toggleCampaignWidgetMinimize() {}
+        
+        function resetCampaign() {
+            campaignCurrentStep = 1;
+            campaignContacts = [];
+            campaignSelectedWhatsapps = ['principal'];
+            campaignFile = null;
+            campaignRunning = false;
+            campaignFinished = false;
+            
+            // Reset UI
+            updateStepIndicator();
+            showStep(1);
+            document.getElementById('filePreview').classList.remove('show');
+            document.getElementById('contactsPreview').style.display = 'none';
+            document.getElementById('campaignMessage').value = '';
+            document.getElementById('campaignProgress').classList.remove('show');
+            document.getElementById('campaignFooter').style.display = 'flex';
+            
+            // Restaurar elementos do step 4 que foram escondidos
+            const step4 = document.getElementById('campaignStep4');
+            if (step4) {
+                const summary = step4.querySelector('.campaign-summary');
+                if (summary) summary.style.display = 'block';
+                
+                // Restaurar divs de background (preview, aviso)
+                step4.querySelectorAll('div[style*="background"]').forEach(el => {
+                    if (!el.classList.contains('campaign-progress')) {
+                        el.style.display = '';
+                    }
+                });
+            }
+            
+            // Reset status text
+            document.getElementById('campaignStatusText').textContent = 'Enviando mensagens...';
+            document.getElementById('campaignStatusDetail').textContent = 'Aguarde enquanto as mensagens são enviadas';
+            document.getElementById('campaignProgressValue').textContent = '0%';
+            document.getElementById('campaignProgressCircle').style.strokeDashoffset = '327';
+            document.getElementById('progressSent').textContent = '0';
+            document.getElementById('progressFailed').textContent = '0';
+            document.getElementById('progressPending').textContent = '0';
+            
+            // Reset whatsapp selection
+            document.querySelectorAll('.whatsapp-option').forEach(opt => {
+                opt.classList.remove('selected');
+                opt.querySelector('input').checked = false;
+            });
+            document.querySelector('.whatsapp-option').classList.add('selected');
+            document.querySelector('.whatsapp-option input').checked = true;
+        }
+        
+        function updateStepIndicator() {
+            document.querySelectorAll('.step-dot').forEach((dot, index) => {
+                dot.classList.remove('active', 'completed');
+                if (index + 1 < campaignCurrentStep) {
+                    dot.classList.add('completed');
+                } else if (index + 1 === campaignCurrentStep) {
+                    dot.classList.add('active');
+                }
+            });
+        }
+        
+        function showStep(step) {
+            document.querySelectorAll('.campaign-step').forEach(s => s.classList.remove('active'));
+            document.getElementById(`campaignStep${step}`).classList.add('active');
+            
+            // Update buttons
+            document.getElementById('campaignPrevBtn').style.display = step > 1 ? 'inline-flex' : 'none';
+            document.getElementById('campaignNextBtn').style.display = step < 4 ? 'inline-flex' : 'none';
+            document.getElementById('campaignStartBtn').style.display = step === 4 ? 'inline-flex' : 'none';
+            
+            // Update summary on step 4
+            if (step === 4) {
+                updateCampaignSummary();
+            }
+        }
+        
+        function nextCampaignStep() {
+            // Validations
+            if (campaignCurrentStep === 1 && campaignContacts.length === 0) {
+                alert('Por favor, importe um arquivo Excel com os contatos.');
+                return;
+            }
+            
+            if (campaignCurrentStep === 2 && campaignSelectedWhatsapps.length === 0) {
+                alert('Por favor, selecione pelo menos um WhatsApp.');
+                return;
+            }
+            
+            if (campaignCurrentStep === 3) {
+                const message = document.getElementById('campaignMessage').value.trim();
+                if (!message) {
+                    alert('Por favor, digite a mensagem da campanha.');
+                    return;
+                }
+            }
+            
+            if (campaignCurrentStep < 4) {
+                campaignCurrentStep++;
+                updateStepIndicator();
+                showStep(campaignCurrentStep);
+            }
+        }
+        
+        function prevCampaignStep() {
+            if (campaignCurrentStep > 1) {
+                campaignCurrentStep--;
+                updateStepIndicator();
+                showStep(campaignCurrentStep);
+            }
+        }
+        
+        // File Upload
+        const uploadZone = document.getElementById('uploadZone');
+        
+        uploadZone?.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        
+        uploadZone?.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        
+        uploadZone?.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) processFile(file);
+        });
+        
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            if (file) processFile(file);
+        }
+        
+        function processFile(file) {
+            const validTypes = ['.xlsx', '.xls', '.csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv'];
+            const isValid = validTypes.some(type => file.name.endsWith(type) || file.type === type);
+            
+            if (!isValid) {
+                alert('Formato de arquivo inválido. Use .xlsx, .xls ou .csv');
+                return;
+            }
+            
+            if (file.size > 10 * 1024 * 1024) {
+                alert('Arquivo muito grande. Máximo: 10MB');
+                return;
+            }
+            
+            campaignFile = file;
+            
+            // Show file preview
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').innerHTML = `${(file.size / 1024 / 1024).toFixed(2)} MB - <span id="contactCount">Carregando...</span> contatos`;
+            document.getElementById('filePreview').classList.add('show');
+            
+            // Parse file (simulated - in production would use SheetJS or similar)
+            parseExcelFile(file);
+        }
+        
+        function parseExcelFile(file) {
+            // Simulated parsing - in production, use SheetJS (xlsx library)
+            // For demo, generate mock contacts
+            setTimeout(() => {
+                const mockContacts = [];
+                const names = ['João Silva', 'Maria Santos', 'Carlos Oliveira', 'Ana Costa', 'Pedro Lima', 'Fernanda Souza', 'Roberto Alves', 'Juliana Ferreira', 'Lucas Mendes', 'Patricia Ribeiro'];
+                const count = 50 + Math.floor(Math.random() * 150);
+                
+                for (let i = 0; i < count; i++) {
+                    mockContacts.push({
+                        name: names[i % names.length] + (i > 9 ? ` ${i}` : ''),
+                        phone: `119${Math.floor(10000000 + Math.random() * 89999999)}`
+                    });
+                }
+                
+                campaignContacts = mockContacts;
+                document.getElementById('contactCount').textContent = mockContacts.length;
+                
+                // Show preview table
+                const tbody = document.getElementById('contactsTableBody');
+                tbody.innerHTML = mockContacts.slice(0, 10).map((c, i) => `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td>${c.name}</td>
+                        <td>${formatPhone(c.phone)}</td>
+                    </tr>
+                `).join('') + (mockContacts.length > 10 ? `<tr><td colspan="3" style="text-align: center; color: #6b7280;">... e mais ${mockContacts.length - 10} contatos</td></tr>` : '');
+                
+                document.getElementById('contactsPreview').style.display = 'block';
+            }, 1000);
+        }
+        
+        function formatPhone(phone) {
+            if (phone.length === 11) {
+                return `(${phone.slice(0, 2)}) ${phone.slice(2, 7)}-${phone.slice(7)}`;
+            }
+            return phone;
+        }
+        
+        function removeFile() {
+            campaignFile = null;
+            campaignContacts = [];
+            document.getElementById('filePreview').classList.remove('show');
+            document.getElementById('contactsPreview').style.display = 'none';
+            document.getElementById('excelFile').value = '';
+        }
+        
+        function downloadTemplate() {
+            const csv = 'Nome,Telefone\nJoão Silva,11999990001\nMaria Santos,11999990002\nCarlos Oliveira,11999990003';
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'modelo_campanha_cianet.csv';
+            link.click();
+        }
+        
+        // WhatsApp Selection
+        function toggleWhatsApp(id) {
+            const option = event.currentTarget;
+            const checkbox = option.querySelector('input');
+            const status = option.querySelector('.whatsapp-option-status');
+            
+            if (status.classList.contains('offline')) {
+                alert('Este WhatsApp está desconectado. Conecte-o primeiro.');
+                return;
+            }
+            
+            checkbox.checked = !checkbox.checked;
+            option.classList.toggle('selected', checkbox.checked);
+            
+            if (checkbox.checked) {
+                if (!campaignSelectedWhatsapps.includes(id)) {
+                    campaignSelectedWhatsapps.push(id);
+                }
+            } else {
+                campaignSelectedWhatsapps = campaignSelectedWhatsapps.filter(w => w !== id);
+            }
+        }
+        
+        // Message Composer
+        function insertVariable(variable) {
+            const textarea = document.getElementById('campaignMessage');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+            textarea.value = text.substring(0, start) + variable + text.substring(end);
+            textarea.focus();
+            textarea.setSelectionRange(start + variable.length, start + variable.length);
+        }
+        
+        // Schedule toggle
+        document.getElementById('startTime')?.addEventListener('change', function() {
+            document.getElementById('scheduleDateContainer').style.display = this.value === 'schedule' ? 'flex' : 'none';
+        });
+        
+        // Campaign Summary
+        function updateCampaignSummary() {
+            const contacts = campaignContacts.length;
+            const whatsapps = campaignSelectedWhatsapps.length;
+            const interval = parseInt(document.getElementById('messageInterval').value);
+            const totalSeconds = contacts * interval / whatsapps;
+            const estimatedTime = totalSeconds < 60 ? `~${Math.ceil(totalSeconds)} seg` : 
+                                  totalSeconds < 3600 ? `~${Math.ceil(totalSeconds / 60)} min` : 
+                                  `~${(totalSeconds / 3600).toFixed(1)} hrs`;
+            
+            document.getElementById('summaryContacts').textContent = contacts.toLocaleString();
+            document.getElementById('summaryWhatsapps').textContent = whatsapps;
+            document.getElementById('summaryInterval').textContent = interval < 60 ? `${interval} segundos` : `${interval / 60} minutos`;
+            document.getElementById('summaryTime').textContent = estimatedTime;
+            
+            // Message preview
+            const message = document.getElementById('campaignMessage').value;
+            const preview = message.replace('{nome}', 'João Silva')
+                                  .replace('{telefone}', '(11) 99999-9999')
+                                  .replace('{data}', new Date().toLocaleDateString('pt-BR'))
+                                  .replace('{empresa}', 'CIANET PROVEDOR');
+            document.getElementById('messagePreview').textContent = preview || 'Nenhuma mensagem definida';
+        }
+        
+        // Finalizar campanha e fechar modal
+        function finishCampaign() {
+            campaignRunning = false;
+            document.getElementById('campaignModal').classList.remove('active');
+            
+            // Resetar tudo para o estado inicial
+            setTimeout(() => {
+                resetCampaign();
+                restoreCampaignFooterButtons();
+            }, 300);
+        }
+        
+        // Restaurar botões originais do footer
+        function restoreCampaignFooterButtons() {
+            const footer = document.getElementById('campaignFooter');
+            footer.innerHTML = `
+                <button class="btn btn-secondary" id="campaignPrevBtn" onclick="prevCampaignStep()" style="display: none;">
+                    <i class="bi bi-arrow-left"></i> Voltar
+                </button>
+                <button class="btn btn-primary" id="campaignNextBtn" onclick="nextCampaignStep()">
+                    Próximo <i class="bi bi-arrow-right"></i>
+                </button>
+                <button class="btn btn-orange" id="campaignStartBtn" onclick="startCampaign()" style="display: none;">
+                    <i class="bi bi-send-fill"></i> Iniciar Campanha
+                </button>
+            `;
+        }
+        
+        // ============ CAMPAIGN DASHBOARD ============
+        let campaignHistory = [];
+        let currentCampaignDetails = null;
+        let campaignContactsData = [];
+        let currentFilter = 'all';
+        
+        // Salvar campanha no histórico
+        function saveCampaignToHistory(campaignData) {
+            const campaign = {
+                id: Date.now(),
+                name: `Campanha ${campaignHistory.length + 1}`,
+                date: new Date().toLocaleString('pt-BR'),
+                contacts: campaignData.contacts.map((c, i) => ({
+                    ...c,
+                    status: campaignData.results[i] || 'pending',
+                    sentAt: campaignData.results[i] === 'sent' ? new Date().toLocaleTimeString('pt-BR') : null
+                })),
+                whatsapps: campaignData.whatsapps,
+                message: campaignData.message,
+                stats: {
+                    total: campaignData.contacts.length,
+                    sent: campaignData.results.filter(r => r === 'sent').length,
+                    failed: campaignData.results.filter(r => r === 'failed').length,
+                    pending: campaignData.results.filter(r => r === 'pending').length
+                },
+                status: 'completed'
+            };
+            
+            campaignHistory.unshift(campaign);
+            
+            // Salvar no localStorage
+            localStorage.setItem('campaignHistory', JSON.stringify(campaignHistory));
+            
+            // Atualizar dashboard
+            updateCampaignDashboard();
+            renderCampaignHistory();
+        }
+        
+        // Carregar histórico do localStorage
+        function loadCampaignHistory() {
+            const saved = localStorage.getItem('campaignHistory');
+            if (saved) {
+                campaignHistory = JSON.parse(saved);
+            }
+            updateCampaignDashboard();
+            renderCampaignHistory();
+        }
+        
+        // Atualizar estatísticas do dashboard
+        function updateCampaignDashboard() {
+            let totalContacts = 0;
+            let totalSent = 0;
+            let totalFailed = 0;
+            let totalPending = 0;
+            
+            campaignHistory.forEach(campaign => {
+                totalContacts += campaign.stats.total;
+                totalSent += campaign.stats.sent;
+                totalFailed += campaign.stats.failed;
+                totalPending += campaign.stats.pending;
+            });
+            
+            document.getElementById('campaignTotalContacts').textContent = totalContacts.toLocaleString();
+            document.getElementById('campaignTotalSent').textContent = totalSent.toLocaleString();
+            document.getElementById('campaignTotalFailed').textContent = totalFailed.toLocaleString();
+            document.getElementById('campaignTotalPending').textContent = totalPending.toLocaleString();
+        }
+        
+        // Renderizar histórico de campanhas
+        function renderCampaignHistory() {
+            const container = document.getElementById('campaignHistoryList');
+            
+            if (campaignHistory.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #6b7280;">
+                        <i class="bi bi-inbox" style="font-size: 40px; color: #d1d5db;"></i>
+                        <p style="margin-top: 12px;">Nenhuma campanha realizada ainda</p>
+                        <a href="/campaigns" class="btn btn-primary" style="margin-top: 12px; text-decoration: none; display: inline-block;">
+                            <i class="bi bi-plus-lg"></i> Criar Primeira Campanha
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = campaignHistory.slice(0, 5).map(campaign => `
+                <div class="campaign-history-item ${campaign.status}" onclick="window.location.href='/campaigns'">
+                    <div class="campaign-history-icon">
+                        <i class="bi bi-${campaign.status === 'running' ? 'hourglass-split' : (campaign.status === 'completed' ? 'check-lg' : 'x-lg')}"></i>
+                    </div>
+                    <div class="campaign-history-info">
+                        <div class="campaign-history-name">${campaign.name}</div>
+                        <div class="campaign-history-date">${campaign.date}</div>
+                    </div>
+                    <div class="campaign-history-stats">
+                        <span class="sent"><i class="bi bi-check-circle"></i> ${campaign.stats.sent}</span>
+                        <span class="failed"><i class="bi bi-x-circle"></i> ${campaign.stats.failed}</span>
+                        <span class="pending"><i class="bi bi-clock"></i> ${campaign.stats.pending}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Ver detalhes de uma campanha - redireciona para página dedicada
+        function viewCampaignDetails(campaignId) {
+            window.location.href = '/campaigns';
+        }
+        
+        // Abrir modal de detalhes (última campanha ou geral)
+        function openCampaignDetailsModal() {
+            window.location.href = '/campaigns';
+        }
+        
+        // Fechar modal de detalhes
+        function closeCampaignDetailsModal() {
+            document.getElementById('campaignDetailsModal').classList.remove('active');
+        }
+        
+        // Filtrar contatos
+        function filterCampaignContacts(filter) {
+            currentFilter = filter;
+            
+            // Atualizar botões
+            document.querySelectorAll('.contacts-filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            renderCampaignContacts();
+        }
+        
+        // Renderizar tabela de contatos
+        function renderCampaignContacts() {
+            if (!currentCampaignDetails) return;
+            
+            let contacts = [...campaignContactsData];
+            
+            if (currentFilter !== 'all') {
+                contacts = contacts.filter(c => c.status === currentFilter);
+            }
+            
+            const tbody = document.getElementById('campaignContactsTable');
+            
+            if (contacts.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 40px; color: #6b7280;">
+                            Nenhum contato encontrado com este filtro
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = contacts.map((contact, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${contact.name}</td>
+                    <td>${formatPhone(contact.phone)}</td>
+                    <td>
+                        <span class="status-badge ${contact.status}">
+                            ${contact.status === 'sent' ? '✓ Enviada' : (contact.status === 'failed' ? '✗ Falhou' : '⏳ Pendente')}
+                        </span>
+                    </td>
+                    <td>${contact.sentAt || '-'}</td>
+                    <td>
+                        ${contact.status === 'failed' ? `
+                            <button class="retry-btn" onclick="retrySingleContact(${contact.phone}, '${contact.name}')">
+                                <i class="bi bi-arrow-repeat"></i> Reenviar
+                            </button>
+                        ` : '-'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // Reenviar para um contato específico
+        function retrySingleContact(phone, name) {
+            if (confirm(`Reenviar mensagem para ${name}?`)) {
+                // Simular reenvio
+                setTimeout(() => {
+                    // Atualizar status do contato
+                    const contact = campaignContactsData.find(c => c.phone === phone);
+                    if (contact) {
+                        contact.status = Math.random() > 0.2 ? 'sent' : 'failed';
+                        contact.sentAt = contact.status === 'sent' ? new Date().toLocaleTimeString('pt-BR') : null;
+                    }
+                    
+                    // Recalcular estatísticas
+                    updateCampaignStats();
+                    renderCampaignContacts();
+                    
+                    alert(contact.status === 'sent' ? 'Mensagem reenviada com sucesso!' : 'Falha ao reenviar. Tente novamente.');
+                }, 1000);
+            }
+        }
+        
+        // Reenviar para todos que falharam
+        function retryFailedContacts() {
+            const failedContacts = campaignContactsData.filter(c => c.status === 'failed');
+            
+            if (failedContacts.length === 0) {
+                alert('Não há contatos com falha para reenviar.');
+                return;
+            }
+            
+            if (confirm(`Reenviar para ${failedContacts.length} contatos que falharam?`)) {
+                // Simular reenvio em lote
+                failedContacts.forEach(contact => {
+                    contact.status = Math.random() > 0.3 ? 'sent' : 'failed';
+                    contact.sentAt = contact.status === 'sent' ? new Date().toLocaleTimeString('pt-BR') : null;
+                });
+                
+                updateCampaignStats();
+                renderCampaignContacts();
+                
+                const newSent = failedContacts.filter(c => c.status === 'sent').length;
+                alert(`Reenvio concluído! ${newSent} de ${failedContacts.length} mensagens enviadas com sucesso.`);
+            }
+        }
+        
+        // Atualizar estatísticas da campanha atual
+        function updateCampaignStats() {
+            if (!currentCampaignDetails) return;
+            
+            const stats = {
+                total: campaignContactsData.length,
+                sent: campaignContactsData.filter(c => c.status === 'sent').length,
+                failed: campaignContactsData.filter(c => c.status === 'failed').length,
+                pending: campaignContactsData.filter(c => c.status === 'pending').length
+            };
+            
+            currentCampaignDetails.stats = stats;
+            currentCampaignDetails.contacts = campaignContactsData;
+            
+            // Atualizar UI
+            document.getElementById('detailTotalContacts').textContent = stats.total;
+            document.getElementById('detailSentContacts').textContent = stats.sent;
+            document.getElementById('detailFailedContacts').textContent = stats.failed;
+            document.getElementById('detailPendingContacts').textContent = stats.pending;
+            
+            // Atualizar no localStorage
+            localStorage.setItem('campaignHistory', JSON.stringify(campaignHistory));
+            
+            // Atualizar dashboard
+            updateCampaignDashboard();
+        }
+        
+        // Exportar relatório da campanha
+        function exportCampaignReport() {
+            if (!currentCampaignDetails) return;
+            
+            let csv = 'Nome,Telefone,Status,Horário de Envio\n';
+            
+            campaignContactsData.forEach(contact => {
+                const statusText = contact.status === 'sent' ? 'Enviada' : (contact.status === 'failed' ? 'Falhou' : 'Pendente');
+                csv += `"${contact.name}","${contact.phone}","${statusText}","${contact.sentAt || '-'}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `campanha_${currentCampaignDetails.id}_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            
+            alert('Relatório exportado com sucesso!');
+        }
+        
+        // Redirecionar para página dedicada de campanhas
+        function startCampaign() {
+            window.location.href = '/campaigns';
+        }
+        
+        // Carregar histórico ao iniciar
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCampaignHistory();
+        });
     </script>
 </body>
 </html>

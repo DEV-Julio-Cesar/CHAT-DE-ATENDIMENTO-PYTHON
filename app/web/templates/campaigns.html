@@ -1,0 +1,2232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campanhas - CIANET PROVEDOR</title>
+    <link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📢</text></svg>">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f8fafc; }
+        .app-layout { display: flex; min-height: 100vh; }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #166534 0%, #15803d 30%, #22c55e 70%, #16a34a 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            box-shadow: 4px 0 25px rgba(22, 101, 52, 0.3);
+        }
+        
+        .sidebar-brand { padding: 28px 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); }
+        .sidebar-brand-logo { display: flex; align-items: center; gap: 14px; }
+        
+        .sidebar-brand-icon {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
+        }
+        
+        .sidebar-brand-text h1 { font-size: 20px; font-weight: 700; color: white; }
+        .sidebar-brand-text span { font-size: 12px; color: rgba(255, 255, 255, 0.75); }
+        
+        .sidebar-nav { flex: 1; padding: 20px 16px; overflow-y: auto; }
+        .nav-section { margin-bottom: 28px; }
+        
+        .nav-section-title {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1.5px; color: rgba(255, 255, 255, 0.5);
+            padding: 0 12px; margin-bottom: 12px;
+        }
+        
+        .nav-menu { list-style: none; }
+        
+        .nav-link {
+            display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+            color: rgba(255, 255, 255, 0.85); text-decoration: none;
+            border-radius: 14px; margin-bottom: 6px;
+            transition: all 0.3s ease; font-weight: 500;
+        }
+        
+        .nav-link:hover { background: rgba(255, 255, 255, 0.15); color: white; transform: translateX(4px); }
+        .nav-link.active { background: linear-gradient(135deg, #f97316, #ea580c); color: white; box-shadow: 0 8px 20px rgba(249, 115, 22, 0.35); }
+        .nav-link i { font-size: 20px; width: 24px; text-align: center; }
+        
+        .nav-badge {
+            margin-left: auto; background: #f97316; color: white;
+            font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;
+        }
+        
+        .nav-link.active .nav-badge { background: rgba(255, 255, 255, 0.25); }
+        
+        /* Main Content */
+        .main-content { flex: 1; margin-left: 280px; display: flex; flex-direction: column; }
+        
+        .top-header {
+            background: white; padding: 20px 32px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid #e5e7eb; position: sticky; top: 0;
+            z-index: 50; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        }
+        
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #18181b;
+        }
+        
+        .header-title i {
+            font-size: 28px;
+            color: #f97316;
+        }
+        
+        .header-actions { display: flex; align-items: center; gap: 16px; }
+        
+        .user-menu {
+            display: flex; align-items: center; gap: 12px;
+            padding: 8px 16px 8px 8px; background: linear-gradient(135deg, #f0fdf4, #fff7ed);
+            border-radius: 16px; cursor: pointer; border: 2px solid #dcfce7; transition: all 0.3s;
+        }
+        
+        .user-menu:hover { border-color: #22c55e; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15); }
+        
+        .user-avatar {
+            width: 40px; height: 40px; border-radius: 12px;
+            background: linear-gradient(135deg, #22c55e, #f97316); color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px;
+        }
+        
+        .user-info { text-align: left; }
+        .user-name { font-size: 14px; font-weight: 600; color: #1f2937; }
+        .user-role { font-size: 12px; color: #6b7280; }
+        
+        .page-content { padding: 32px; }
+        
+        /* Tabs Navigation */
+        .campaign-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: white;
+            padding: 8px;
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .campaign-tab {
+            flex: 1;
+            padding: 16px 24px;
+            border: none;
+            background: transparent;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .campaign-tab:hover {
+            background: #f4f4f5;
+            color: #18181b;
+        }
+        
+        .campaign-tab.active {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+        }
+        
+        .campaign-tab i {
+            font-size: 18px;
+        }
+        
+        .campaign-tab .badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+        
+        .campaign-tab.active .badge {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        
+        .card-header {
+            padding: 24px 28px;
+            border-bottom: 1px solid #f4f4f5;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #18181b;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .card-title i { color: #f97316; font-size: 22px; }
+        
+        .card-body { padding: 24px 28px; }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin: 0 auto 16px;
+        }
+        
+        .stat-card.total .stat-card-icon { background: #dbeafe; color: #2563eb; }
+        .stat-card.sent .stat-card-icon { background: #dcfce7; color: #16a34a; }
+        .stat-card.failed .stat-card-icon { background: #fee2e2; color: #dc2626; }
+        .stat-card.pending .stat-card-icon { background: #fff7ed; color: #ea580c; }
+        
+        .stat-card-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .stat-card.total .stat-card-value { color: #2563eb; }
+        .stat-card.sent .stat-card-value { color: #16a34a; }
+        .stat-card.failed .stat-card-value { color: #dc2626; }
+        .stat-card.pending .stat-card-value { color: #ea580c; }
+        
+        .stat-card-label {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        /* Campaign List */
+        .campaign-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .campaign-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 14px;
+            border-left: 4px solid #22c55e;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .campaign-item:hover {
+            background: #f0fdf4;
+            transform: translateX(4px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+        
+        .campaign-item.running {
+            border-left-color: #f97316;
+            background: #fff7ed;
+        }
+        
+        .campaign-item.running:hover {
+            background: #ffedd5;
+        }
+        
+        .campaign-item.completed {
+            border-left-color: #22c55e;
+        }
+        
+        .campaign-item.failed {
+            border-left-color: #dc2626;
+            background: #fef2f2;
+        }
+        
+        .campaign-item-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        
+        .campaign-item.running .campaign-item-icon {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        .campaign-item.completed .campaign-item-icon {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+        
+        .campaign-item.failed .campaign-item-icon {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+        
+        .campaign-item-info {
+            flex: 1;
+        }
+        
+        .campaign-item-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #18181b;
+            margin-bottom: 4px;
+        }
+        
+        .campaign-item-meta {
+            font-size: 13px;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .campaign-item-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .campaign-item-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .campaign-item-stats .sent { color: #16a34a; }
+        .campaign-item-stats .failed { color: #dc2626; }
+        .campaign-item-stats .pending { color: #f97316; }
+        
+        .campaign-item-progress {
+            width: 120px;
+        }
+        
+        .progress-bar-bg {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        
+        .progress-text {
+            font-size: 11px;
+            color: #6b7280;
+            text-align: center;
+            margin-top: 4px;
+        }
+        
+        .campaign-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .action-btn.view {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+        
+        .action-btn.delete {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .action-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
+        }
+        
+        .btn-orange {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+        }
+        
+        .btn-orange:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #f4f4f5;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+        }
+        
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .empty-state-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            background: #f4f4f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            color: #9ca3af;
+            margin: 0 auto 20px;
+        }
+        
+        .empty-state h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+        
+        .empty-state p {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+        
+        /* New Campaign Form */
+        .form-section {
+            margin-bottom: 32px;
+        }
+        
+        .form-section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #18181b;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-section-title .step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        /* Upload Zone */
+        .upload-zone {
+            border: 3px dashed #e5e7eb;
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fafafa;
+        }
+        
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #22c55e;
+            background: #f0fdf4;
+        }
+        
+        .upload-zone-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin: 0 auto 16px;
+        }
+        
+        .upload-zone h4 {
+            font-size: 16px;
+            color: #18181b;
+            margin-bottom: 8px;
+        }
+        
+        .upload-zone p {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .upload-zone small {
+            display: block;
+            margin-top: 12px;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        
+        .file-preview {
+            display: none;
+            background: #f0fdf4;
+            border: 2px solid #22c55e;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        
+        .file-preview.show { display: flex; align-items: center; gap: 12px; }
+        
+        .file-preview-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+        
+        .file-preview-info { flex: 1; }
+        .file-preview-name { font-weight: 600; color: #18181b; }
+        .file-preview-size { font-size: 12px; color: #6b7280; }
+        
+        .file-preview-remove {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: #fee2e2;
+            color: #dc2626;
+            cursor: pointer;
+        }
+        
+        .file-preview-remove:hover { background: #dc2626; color: white; }
+        
+        /* Contacts Preview */
+        .contacts-preview {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin-top: 16px;
+        }
+        
+        .contacts-preview table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .contacts-preview th, .contacts-preview td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #f4f4f5;
+        }
+        
+        .contacts-preview th {
+            background: #f9fafb;
+            font-weight: 600;
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+        
+        /* WhatsApp Selector */
+        .whatsapp-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .whatsapp-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .whatsapp-option:hover { border-color: #22c55e; background: #f0fdf4; }
+        .whatsapp-option.selected { border-color: #22c55e; background: #f0fdf4; }
+        .whatsapp-option input { display: none; }
+        
+        .whatsapp-option-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #25d366, #128c7e);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .whatsapp-option-info { flex: 1; }
+        .whatsapp-option-name { font-weight: 600; color: #18181b; font-size: 14px; }
+        .whatsapp-option-number { font-size: 12px; color: #6b7280; }
+        
+        .whatsapp-option-status {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .whatsapp-option-status.online { background: #dcfce7; color: #166534; }
+        .whatsapp-option-status.offline { background: #fee2e2; color: #991b1b; }
+        
+        /* Message Composer */
+        .message-composer {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 16px;
+        }
+        
+        .message-composer textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .message-composer textarea:focus {
+            outline: none;
+            border-color: #22c55e;
+        }
+        
+        .message-variables {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .variable-tag {
+            padding: 6px 12px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .variable-tag:hover { border-color: #22c55e; background: #f0fdf4; }
+        
+        /* Timing Options */
+        .timing-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        
+        .timing-option {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .timing-option label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .timing-option input, .timing-option select {
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+        
+        .timing-option input:focus, .timing-option select:focus {
+            outline: none;
+            border-color: #22c55e;
+        }
+        
+        /* Campaign Summary */
+        .campaign-summary {
+            background: linear-gradient(135deg, #f0fdf4, #fff7ed);
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 20px;
+        }
+        
+        .campaign-summary h4 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #18181b;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        
+        .summary-item {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .summary-item-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        
+        .summary-item-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #18181b;
+        }
+        
+        /* Campaign Progress */
+        .campaign-progress-card {
+            background: linear-gradient(135deg, #fff7ed, #f0fdf4);
+            border: 2px solid #f97316;
+            border-radius: 20px;
+            padding: 32px;
+            text-align: center;
+        }
+        
+        .progress-circle-large {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 24px;
+            position: relative;
+        }
+        
+        .progress-circle-large svg {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-circle-large circle {
+            fill: none;
+            stroke-width: 10;
+        }
+        
+        .progress-circle-large .bg { stroke: #e5e7eb; }
+        .progress-circle-large .progress { 
+            stroke: #22c55e; 
+            stroke-linecap: round; 
+            transition: stroke-dashoffset 0.3s;
+        }
+        
+        .progress-value-large {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            font-weight: 700;
+            color: #18181b;
+        }
+        
+        .progress-status {
+            font-size: 18px;
+            font-weight: 600;
+            color: #18181b;
+            margin-bottom: 8px;
+        }
+        
+        .progress-detail {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 24px;
+        }
+        
+        .progress-stats-large {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+        }
+        
+        .progress-stat-large {
+            text-align: center;
+        }
+        
+        .progress-stat-large-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .progress-stat-large-value.sent { color: #22c55e; }
+        .progress-stat-large-value.failed { color: #dc2626; }
+        .progress-stat-large-value.pending { color: #6b7280; }
+        
+        .progress-stat-large-label {
+            font-size: 13px;
+            color: #6b7280;
+        }
+        
+        /* Campaign Details */
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        
+        .detail-section {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .detail-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .detail-section-title i {
+            color: #f97316;
+        }
+        
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-item-label {
+            font-size: 13px;
+            color: #6b7280;
+        }
+        
+        .detail-item-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: #18181b;
+        }
+        
+        /* Contacts Table */
+        .contacts-table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+        }
+        
+        .contacts-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .contacts-table th,
+        .contacts-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #f4f4f5;
+        }
+        
+        .contacts-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            position: sticky;
+            top: 0;
+        }
+        
+        .contacts-table tr:hover {
+            background: #f9fafb;
+        }
+        
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .status-badge.sent { background: #dcfce7; color: #166534; }
+        .status-badge.failed { background: #fee2e2; color: #991b1b; }
+        .status-badge.pending { background: #fef3c7; color: #92400e; }
+        
+        .contacts-filter {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .filter-btn:hover {
+            border-color: #22c55e;
+            color: #22c55e;
+        }
+        
+        .filter-btn.active {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-color: #22c55e;
+            color: white;
+        }
+        
+        .retry-btn {
+            padding: 6px 12px;
+            border: none;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .retry-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            transform: translateY(20px) scale(0.95);
+            transition: all 0.3s;
+        }
+        
+        .modal-overlay.active .modal-content {
+            transform: translateY(0) scale(1);
+        }
+        
+        .modal-header {
+            padding: 24px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .modal-header h3 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        .modal-body {
+            padding: 24px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .summary-grid { grid-template-columns: repeat(2, 1fr); }
+            .details-grid { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .whatsapp-selector { grid-template-columns: 1fr; }
+            .campaign-tabs { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="sidebar-brand-logo">
+                    <div class="sidebar-brand-icon"><i class="bi bi-headset"></i></div>
+                    <div class="sidebar-brand-text">
+                        <h1>CIANET</h1>
+                        <span>Sistema de Atendimento</span>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Principal</div>
+                    <ul class="nav-menu">
+                        <li><a href="/dashboard" class="nav-link"><i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span></a></li>
+                        <li><a href="/chat" class="nav-link"><i class="bi bi-chat-dots-fill"></i><span>Atendimentos</span></a></li>
+                        <li><a href="/whatsapp" class="nav-link"><i class="bi bi-whatsapp"></i><span>WhatsApp</span></a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Gestão</div>
+                    <ul class="nav-menu">
+                        <li><a href="/customers" class="nav-link"><i class="bi bi-people-fill"></i><span>Clientes</span></a></li>
+                        <li><a href="/chatbot-admin" class="nav-link"><i class="bi bi-robot"></i><span>Treinar Chatbot</span></a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Marketing</div>
+                    <ul class="nav-menu">
+                        <li><a href="/campaigns" class="nav-link active"><i class="bi bi-megaphone-fill"></i><span>Campanhas</span><span class="nav-badge" id="runningBadge" style="display: none;">1</span></a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Sistema</div>
+                    <ul class="nav-menu">
+                        <li><a href="/users" class="nav-link"><i class="bi bi-person-badge-fill"></i><span>Usuários</span></a></li>
+                        <li><a href="/settings" class="nav-link"><i class="bi bi-gear-fill"></i><span>Configurações</span></a></li>
+                        <li><a href="/login" class="nav-link" onclick="localStorage.clear(); sessionStorage.clear();"><i class="bi bi-box-arrow-left"></i><span>Sair</span></a></li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-title">
+                    <i class="bi bi-megaphone-fill"></i>
+                    <h1>Campanhas de Mensagens</h1>
+                </div>
+                
+                <div class="header-actions">
+                    <div class="user-menu">
+                        <div class="user-avatar" id="userAvatar">AD</div>
+                        <div class="user-info">
+                            <div class="user-name" id="userName">Administrador</div>
+                            <div class="user-role" id="userRole">Supervisor</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <div class="page-content">
+                <!-- Tabs Navigation -->
+                <div class="campaign-tabs">
+                    <button class="campaign-tab active" onclick="showTab('overview')">
+                        <i class="bi bi-grid-1x2"></i>
+                        <span>Visão Geral</span>
+                    </button>
+                    <button class="campaign-tab" onclick="showTab('new')">
+                        <i class="bi bi-plus-circle"></i>
+                        <span>Nova Campanha</span>
+                    </button>
+                    <button class="campaign-tab" onclick="showTab('running')" id="runningTab">
+                        <i class="bi bi-play-circle"></i>
+                        <span>Em Andamento</span>
+                        <span class="badge" id="runningCount">0</span>
+                    </button>
+                    <button class="campaign-tab" onclick="showTab('history')">
+                        <i class="bi bi-clock-history"></i>
+                        <span>Histórico</span>
+                    </button>
+                </div>
+                
+                <!-- Tab: Overview -->
+                <div class="tab-content active" id="tab-overview">
+                    <!-- Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card total">
+                            <div class="stat-card-icon"><i class="bi bi-people"></i></div>
+                            <div class="stat-card-value" id="totalContacts">0</div>
+                            <div class="stat-card-label">Total de Contatos</div>
+                        </div>
+                        <div class="stat-card sent">
+                            <div class="stat-card-icon"><i class="bi bi-check-circle"></i></div>
+                            <div class="stat-card-value" id="totalSent">0</div>
+                            <div class="stat-card-label">Mensagens Enviadas</div>
+                        </div>
+                        <div class="stat-card failed">
+                            <div class="stat-card-icon"><i class="bi bi-x-circle"></i></div>
+                            <div class="stat-card-value" id="totalFailed">0</div>
+                            <div class="stat-card-label">Falhas</div>
+                        </div>
+                        <div class="stat-card pending">
+                            <div class="stat-card-icon"><i class="bi bi-clock"></i></div>
+                            <div class="stat-card-value" id="totalPending">0</div>
+                            <div class="stat-card-label">Pendentes</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Campaigns -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="bi bi-list-ul"></i> Campanhas Recentes</h3>
+                            <button class="btn btn-orange" onclick="showTab('new')">
+                                <i class="bi bi-plus-lg"></i> Nova Campanha
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="campaign-list" id="recentCampaigns">
+                                <!-- Dynamic content -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tab: New Campaign -->
+                <div class="tab-content" id="tab-new">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="bi bi-plus-circle"></i> Criar Nova Campanha</h3>
+                        </div>
+                        <div class="card-body">
+                            <!-- Step 1: Upload -->
+                            <div class="form-section">
+                                <div class="form-section-title">
+                                    <span class="step-number">1</span>
+                                    Importar Contatos
+                                </div>
+                                <div class="upload-zone" id="uploadZone" onclick="document.getElementById('excelFile').click()">
+                                    <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" style="display: none;" onchange="handleFileUpload(this)">
+                                    <div class="upload-zone-icon"><i class="bi bi-file-earmark-excel"></i></div>
+                                    <h4>Arraste o arquivo Excel ou clique para selecionar</h4>
+                                    <p>Formatos aceitos: .xlsx, .xls, .csv</p>
+                                    <small>Máximo: 10MB | Colunas: Nome, Telefone</small>
+                                </div>
+                                <div class="file-preview" id="filePreview">
+                                    <div class="file-preview-icon"><i class="bi bi-file-earmark-check"></i></div>
+                                    <div class="file-preview-info">
+                                        <div class="file-preview-name" id="fileName">arquivo.xlsx</div>
+                                        <div class="file-preview-size" id="fileSize">0 KB</div>
+                                    </div>
+                                    <button class="file-preview-remove" onclick="removeFile()"><i class="bi bi-x"></i></button>
+                                </div>
+                                <div class="contacts-preview" id="contactsPreview" style="display: none;">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Nome</th>
+                                                <th>Telefone</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="contactsTableBody"></tbody>
+                                    </table>
+                                </div>
+                                <div style="margin-top: 12px; text-align: center;">
+                                    <button class="btn btn-secondary" onclick="downloadTemplate()">
+                                        <i class="bi bi-download"></i> Baixar Modelo
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 2: WhatsApp Selection -->
+                            <div class="form-section">
+                                <div class="form-section-title">
+                                    <span class="step-number">2</span>
+                                    Selecionar WhatsApp
+                                </div>
+                                <div class="whatsapp-selector">
+                                    <div class="whatsapp-option selected" onclick="toggleWhatsApp('principal')">
+                                        <input type="checkbox" id="wp_principal" checked>
+                                        <div class="whatsapp-option-icon"><i class="bi bi-whatsapp"></i></div>
+                                        <div class="whatsapp-option-info">
+                                            <div class="whatsapp-option-name">WhatsApp Principal</div>
+                                            <div class="whatsapp-option-number">+55 (47) 3333-0001</div>
+                                        </div>
+                                        <span class="whatsapp-option-status online">Conectado</span>
+                                    </div>
+                                    <div class="whatsapp-option" onclick="toggleWhatsApp('suporte')">
+                                        <input type="checkbox" id="wp_suporte">
+                                        <div class="whatsapp-option-icon"><i class="bi bi-whatsapp"></i></div>
+                                        <div class="whatsapp-option-info">
+                                            <div class="whatsapp-option-name">WhatsApp Suporte</div>
+                                            <div class="whatsapp-option-number">+55 (47) 3333-0002</div>
+                                        </div>
+                                        <span class="whatsapp-option-status online">Conectado</span>
+                                    </div>
+                                    <div class="whatsapp-option" onclick="toggleWhatsApp('vendas')">
+                                        <input type="checkbox" id="wp_vendas">
+                                        <div class="whatsapp-option-icon"><i class="bi bi-whatsapp"></i></div>
+                                        <div class="whatsapp-option-info">
+                                            <div class="whatsapp-option-name">WhatsApp Vendas</div>
+                                            <div class="whatsapp-option-number">+55 (47) 3333-0003</div>
+                                        </div>
+                                        <span class="whatsapp-option-status online">Conectado</span>
+                                    </div>
+                                    <div class="whatsapp-option" onclick="toggleWhatsApp('cobranca')">
+                                        <input type="checkbox" id="wp_cobranca">
+                                        <div class="whatsapp-option-icon"><i class="bi bi-whatsapp"></i></div>
+                                        <div class="whatsapp-option-info">
+                                            <div class="whatsapp-option-name">WhatsApp Cobrança</div>
+                                            <div class="whatsapp-option-number">+55 (47) 3333-0004</div>
+                                        </div>
+                                        <span class="whatsapp-option-status offline">Desconectado</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 3: Message -->
+                            <div class="form-section">
+                                <div class="form-section-title">
+                                    <span class="step-number">3</span>
+                                    Compor Mensagem
+                                </div>
+                                <div class="message-composer">
+                                    <textarea id="campaignMessage" placeholder="Digite sua mensagem aqui...&#10;&#10;Exemplo: Olá {nome}! Temos uma oferta especial para você..."></textarea>
+                                    <div class="message-variables">
+                                        <span class="variable-tag" onclick="insertVariable('{nome}')"><i class="bi bi-person"></i> {nome}</span>
+                                        <span class="variable-tag" onclick="insertVariable('{telefone}')"><i class="bi bi-phone"></i> {telefone}</span>
+                                        <span class="variable-tag" onclick="insertVariable('{data}')"><i class="bi bi-calendar"></i> {data}</span>
+                                        <span class="variable-tag" onclick="insertVariable('{empresa}')"><i class="bi bi-building"></i> {empresa}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 4: Settings -->
+                            <div class="form-section">
+                                <div class="form-section-title">
+                                    <span class="step-number">4</span>
+                                    Configurações de Envio
+                                </div>
+                                <div class="timing-options">
+                                    <div class="timing-option">
+                                        <label>Intervalo entre mensagens</label>
+                                        <select id="messageInterval">
+                                            <option value="3">3 segundos</option>
+                                            <option value="5" selected>5 segundos</option>
+                                            <option value="10">10 segundos</option>
+                                            <option value="15">15 segundos</option>
+                                            <option value="30">30 segundos</option>
+                                            <option value="60">1 minuto</option>
+                                        </select>
+                                    </div>
+                                    <div class="timing-option">
+                                        <label>Nome da Campanha</label>
+                                        <input type="text" id="campaignName" placeholder="Ex: Promoção Janeiro 2026">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Summary -->
+                            <div class="campaign-summary" id="campaignSummary" style="display: none;">
+                                <h4><i class="bi bi-clipboard-check"></i> Resumo da Campanha</h4>
+                                <div class="summary-grid">
+                                    <div class="summary-item">
+                                        <div class="summary-item-label">Contatos</div>
+                                        <div class="summary-item-value" id="summaryContacts">0</div>
+                                    </div>
+                                    <div class="summary-item">
+                                        <div class="summary-item-label">WhatsApps</div>
+                                        <div class="summary-item-value" id="summaryWhatsapps">1</div>
+                                    </div>
+                                    <div class="summary-item">
+                                        <div class="summary-item-label">Intervalo</div>
+                                        <div class="summary-item-value" id="summaryInterval">5 seg</div>
+                                    </div>
+                                    <div class="summary-item">
+                                        <div class="summary-item-label">Tempo Estimado</div>
+                                        <div class="summary-item-value" id="summaryTime">~0 min</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Actions -->
+                            <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+                                <button class="btn btn-secondary" onclick="resetNewCampaign()">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Limpar
+                                </button>
+                                <button class="btn btn-orange" onclick="startCampaign()">
+                                    <i class="bi bi-send-fill"></i> Iniciar Campanha
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tab: Running Campaigns -->
+                <div class="tab-content" id="tab-running">
+                    <div id="runningCampaignsContainer">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+                
+                <!-- Tab: History -->
+                <div class="tab-content" id="tab-history">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="bi bi-clock-history"></i> Histórico de Campanhas</h3>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-secondary" onclick="exportAllCampaigns()">
+                                    <i class="bi bi-download"></i> Exportar Tudo
+                                </button>
+                                <button class="btn btn-danger" onclick="clearHistory()">
+                                    <i class="bi bi-trash"></i> Limpar Histórico
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="campaign-list" id="historyList">
+                                <!-- Dynamic content -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Modal: Campaign Details -->
+    <div class="modal-overlay" id="detailsModal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3 id="modalCampaignName">Detalhes da Campanha</h3>
+                <button class="modal-close" onclick="closeDetailsModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <!-- Stats -->
+                <div class="stats-grid" style="margin-bottom: 24px;">
+                    <div class="stat-card total" style="padding: 16px;">
+                        <div class="stat-card-value" style="font-size: 24px;" id="modalTotal">0</div>
+                        <div class="stat-card-label">Total</div>
+                    </div>
+                    <div class="stat-card sent" style="padding: 16px;">
+                        <div class="stat-card-value" style="font-size: 24px;" id="modalSent">0</div>
+                        <div class="stat-card-label">Enviadas</div>
+                    </div>
+                    <div class="stat-card failed" style="padding: 16px;">
+                        <div class="stat-card-value" style="font-size: 24px;" id="modalFailed">0</div>
+                        <div class="stat-card-label">Falhas</div>
+                    </div>
+                    <div class="stat-card pending" style="padding: 16px;">
+                        <div class="stat-card-value" style="font-size: 24px;" id="modalPending">0</div>
+                        <div class="stat-card-label">Pendentes</div>
+                    </div>
+                </div>
+                
+                <!-- Filters -->
+                <div class="contacts-filter">
+                    <button class="filter-btn active" onclick="filterContacts('all')">Todos</button>
+                    <button class="filter-btn" onclick="filterContacts('sent')">Enviadas</button>
+                    <button class="filter-btn" onclick="filterContacts('failed')">Falhas</button>
+                    <button class="filter-btn" onclick="filterContacts('pending')">Pendentes</button>
+                </div>
+                
+                <!-- Contacts Table -->
+                <div class="contacts-table-container">
+                    <table class="contacts-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nome</th>
+                                <th>Telefone</th>
+                                <th>Status</th>
+                                <th>Horário</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalContactsTable">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDetailsModal()">Fechar</button>
+                <button class="btn btn-orange" onclick="retryFailed()">
+                    <i class="bi bi-arrow-repeat"></i> Reenviar Falhas
+                </button>
+                <button class="btn btn-primary" onclick="exportCampaignReport()">
+                    <i class="bi bi-download"></i> Exportar CSV
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ STATE ============
+        let campaigns = [];
+        let currentCampaign = null;
+        let contacts = [];
+        let selectedWhatsapps = ['principal'];
+        let campaignFile = null;
+        let currentFilter = 'all';
+        
+        // ============ INITIALIZATION ============
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+            if (!token) { window.location.href = '/login'; return; }
+            
+            loadUserInfo();
+            loadCampaigns();
+            setupUploadZone();
+            updateSummary();
+        });
+        
+        function loadUserInfo() {
+            const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
+            if (user.nome) {
+                document.getElementById('userName').textContent = user.nome;
+                document.getElementById('userRole').textContent = user.role || 'Usuário';
+                document.getElementById('userAvatar').textContent = user.nome.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            }
+        }
+        
+        // ============ TABS ============
+        function showTab(tabId) {
+            document.querySelectorAll('.campaign-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.currentTarget.classList.add('active');
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            
+            if (tabId === 'running') renderRunningCampaigns();
+            if (tabId === 'history') renderHistory();
+            if (tabId === 'overview') renderOverview();
+        }
+        
+        // ============ CAMPAIGNS MANAGEMENT ============
+        function loadCampaigns() {
+            const saved = localStorage.getItem('campaigns');
+            if (saved) {
+                campaigns = JSON.parse(saved);
+            }
+            updateStats();
+            renderOverview();
+            updateRunningCount();
+        }
+        
+        function saveCampaigns() {
+            localStorage.setItem('campaigns', JSON.stringify(campaigns));
+            updateStats();
+            updateRunningCount();
+        }
+        
+        function updateStats() {
+            let total = 0, sent = 0, failed = 0, pending = 0;
+            
+            campaigns.forEach(c => {
+                total += c.stats.total;
+                sent += c.stats.sent;
+                failed += c.stats.failed;
+                pending += c.stats.pending;
+            });
+            
+            document.getElementById('totalContacts').textContent = total.toLocaleString();
+            document.getElementById('totalSent').textContent = sent.toLocaleString();
+            document.getElementById('totalFailed').textContent = failed.toLocaleString();
+            document.getElementById('totalPending').textContent = pending.toLocaleString();
+        }
+        
+        function updateRunningCount() {
+            const running = campaigns.filter(c => c.status === 'running').length;
+            document.getElementById('runningCount').textContent = running;
+            document.getElementById('runningBadge').style.display = running > 0 ? 'inline' : 'none';
+            document.getElementById('runningBadge').textContent = running;
+        }
+        
+        // ============ RENDER FUNCTIONS ============
+        function renderOverview() {
+            const container = document.getElementById('recentCampaigns');
+            
+            if (campaigns.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="bi bi-megaphone"></i></div>
+                        <h3>Nenhuma campanha ainda</h3>
+                        <p>Crie sua primeira campanha para começar a enviar mensagens em massa.</p>
+                        <button class="btn btn-orange" onclick="showTab('new')">
+                            <i class="bi bi-plus-lg"></i> Criar Campanha
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = campaigns.slice(0, 5).map((c, i) => renderCampaignItem(c, i)).join('');
+        }
+        
+        function renderHistory() {
+            const container = document.getElementById('historyList');
+            
+            if (campaigns.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="bi bi-clock-history"></i></div>
+                        <h3>Histórico vazio</h3>
+                        <p>Suas campanhas finalizadas aparecerão aqui.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = campaigns.map((c, i) => renderCampaignItem(c, i)).join('');
+        }
+        
+        function renderCampaignItem(campaign, index) {
+            const progress = campaign.stats.total > 0 ? 
+                Math.round(((campaign.stats.sent + campaign.stats.failed) / campaign.stats.total) * 100) : 0;
+            
+            return `
+                <div class="campaign-item ${campaign.status}" onclick="viewCampaign(${index})">
+                    <div class="campaign-item-icon">
+                        <i class="bi bi-${campaign.status === 'running' ? 'hourglass-split' : (campaign.status === 'completed' ? 'check-lg' : 'x-lg')}"></i>
+                    </div>
+                    <div class="campaign-item-info">
+                        <div class="campaign-item-name">${campaign.name}</div>
+                        <div class="campaign-item-meta">
+                            <span><i class="bi bi-calendar"></i> ${campaign.date}</span>
+                            <span><i class="bi bi-people"></i> ${campaign.stats.total} contatos</span>
+                        </div>
+                    </div>
+                    <div class="campaign-item-stats">
+                        <span class="sent"><i class="bi bi-check-circle"></i> ${campaign.stats.sent}</span>
+                        <span class="failed"><i class="bi bi-x-circle"></i> ${campaign.stats.failed}</span>
+                        <span class="pending"><i class="bi bi-clock"></i> ${campaign.stats.pending}</span>
+                    </div>
+                    <div class="campaign-item-progress">
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: ${progress}%"></div>
+                        </div>
+                        <div class="progress-text">${progress}% concluído</div>
+                    </div>
+                    <div class="campaign-item-actions">
+                        <button class="action-btn view" onclick="event.stopPropagation(); viewCampaign(${index})">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="action-btn delete" onclick="event.stopPropagation(); deleteCampaign(${index})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderRunningCampaigns() {
+            const container = document.getElementById('runningCampaignsContainer');
+            const running = campaigns.filter(c => c.status === 'running');
+            
+            if (running.length === 0) {
+                container.innerHTML = `
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="empty-state">
+                                <div class="empty-state-icon"><i class="bi bi-play-circle"></i></div>
+                                <h3>Nenhuma campanha em andamento</h3>
+                                <p>Inicie uma nova campanha para ver o progresso aqui.</p>
+                                <button class="btn btn-orange" onclick="showTab('new')">
+                                    <i class="bi bi-plus-lg"></i> Nova Campanha
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = running.map((c, i) => {
+                const idx = campaigns.indexOf(c);
+                const progress = c.stats.total > 0 ? 
+                    Math.round(((c.stats.sent + c.stats.failed) / c.stats.total) * 100) : 0;
+                const circumference = 2 * Math.PI * 60;
+                const offset = circumference - (progress / 100) * circumference;
+                
+                return `
+                    <div class="card" style="margin-bottom: 24px;">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="bi bi-send"></i> ${c.name}</h3>
+                            <button class="btn btn-danger" onclick="cancelCampaign(${idx})">
+                                <i class="bi bi-stop-fill"></i> Cancelar
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="campaign-progress-card">
+                                <div class="progress-circle-large">
+                                    <svg width="150" height="150">
+                                        <circle class="bg" cx="75" cy="75" r="60" stroke-dasharray="${circumference}"/>
+                                        <circle class="progress" cx="75" cy="75" r="60" 
+                                            stroke-dasharray="${circumference}" 
+                                            stroke-dashoffset="${offset}"
+                                            id="progressCircle_${idx}"/>
+                                    </svg>
+                                    <div class="progress-value-large" id="progressValue_${idx}">${progress}%</div>
+                                </div>
+                                <div class="progress-status" id="progressStatus_${idx}">Enviando mensagens...</div>
+                                <div class="progress-detail" id="progressDetail_${idx}">
+                                    ${c.stats.sent + c.stats.failed} de ${c.stats.total} mensagens processadas
+                                </div>
+                                <div class="progress-stats-large">
+                                    <div class="progress-stat-large">
+                                        <div class="progress-stat-large-value sent" id="sent_${idx}">${c.stats.sent}</div>
+                                        <div class="progress-stat-large-label">Enviadas</div>
+                                    </div>
+                                    <div class="progress-stat-large">
+                                        <div class="progress-stat-large-value failed" id="failed_${idx}">${c.stats.failed}</div>
+                                        <div class="progress-stat-large-label">Falhas</div>
+                                    </div>
+                                    <div class="progress-stat-large">
+                                        <div class="progress-stat-large-value pending" id="pending_${idx}">${c.stats.pending}</div>
+                                        <div class="progress-stat-large-label">Pendentes</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // ============ FILE UPLOAD ============
+        function setupUploadZone() {
+            const zone = document.getElementById('uploadZone');
+            
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('dragover');
+            });
+            
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('dragover');
+            });
+            
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file) processFile(file);
+            });
+        }
+        
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            if (file) processFile(file);
+        }
+        
+        function processFile(file) {
+            const validTypes = ['.xlsx', '.xls', '.csv'];
+            const isValid = validTypes.some(type => file.name.toLowerCase().endsWith(type));
+            
+            if (!isValid) {
+                alert('Formato inválido. Use .xlsx, .xls ou .csv');
+                return;
+            }
+            
+            if (file.size > 10 * 1024 * 1024) {
+                alert('Arquivo muito grande. Máximo: 10MB');
+                return;
+            }
+            
+            campaignFile = file;
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = `${(file.size / 1024).toFixed(1)} KB`;
+            document.getElementById('filePreview').classList.add('show');
+            
+            // Simulate parsing
+            setTimeout(() => {
+                const mockContacts = [];
+                const names = ['João Silva', 'Maria Santos', 'Carlos Oliveira', 'Ana Costa', 'Pedro Lima'];
+                const count = 50 + Math.floor(Math.random() * 150);
+                
+                for (let i = 0; i < count; i++) {
+                    mockContacts.push({
+                        name: names[i % names.length] + (i > 4 ? ` ${i}` : ''),
+                        phone: `119${Math.floor(10000000 + Math.random() * 89999999)}`,
+                        status: 'pending',
+                        sentAt: null
+                    });
+                }
+                
+                contacts = mockContacts;
+                
+                // Show preview
+                const tbody = document.getElementById('contactsTableBody');
+                tbody.innerHTML = contacts.slice(0, 10).map((c, i) => `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td>${c.name}</td>
+                        <td>${formatPhone(c.phone)}</td>
+                    </tr>
+                `).join('') + (contacts.length > 10 ? `<tr><td colspan="3" style="text-align: center; color: #6b7280;">... e mais ${contacts.length - 10} contatos</td></tr>` : '');
+                
+                document.getElementById('contactsPreview').style.display = 'block';
+                updateSummary();
+            }, 500);
+        }
+        
+        function removeFile() {
+            campaignFile = null;
+            contacts = [];
+            document.getElementById('filePreview').classList.remove('show');
+            document.getElementById('contactsPreview').style.display = 'none';
+            document.getElementById('excelFile').value = '';
+            updateSummary();
+        }
+        
+        function downloadTemplate() {
+            const csv = 'Nome,Telefone\nJoão Silva,11999990001\nMaria Santos,11999990002';
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'modelo_campanha.csv';
+            link.click();
+        }
+        
+        function formatPhone(phone) {
+            if (phone.length === 11) {
+                return `(${phone.slice(0, 2)}) ${phone.slice(2, 7)}-${phone.slice(7)}`;
+            }
+            return phone;
+        }
+        
+        // ============ WHATSAPP SELECTION ============
+        function toggleWhatsApp(id) {
+            const option = event.currentTarget;
+            const checkbox = option.querySelector('input');
+            const status = option.querySelector('.whatsapp-option-status');
+            
+            if (status.classList.contains('offline')) {
+                alert('Este WhatsApp está desconectado.');
+                return;
+            }
+            
+            checkbox.checked = !checkbox.checked;
+            option.classList.toggle('selected', checkbox.checked);
+            
+            if (checkbox.checked) {
+                if (!selectedWhatsapps.includes(id)) selectedWhatsapps.push(id);
+            } else {
+                selectedWhatsapps = selectedWhatsapps.filter(w => w !== id);
+            }
+            
+            updateSummary();
+        }
+        
+        // ============ MESSAGE COMPOSER ============
+        function insertVariable(variable) {
+            const textarea = document.getElementById('campaignMessage');
+            const start = textarea.selectionStart;
+            const text = textarea.value;
+            textarea.value = text.substring(0, start) + variable + text.substring(textarea.selectionEnd);
+            textarea.focus();
+            textarea.setSelectionRange(start + variable.length, start + variable.length);
+        }
+        
+        // ============ SUMMARY ============
+        function updateSummary() {
+            const total = contacts.length;
+            const whatsapps = selectedWhatsapps.length;
+            const interval = parseInt(document.getElementById('messageInterval').value);
+            const totalSeconds = total * interval / Math.max(whatsapps, 1);
+            const estimatedTime = totalSeconds < 60 ? `~${Math.ceil(totalSeconds)} seg` : 
+                                  totalSeconds < 3600 ? `~${Math.ceil(totalSeconds / 60)} min` : 
+                                  `~${(totalSeconds / 3600).toFixed(1)} hrs`;
+            
+            document.getElementById('summaryContacts').textContent = total.toLocaleString();
+            document.getElementById('summaryWhatsapps').textContent = whatsapps;
+            document.getElementById('summaryInterval').textContent = `${interval} seg`;
+            document.getElementById('summaryTime').textContent = estimatedTime;
+            
+            document.getElementById('campaignSummary').style.display = total > 0 ? 'block' : 'none';
+        }
+        
+        // ============ START CAMPAIGN ============
+        function startCampaign() {
+            if (contacts.length === 0) {
+                alert('Importe um arquivo com contatos primeiro.');
+                return;
+            }
+            
+            if (selectedWhatsapps.length === 0) {
+                alert('Selecione pelo menos um WhatsApp.');
+                return;
+            }
+            
+            const message = document.getElementById('campaignMessage').value.trim();
+            if (!message) {
+                alert('Digite a mensagem da campanha.');
+                return;
+            }
+            
+            if (!confirm(`Iniciar campanha com ${contacts.length} contatos?`)) {
+                return;
+            }
+            
+            const name = document.getElementById('campaignName').value.trim() || `Campanha ${campaigns.length + 1}`;
+            const interval = parseInt(document.getElementById('messageInterval').value) * 1000;
+            
+            // Create campaign
+            const campaign = {
+                id: Date.now(),
+                name: name,
+                date: new Date().toLocaleString('pt-BR'),
+                status: 'running',
+                contacts: contacts.map(c => ({ ...c, status: 'pending', sentAt: null })),
+                whatsapps: [...selectedWhatsapps],
+                message: message,
+                interval: interval,
+                stats: {
+                    total: contacts.length,
+                    sent: 0,
+                    failed: 0,
+                    pending: contacts.length
+                }
+            };
+            
+            campaigns.unshift(campaign);
+            saveCampaigns();
+            
+            // Switch to running tab
+            document.querySelector('.campaign-tab:nth-child(3)').click();
+            
+            // Start sending
+            runCampaign(0);
+            
+            // Reset form
+            resetNewCampaign();
+        }
+        
+        function runCampaign(campaignIndex) {
+            const campaign = campaigns[campaignIndex];
+            if (!campaign || campaign.status !== 'running') return;
+            
+            const interval = campaign.interval / 10; // Speed up for demo
+            let currentIndex = campaign.stats.sent + campaign.stats.failed;
+            
+            const sendInterval = setInterval(() => {
+                if (campaign.status !== 'running' || currentIndex >= campaign.stats.total) {
+                    clearInterval(sendInterval);
+                    
+                    if (currentIndex >= campaign.stats.total) {
+                        campaign.status = 'completed';
+                        saveCampaigns();
+                        renderRunningCampaigns();
+                        updateRunningCount();
+                    }
+                    return;
+                }
+                
+                // Simulate send (90% success)
+                if (Math.random() > 0.1) {
+                    campaign.contacts[currentIndex].status = 'sent';
+                    campaign.contacts[currentIndex].sentAt = new Date().toLocaleTimeString('pt-BR');
+                    campaign.stats.sent++;
+                } else {
+                    campaign.contacts[currentIndex].status = 'failed';
+                    campaign.stats.failed++;
+                }
+                
+                campaign.stats.pending = campaign.stats.total - campaign.stats.sent - campaign.stats.failed;
+                currentIndex++;
+                
+                saveCampaigns();
+                updateCampaignProgress(campaignIndex);
+                
+            }, interval);
+        }
+        
+        function updateCampaignProgress(index) {
+            const campaign = campaigns[index];
+            if (!campaign) return;
+            
+            const progress = Math.round(((campaign.stats.sent + campaign.stats.failed) / campaign.stats.total) * 100);
+            const circumference = 2 * Math.PI * 60;
+            const offset = circumference - (progress / 100) * circumference;
+            
+            const circle = document.getElementById(`progressCircle_${index}`);
+            const value = document.getElementById(`progressValue_${index}`);
+            const status = document.getElementById(`progressStatus_${index}`);
+            const detail = document.getElementById(`progressDetail_${index}`);
+            const sent = document.getElementById(`sent_${index}`);
+            const failed = document.getElementById(`failed_${index}`);
+            const pending = document.getElementById(`pending_${index}`);
+            
+            if (circle) circle.style.strokeDashoffset = offset;
+            if (value) value.textContent = `${progress}%`;
+            if (status) status.textContent = campaign.status === 'completed' ? '✅ Campanha Finalizada!' : 'Enviando mensagens...';
+            if (detail) detail.textContent = `${campaign.stats.sent + campaign.stats.failed} de ${campaign.stats.total} mensagens`;
+            if (sent) sent.textContent = campaign.stats.sent;
+            if (failed) failed.textContent = campaign.stats.failed;
+            if (pending) pending.textContent = campaign.stats.pending;
+            
+            updateStats();
+        }
+        
+        function cancelCampaign(index) {
+            if (!confirm('Cancelar esta campanha?')) return;
+            
+            campaigns[index].status = 'cancelled';
+            saveCampaigns();
+            renderRunningCampaigns();
+            updateRunningCount();
+        }
+        
+        function resetNewCampaign() {
+            contacts = [];
+            campaignFile = null;
+            selectedWhatsapps = ['principal'];
+            
+            document.getElementById('excelFile').value = '';
+            document.getElementById('filePreview').classList.remove('show');
+            document.getElementById('contactsPreview').style.display = 'none';
+            document.getElementById('campaignMessage').value = '';
+            document.getElementById('campaignName').value = '';
+            document.getElementById('messageInterval').value = '5';
+            
+            document.querySelectorAll('.whatsapp-option').forEach(opt => {
+                opt.classList.remove('selected');
+                opt.querySelector('input').checked = false;
+            });
+            document.querySelector('.whatsapp-option').classList.add('selected');
+            document.querySelector('.whatsapp-option input').checked = true;
+            
+            updateSummary();
+        }
+        
+        // ============ CAMPAIGN DETAILS ============
+        function viewCampaign(index) {
+            currentCampaign = campaigns[index];
+            currentFilter = 'all';
+            
+            document.getElementById('modalCampaignName').textContent = currentCampaign.name;
+            document.getElementById('modalTotal').textContent = currentCampaign.stats.total;
+            document.getElementById('modalSent').textContent = currentCampaign.stats.sent;
+            document.getElementById('modalFailed').textContent = currentCampaign.stats.failed;
+            document.getElementById('modalPending').textContent = currentCampaign.stats.pending;
+            
+            renderModalContacts();
+            
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.filter-btn').classList.add('active');
+            
+            document.getElementById('detailsModal').classList.add('active');
+        }
+        
+        function closeDetailsModal() {
+            document.getElementById('detailsModal').classList.remove('active');
+        }
+        
+        function filterContacts(filter) {
+            currentFilter = filter;
+            
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            renderModalContacts();
+        }
+        
+        function renderModalContacts() {
+            if (!currentCampaign) return;
+            
+            let filtered = currentCampaign.contacts;
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(c => c.status === currentFilter);
+            }
+            
+            const tbody = document.getElementById('modalContactsTable');
+            
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: #6b7280;">Nenhum contato encontrado</td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = filtered.map((c, i) => `
+                <tr>
+                    <td>${i + 1}</td>
+                    <td>${c.name}</td>
+                    <td>${formatPhone(c.phone)}</td>
+                    <td><span class="status-badge ${c.status}">${c.status === 'sent' ? '✓ Enviada' : (c.status === 'failed' ? '✗ Falhou' : '⏳ Pendente')}</span></td>
+                    <td>${c.sentAt || '-'}</td>
+                    <td>${c.status === 'failed' ? `<button class="retry-btn" onclick="retrySingle('${c.phone}')"><i class="bi bi-arrow-repeat"></i></button>` : '-'}</td>
+                </tr>
+            `).join('');
+        }
+        
+        function retrySingle(phone) {
+            const contact = currentCampaign.contacts.find(c => c.phone === phone);
+            if (contact) {
+                contact.status = Math.random() > 0.2 ? 'sent' : 'failed';
+                contact.sentAt = contact.status === 'sent' ? new Date().toLocaleTimeString('pt-BR') : null;
+                
+                // Recalculate stats
+                currentCampaign.stats.sent = currentCampaign.contacts.filter(c => c.status === 'sent').length;
+                currentCampaign.stats.failed = currentCampaign.contacts.filter(c => c.status === 'failed').length;
+                currentCampaign.stats.pending = currentCampaign.contacts.filter(c => c.status === 'pending').length;
+                
+                saveCampaigns();
+                viewCampaign(campaigns.indexOf(currentCampaign));
+            }
+        }
+        
+        function retryFailed() {
+            const failed = currentCampaign.contacts.filter(c => c.status === 'failed');
+            if (failed.length === 0) {
+                alert('Nenhuma mensagem com falha.');
+                return;
+            }
+            
+            if (!confirm(`Reenviar para ${failed.length} contatos?`)) return;
+            
+            failed.forEach(c => {
+                c.status = Math.random() > 0.3 ? 'sent' : 'failed';
+                c.sentAt = c.status === 'sent' ? new Date().toLocaleTimeString('pt-BR') : null;
+            });
+            
+            currentCampaign.stats.sent = currentCampaign.contacts.filter(c => c.status === 'sent').length;
+            currentCampaign.stats.failed = currentCampaign.contacts.filter(c => c.status === 'failed').length;
+            
+            saveCampaigns();
+            viewCampaign(campaigns.indexOf(currentCampaign));
+            
+            alert('Reenvio concluído!');
+        }
+        
+        function exportCampaignReport() {
+            if (!currentCampaign) return;
+            
+            let csv = 'Nome,Telefone,Status,Horário\n';
+            currentCampaign.contacts.forEach(c => {
+                csv += `"${c.name}","${c.phone}","${c.status}","${c.sentAt || '-'}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `campanha_${currentCampaign.id}.csv`;
+            link.click();
+        }
+        
+        // ============ HISTORY ACTIONS ============
+        function deleteCampaign(index) {
+            if (!confirm('Excluir esta campanha?')) return;
+            
+            campaigns.splice(index, 1);
+            saveCampaigns();
+            renderOverview();
+            renderHistory();
+        }
+        
+        function clearHistory() {
+            if (!confirm('Limpar todo o histórico de campanhas?')) return;
+            
+            campaigns = campaigns.filter(c => c.status === 'running');
+            saveCampaigns();
+            renderHistory();
+            renderOverview();
+        }
+        
+        function exportAllCampaigns() {
+            let csv = 'Campanha,Data,Total,Enviadas,Falhas,Status\n';
+            campaigns.forEach(c => {
+                csv += `"${c.name}","${c.date}",${c.stats.total},${c.stats.sent},${c.stats.failed},"${c.status}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `campanhas_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+        
+        // Listen for interval changes
+        document.getElementById('messageInterval')?.addEventListener('change', updateSummary);
+    </script>
+</body>
+</html>

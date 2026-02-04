@@ -761,6 +761,18 @@ async def settings_page():
     return FileResponse(TEMPLATES_DIR / "settings.html", media_type="text/html")
 
 
+@app.get("/campaigns", include_in_schema=False)
+async def campaigns_page():
+    """Página de campanhas de marketing"""
+    return FileResponse(TEMPLATES_DIR / "campaigns.html", media_type="text/html")
+
+
+@app.get("/users", include_in_schema=False)
+async def users_page():
+    """Página de gerenciamento de usuários"""
+    return FileResponse(TEMPLATES_DIR / "users.html", media_type="text/html")
+
+
 @app.get("/teste", include_in_schema=False)
 async def teste_page():
     """Página de teste"""

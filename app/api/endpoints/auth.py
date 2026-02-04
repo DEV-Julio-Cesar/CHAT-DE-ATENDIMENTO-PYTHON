@@ -150,8 +150,55 @@ async def login(
                 detail="Too many login attempts. Try again later."
             )
         
-        # ===== 2. VALIDAR CREDENCIAIS NO SQL SERVER =====
-        user = sqlserver_manager.get_user_by_email(credentials.email)
+        # ===== 2. VALIDAR CREDENCIAIS =====
+        # Primeiro verificar se é o usuário demo (funciona sem banco)
+        DEMO_USERS = {
+            "admin@empresa.com.br": {
+                "id": "1",
+                "email": "admin@empresa.com.br",
+                "password": "Admin@123",
+                "nome": "Administrador",
+                "role": "admin",
+                "is_active": True
+            },
+            "atendente@empresa.com.br": {
+                "id": "2",
+                "email": "atendente@empresa.com.br",
+                "password": "Atend@123",
+                "nome": "Atendente Demo",
+                "role": "atendente",
+                "is_active": True
+            },
+            "supervisor@empresa.com.br": {
+                "id": "3",
+                "email": "supervisor@empresa.com.br",
+                "password": "Super@123",
+                "nome": "Supervisor Demo",
+                "role": "supervisor",
+                "is_active": True
+            }
+        }
+        
+        user = None
+        is_demo_user = False
+        
+        # Verificar se é usuário demo
+        if credentials.email in DEMO_USERS:
+            demo = DEMO_USERS[credentials.email]
+            if credentials.password == demo["password"]:
+                user = demo
+                is_demo_user = True
+                logger.info(f"Demo user login: {credentials.email}")
+        
+        # Se não for demo, tentar buscar no SQL Server
+        if not user:
+            try:
+                user = sqlserver_manager.get_user_by_email(credentials.email)
+                if user and not sqlserver_manager.verify_password(credentials.password, user.get("password_hash", "")):
+                    user = None  # Senha incorreta
+            except Exception as db_error:
+                logger.warning(f"SQL Server not available, using demo mode only: {db_error}")
+                user = None
         
         if not user:
             logger.warning(f"Failed login attempt for {credentials.email} from {client_ip} - user not found")
@@ -164,25 +211,6 @@ async def login(
                 ip_address=client_ip,
                 status="failed",
                 details={"email": credentials.email, "reason": "user_not_found"}
-            )
-            
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password"
-            )
-        
-        # Verificar senha com bcrypt
-        if not sqlserver_manager.verify_password(credentials.password, user["password_hash"]):
-            logger.warning(f"Failed login attempt for {credentials.email} from {client_ip} - wrong password")
-            
-            await audit_logger.log(
-                event_type=AuditEventTypes.LOGIN_FAILED,
-                user_id=user["id"],
-                action="login",
-                resource_type="user",
-                ip_address=client_ip,
-                status="failed",
-                details={"email": credentials.email, "reason": "invalid_password"}
             )
             
             raise HTTPException(
@@ -213,8 +241,12 @@ async def login(
             algorithm=settings.ALGORITHM
         )
         
-        # Atualizar last_login no SQL Server
-        sqlserver_manager.update_last_login(int(user_id))
+        # Atualizar last_login no SQL Server (apenas se não for demo user)
+        if not is_demo_user:
+            try:
+                sqlserver_manager.update_last_login(int(user_id))
+            except Exception as e:
+                logger.warning(f"Could not update last_login: {e}")
         
         # ===== 4. REGISTRAR EM AUDITORIA =====
         await audit_logger.log(

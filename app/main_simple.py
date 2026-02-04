@@ -1,10 +1,14 @@
 """
 Aplicação FastAPI simplificada para desenvolvimento
 """
-from fastapi import FastAPI, HTTPException, Form
+from fastapi import FastAPI, HTTPException, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 import time
 import os
+from pathlib import Path
 
 # Importar endpoints WhatsApp
 from app.whatsapp_endpoints import router as whatsapp_router
@@ -18,6 +22,14 @@ app = FastAPI(
     version="2.0.0-dev",
     description="Sistema de atendimento ao cliente - Versão de desenvolvimento"
 )
+
+# Configurar templates e arquivos estáticos
+BASE_DIR = Path(__file__).resolve().parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "web" / "templates"))
+
+# Montar arquivos estáticos
+if (BASE_DIR / "web" / "static").exists():
+    app.mount("/static", StaticFiles(directory=str(BASE_DIR / "web" / "static")), name="static")
 
 # CORS para desenvolvimento
 app.add_middleware(
@@ -33,6 +45,46 @@ app.include_router(whatsapp_router)
 
 # Incluir dashboard funcional
 app.include_router(dashboard_functional_router, prefix="/api/v1")
+
+# ============= ROTAS DE PÁGINAS WEB =============
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """Página de login"""
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard_page(request: Request):
+    """Página do dashboard"""
+    return templates.TemplateResponse("dashboard.html", {"request": request})
+
+@app.get("/chat", response_class=HTMLResponse)
+async def chat_page(request: Request):
+    """Página do chat"""
+    return templates.TemplateResponse("chat.html", {"request": request})
+
+@app.get("/customers", response_class=HTMLResponse)
+async def customers_page(request: Request):
+    """Página de clientes"""
+    return templates.TemplateResponse("customers.html", {"request": request})
+
+@app.get("/whatsapp-config", response_class=HTMLResponse)
+@app.get("/whatsapp", response_class=HTMLResponse)
+async def whatsapp_config_page(request: Request):
+    """Página de configuração do WhatsApp"""
+    return templates.TemplateResponse("whatsapp_config.html", {"request": request})
+
+@app.get("/chatbot-admin", response_class=HTMLResponse)
+async def chatbot_admin_page(request: Request):
+    """Página de administração do chatbot"""
+    return templates.TemplateResponse("chatbot_admin.html", {"request": request})
+
+@app.get("/teste", response_class=HTMLResponse)
+async def teste_page(request: Request):
+    """Página de teste"""
+    return templates.TemplateResponse("teste.html", {"request": request})
+
+# ============= FIM ROTAS DE PÁGINAS WEB =============
 
 # Dados em memória para desenvolvimento
 users_db = {
@@ -89,31 +141,41 @@ async def app_info():
     }
 
 # Rota de autenticação básica
-from fastapi import Form
+from pydantic import BaseModel
+from typing import Optional
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
 
 @app.post("/api/v1/auth/login")
-async def login(username: str = Form(), password: str = Form()):
+async def login(login_data: LoginRequest):
     """Login básico para desenvolvimento"""
     
-    # Verificar usuário
-    user = users_db.get(username)
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+    # Credenciais de desenvolvimento
+    valid_credentials = {
+        "admin@empresa.com.br": "Admin@123",
+        "admin@sistema.com": "admin123",
+        "admin": "admin123"
+    }
     
-    # Verificar senha (simplificado para desenvolvimento)
-    if password != "admin123":
-        raise HTTPException(status_code=401, detail="Invalid password")
+    # Verificar credenciais
+    expected_password = valid_credentials.get(login_data.email)
+    if not expected_password or login_data.password != expected_password:
+        raise HTTPException(status_code=401, detail="Email ou senha inválidos")
     
-    # Retornar token fictício
+    # Retornar token e dados do usuário
     return {
-        "success": True,
-        "data": {
-            "access_token": "dev-token-123456789",
-            "refresh_token": "dev-refresh-123456789",
-            "token_type": "bearer",
-            "expires_in": 86400
-        },
-        "message": "Login successful"
+        "access_token": "dev-token-123456789",
+        "refresh_token": "dev-refresh-123456789",
+        "token_type": "bearer",
+        "expires_in": 86400,
+        "user": {
+            "id": "admin-123",
+            "nome": "Administrador",
+            "email": login_data.email,
+            "role": "admin"
+        }
     }
 
 @app.get("/api/v1/auth/me")

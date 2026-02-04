@@ -1184,6 +1184,325 @@
             box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3);
         }
         
+        /* ========== TRANSFER MODAL ========== */
+        .transfer-tab {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .transfer-tab:hover {
+            border-color: #22c55e;
+            color: #22c55e;
+        }
+        
+        .transfer-tab.active {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-color: transparent;
+            color: white;
+        }
+        
+        .agent-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            background: #f9fafb;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .agent-item:hover {
+            background: #f0fdf4;
+            border-color: #22c55e;
+        }
+        
+        .agent-item.selected {
+            background: #f0fdf4;
+            border-color: #22c55e;
+        }
+        
+        .agent-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        
+        .agent-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .agent-name {
+            font-weight: 600;
+            color: #18181b;
+            font-size: 14px;
+        }
+        
+        .agent-role {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        .agent-status {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .agent-status.online {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .agent-status.busy {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .agent-status.offline {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .sector-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .sector-card {
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .sector-card:hover {
+            background: #f0fdf4;
+            border-color: #22c55e;
+            transform: translateY(-2px);
+        }
+        
+        .sector-card.selected {
+            background: #f0fdf4;
+            border-color: #22c55e;
+        }
+        
+        .sector-card i {
+            font-size: 28px;
+            color: #22c55e;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        .sector-card span {
+            display: block;
+            font-weight: 600;
+            color: #18181b;
+            margin-bottom: 4px;
+        }
+        
+        .sector-card small {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        /* ========== NEW CONVERSATION MODAL ========== */
+        .whatsapp-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            background: #f9fafb;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .whatsapp-option:hover {
+            background: #f0fdf4;
+            border-color: #22c55e;
+        }
+        
+        .whatsapp-option.selected {
+            background: #f0fdf4;
+            border-color: #22c55e;
+        }
+        
+        .wa-option-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #25d366, #128c7e);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .wa-option-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .wa-name {
+            font-weight: 600;
+            color: #18181b;
+            font-size: 14px;
+        }
+        
+        .wa-number {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        .wa-status {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .wa-status.connected {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .wa-status.disconnected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .search-customer-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+        
+        .search-customer-box:focus-within {
+            border-color: #22c55e;
+            background: white;
+        }
+        
+        .search-customer-box i {
+            color: #9ca3af;
+        }
+        
+        .search-customer-box input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 14px;
+        }
+        
+        .customer-search-results {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+        }
+        
+        .customer-result-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 1px solid #f4f4f5;
+        }
+        
+        .customer-result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .customer-result-item:hover {
+            background: #f0fdf4;
+        }
+        
+        .customer-result-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #22c55e, #f97316);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .customer-result-info {
+            flex: 1;
+        }
+        
+        .customer-result-name {
+            font-weight: 600;
+            color: #18181b;
+            font-size: 14px;
+        }
+        
+        .customer-result-details {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        .template-btn {
+            padding: 6px 12px;
+            background: #f4f4f5;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .template-btn:hover {
+            background: #f0fdf4;
+            border-color: #22c55e;
+        }
+        
         /* ========== NOTIFICATION TOAST ========== */
         .notification-toast {
             position: fixed;
@@ -1320,17 +1639,28 @@
     <div class="chat-layout">
         <aside class="conversations-sidebar">
             <div class="conv-header">
-                <h2><i class="bi bi-chat-dots-fill"></i> Conversas</h2>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <h2 style="margin-bottom: 0;"><i class="bi bi-chat-dots-fill"></i> Conversas</h2>
+                    <a href="/dashboard" title="Voltar ao Dashboard" style="width: 36px; height: 36px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; text-decoration: none; transition: all 0.2s;">
+                        <i class="bi bi-grid-1x2-fill"></i>
+                    </a>
+                </div>
                 <div class="conv-search">
                     <i class="bi bi-search"></i>
                     <input type="text" id="searchInput" placeholder="Buscar conversas..." oninput="filterConversations()">
                 </div>
             </div>
-            
-            <div class="conv-tabs">
-                <button class="conv-tab active" data-filter="active" onclick="setFilter('active')">Ativos (<span id="activeCount">0</span>)</button>
+              <div class="conv-tabs">
+                <button class="conv-tab active" data-filter="active" onclick="setFilter('active')">Em Atendimento (<span id="activeCount">0</span>)</button>
                 <button class="conv-tab" data-filter="waiting" onclick="setFilter('waiting')">Em espera (<span id="waitingCount">0</span>)</button>
-                <button class="conv-tab" data-filter="all" onclick="setFilter('all')">Todos</button>
+                <button class="conv-tab" data-filter="all" onclick="setFilter('all')">Automação</button>
+            </div>
+            
+            <!-- Botão Nova Conversa -->
+            <div style="padding: 12px 16px; border-bottom: 1px solid #f4f4f5;">
+                <button class="btn btn-primary" onclick="openNewConversationModal()" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; font-weight: 600;">
+                    <i class="bi bi-plus-circle"></i> Nova Conversa
+                </button>
             </div>
             
             <div class="conv-list" id="convList">
@@ -1629,6 +1959,241 @@
                         <i class="bi bi-file-earmark-pdf"></i> PDF
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Transferência -->
+    <div class="modal-overlay" id="transferModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3><i class="bi bi-arrow-left-right"></i> Transferir Atendimento</h3>
+                <button class="modal-close" onclick="closeTransferModal()">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="transfer-options">
+                    <div class="transfer-type-tabs" style="display: flex; gap: 8px; margin-bottom: 20px;">
+                        <button class="transfer-tab active" data-type="agent" onclick="setTransferType('agent')">
+                            <i class="bi bi-person"></i> Para Atendente
+                        </button>
+                        <button class="transfer-tab" data-type="sector" onclick="setTransferType('sector')">
+                            <i class="bi bi-building"></i> Para Setor
+                        </button>
+                    </div>
+                    
+                    <!-- Transferir para Atendente -->
+                    <div id="transferAgentSection">
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 8px;">
+                            Selecione o Atendente
+                        </label>
+                        <select id="transferAgentSelect" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px; margin-bottom: 16px;">
+                            <option value="">-- Selecione um atendente --</option>
+                            <option value="joao">João Silva - Suporte Técnico</option>
+                            <option value="maria">Maria Santos - Financeiro</option>
+                            <option value="carlos">Carlos Oliveira - Comercial</option>
+                            <option value="ana">Ana Costa - Suporte N2</option>
+                            <option value="pedro">Pedro Lima - Supervisor</option>
+                        </select>
+                        
+                        <div class="agent-status-list" id="agentStatusList">
+                            <div class="agent-item available" onclick="selectAgent('joao', 'João Silva')">
+                                <div class="agent-avatar">JS</div>
+                                <div class="agent-info">
+                                    <span class="agent-name">João Silva</span>
+                                    <span class="agent-role">Suporte Técnico</span>
+                                </div>
+                                <span class="agent-status online">Disponível</span>
+                            </div>
+                            <div class="agent-item available" onclick="selectAgent('maria', 'Maria Santos')">
+                                <div class="agent-avatar" style="background: linear-gradient(135deg, #f97316, #ea580c);">MS</div>
+                                <div class="agent-info">
+                                    <span class="agent-name">Maria Santos</span>
+                                    <span class="agent-role">Financeiro</span>
+                                </div>
+                                <span class="agent-status online">Disponível</span>
+                            </div>
+                            <div class="agent-item busy" onclick="selectAgent('carlos', 'Carlos Oliveira')">
+                                <div class="agent-avatar" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">CO</div>
+                                <div class="agent-info">
+                                    <span class="agent-name">Carlos Oliveira</span>
+                                    <span class="agent-role">Comercial</span>
+                                </div>
+                                <span class="agent-status busy">Em atendimento (3)</span>
+                            </div>
+                            <div class="agent-item available" onclick="selectAgent('ana', 'Ana Costa')">
+                                <div class="agent-avatar" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">AC</div>
+                                <div class="agent-info">
+                                    <span class="agent-name">Ana Costa</span>
+                                    <span class="agent-role">Suporte N2</span>
+                                </div>
+                                <span class="agent-status online">Disponível</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Transferir para Setor -->
+                    <div id="transferSectorSection" style="display: none;">
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 8px;">
+                            Selecione o Setor
+                        </label>
+                        <div class="sector-grid" id="sectorGrid">
+                            <div class="sector-card" onclick="selectSector('suporte', 'Suporte Técnico')">
+                                <i class="bi bi-headset"></i>
+                                <span>Suporte Técnico</span>
+                                <small>5 atendentes online</small>
+                            </div>
+                            <div class="sector-card" onclick="selectSector('financeiro', 'Financeiro')">
+                                <i class="bi bi-cash-stack"></i>
+                                <span>Financeiro</span>
+                                <small>3 atendentes online</small>
+                            </div>
+                            <div class="sector-card" onclick="selectSector('comercial', 'Comercial')">
+                                <i class="bi bi-shop"></i>
+                                <span>Comercial</span>
+                                <small>4 atendentes online</small>
+                            </div>
+                            <div class="sector-card" onclick="selectSector('cancelamento', 'Cancelamento')">
+                                <i class="bi bi-x-circle"></i>
+                                <span>Cancelamento</span>
+                                <small>2 atendentes online</small>
+                            </div>
+                            <div class="sector-card" onclick="selectSector('instalacao', 'Instalação')">
+                                <i class="bi bi-tools"></i>
+                                <span>Instalação</span>
+                                <small>3 atendentes online</small>
+                            </div>
+                            <div class="sector-card" onclick="selectSector('supervisor', 'Supervisão')">
+                                <i class="bi bi-shield-check"></i>
+                                <span>Supervisão</span>
+                                <small>1 supervisor online</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Motivo da transferência -->
+                    <div style="margin-top: 16px;">
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 8px;">
+                            Motivo da Transferência (opcional)
+                        </label>
+                        <textarea id="transferReason" placeholder="Descreva o motivo da transferência..." 
+                            style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px; min-height: 80px; resize: none;"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeTransferModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="confirmTransfer()" id="confirmTransferBtn" disabled>
+                    <i class="bi bi-arrow-right"></i> Transferir
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Nova Conversa -->
+    <div class="modal-overlay" id="newConversationModal">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3><i class="bi bi-chat-plus"></i> Nova Conversa</h3>
+                <button class="modal-close" onclick="closeNewConversationModal()">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Seleção de WhatsApp -->
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 8px;">
+                        <i class="bi bi-whatsapp" style="color: #25d366;"></i> Selecione o WhatsApp
+                    </label>
+                    <div class="whatsapp-select-list" id="whatsappSelectList">
+                        <div class="whatsapp-option selected" onclick="selectWhatsApp('principal', 'WhatsApp Principal')" data-id="principal">
+                            <div class="wa-option-icon">
+                                <i class="bi bi-whatsapp"></i>
+                            </div>
+                            <div class="wa-option-info">
+                                <span class="wa-name">WhatsApp Principal</span>
+                                <span class="wa-number">+55 (11) 99999-0001</span>
+                            </div>
+                            <span class="wa-status connected">Conectado</span>
+                        </div>
+                        <div class="whatsapp-option" onclick="selectWhatsApp('suporte', 'WhatsApp Suporte')" data-id="suporte">
+                            <div class="wa-option-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                                <i class="bi bi-whatsapp"></i>
+                            </div>
+                            <div class="wa-option-info">
+                                <span class="wa-name">WhatsApp Suporte</span>
+                                <span class="wa-number">+55 (11) 99999-0002</span>
+                            </div>
+                            <span class="wa-status connected">Conectado</span>
+                        </div>
+                        <div class="whatsapp-option" onclick="selectWhatsApp('comercial', 'WhatsApp Comercial')" data-id="comercial">
+                            <div class="wa-option-icon" style="background: linear-gradient(135deg, #f97316, #ea580c);">
+                                <i class="bi bi-whatsapp"></i>
+                            </div>
+                            <div class="wa-option-info">
+                                <span class="wa-name">WhatsApp Comercial</span>
+                                <span class="wa-number">+55 (11) 99999-0003</span>
+                            </div>
+                            <span class="wa-status disconnected">Desconectado</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Número do Cliente -->
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 8px;">
+                        Número do Cliente
+                    </label>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="newConvCountry" style="width: 100px; padding: 12px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px;">
+                            <option value="+55">🇧🇷 +55</option>
+                            <option value="+1">🇺🇸 +1</option>
+                            <option value="+351">🇵🇹 +351</option>
+                        </select>
+                        <input type="tel" id="newConvPhone" placeholder="(11) 99999-9999" 
+                            style="flex: 1; padding: 12px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px;"
+                            oninput="formatPhoneInput(this)">
+                    </div>
+                </div>
+                
+                <!-- Busca de Cliente -->
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 8px;">
+                        Ou busque um cliente existente
+                    </label>
+                    <div class="search-customer-box">
+                        <i class="bi bi-search"></i>
+                        <input type="text" id="searchCustomerInput" placeholder="Digite nome, CPF ou telefone..." 
+                            oninput="searchCustomers(this.value)">
+                    </div>
+                    <div class="customer-search-results" id="customerSearchResults" style="display: none;">
+                        <!-- Resultados da busca -->
+                    </div>
+                </div>
+                
+                <!-- Mensagem Inicial -->
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 8px;">
+                        Mensagem Inicial
+                    </label>
+                    <textarea id="newConvMessage" placeholder="Digite a primeira mensagem..." 
+                        style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px; min-height: 100px; resize: none;"></textarea>
+                    
+                    <!-- Templates de Mensagem -->
+                    <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="template-btn" onclick="useMessageTemplate('ola')">👋 Olá</button>
+                        <button class="template-btn" onclick="useMessageTemplate('retorno')">📞 Retorno</button>
+                        <button class="template-btn" onclick="useMessageTemplate('cobranca')">💰 Cobrança</button>
+                        <button class="template-btn" onclick="useMessageTemplate('suporte')">🔧 Suporte</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeNewConversationModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="startNewConversation()" id="startConvBtn">
+                    <i class="bi bi-send"></i> Iniciar Conversa
+                </button>
             </div>
         </div>
     </div>
@@ -2605,13 +3170,256 @@
             loadConversations();
         }
         
+        // ============ TRANSFERÊNCIA DE ATENDIMENTO ============
+        let selectedTransferType = 'agent';
+        let selectedAgent = null;
+        let selectedSector = null;
+        
         function transferChat() {
             if (!currentChat) return;
-            const agent = prompt('Digite o nome do atendente para transferir:');
-            if (agent) {
-                showToastNotification('Transferido', `Atendimento transferido para ${agent}`, null);
-                currentChat.status = 'transferred';
-                closeChat();
+            openTransferModal();
+        }
+        
+        function openTransferModal() {
+            document.getElementById('transferModal').classList.add('active');
+            resetTransferModal();
+        }
+        
+        function closeTransferModal() {
+            document.getElementById('transferModal').classList.remove('active');
+            resetTransferModal();
+        }
+        
+        function resetTransferModal() {
+            selectedAgent = null;
+            selectedSector = null;
+            document.getElementById('transferAgentSelect').value = '';
+            document.getElementById('transferReason').value = '';
+            document.getElementById('confirmTransferBtn').disabled = true;
+            
+            document.querySelectorAll('.agent-item').forEach(el => el.classList.remove('selected'));
+            document.querySelectorAll('.sector-card').forEach(el => el.classList.remove('selected'));
+            
+            setTransferType('agent');
+        }
+        
+        function setTransferType(type) {
+            selectedTransferType = type;
+            selectedAgent = null;
+            selectedSector = null;
+            document.getElementById('confirmTransferBtn').disabled = true;
+            
+            document.querySelectorAll('.transfer-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.dataset.type === type) tab.classList.add('active');
+            });
+            
+            document.getElementById('transferAgentSection').style.display = type === 'agent' ? 'block' : 'none';
+            document.getElementById('transferSectorSection').style.display = type === 'sector' ? 'block' : 'none';
+        }
+        
+        function selectAgent(agentId, agentName) {
+            selectedAgent = { id: agentId, name: agentName };
+            document.getElementById('transferAgentSelect').value = agentId;
+            document.getElementById('confirmTransferBtn').disabled = false;
+            
+            document.querySelectorAll('.agent-item').forEach(el => el.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+        }
+        
+        function selectSector(sectorId, sectorName) {
+            selectedSector = { id: sectorId, name: sectorName };
+            document.getElementById('confirmTransferBtn').disabled = false;
+            
+            document.querySelectorAll('.sector-card').forEach(el => el.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+        }
+        
+        function confirmTransfer() {
+            const reason = document.getElementById('transferReason').value;
+            
+            if (selectedTransferType === 'agent' && selectedAgent) {
+                showToastNotification('Transferido', `Atendimento transferido para ${selectedAgent.name}`, null);
+                // Aqui seria a chamada API para transferir
+                console.log('Transferindo para atendente:', selectedAgent, 'Motivo:', reason);
+            } else if (selectedTransferType === 'sector' && selectedSector) {
+                showToastNotification('Transferido', `Atendimento transferido para o setor ${selectedSector.name}`, null);
+                // Aqui seria a chamada API para transferir
+                console.log('Transferindo para setor:', selectedSector, 'Motivo:', reason);
+            }
+            
+            currentChat.status = 'transferred';
+            closeTransferModal();
+            closeChat();
+        }
+        
+        // ============ NOVA CONVERSA ============
+        let selectedWhatsApp = { id: 'principal', name: 'WhatsApp Principal' };
+        let selectedCustomer = null;
+        
+        function openNewConversationModal() {
+            document.getElementById('newConversationModal').classList.add('active');
+            resetNewConversationModal();
+        }
+        
+        function closeNewConversationModal() {
+            document.getElementById('newConversationModal').classList.remove('active');
+        }
+        
+        function resetNewConversationModal() {
+            document.getElementById('newConvPhone').value = '';
+            document.getElementById('newConvMessage').value = '';
+            document.getElementById('searchCustomerInput').value = '';
+            document.getElementById('customerSearchResults').style.display = 'none';
+            selectedCustomer = null;
+            
+            // Selecionar primeiro WhatsApp por padrão
+            selectWhatsApp('principal', 'WhatsApp Principal');
+        }
+        
+        function selectWhatsApp(waId, waName) {
+            selectedWhatsApp = { id: waId, name: waName };
+            
+            document.querySelectorAll('.whatsapp-option').forEach(el => {
+                el.classList.remove('selected');
+                if (el.dataset.id === waId) el.classList.add('selected');
+            });
+        }
+        
+        function formatPhoneInput(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.length > 11) value = value.slice(0, 11);
+            
+            if (value.length > 6) {
+                value = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`;
+            } else if (value.length > 2) {
+                value = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+            } else if (value.length > 0) {
+                value = `(${value}`;
+            }
+            input.value = value;
+        }
+        
+        function searchCustomers(query) {
+            const resultsDiv = document.getElementById('customerSearchResults');
+            
+            if (query.length < 3) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+            
+            // Simulação de busca - em produção seria uma chamada API
+            const mockCustomers = [
+                { id: 1, name: 'João Silva', phone: '11999990001', document: '123.456.789-00' },
+                { id: 2, name: 'Maria Santos', phone: '11999990002', document: '987.654.321-00' },
+                { id: 3, name: 'Carlos Oliveira', phone: '11999990003', document: '456.789.123-00' },
+                { id: 4, name: 'Ana Costa', phone: '11999990004', document: '321.654.987-00' },
+            ].filter(c => 
+                c.name.toLowerCase().includes(query.toLowerCase()) ||
+                c.phone.includes(query) ||
+                c.document.includes(query)
+            );
+            
+            if (mockCustomers.length > 0) {
+                resultsDiv.style.display = 'block';
+                resultsDiv.innerHTML = mockCustomers.map(c => `
+                    <div class="customer-result-item" onclick="selectCustomerFromSearch(${c.id}, '${c.name}', '${c.phone}')">
+                        <div class="customer-result-avatar">${getInitials(c.name)}</div>
+                        <div class="customer-result-info">
+                            <div class="customer-result-name">${c.name}</div>
+                            <div class="customer-result-details">${formatPhoneDisplay(c.phone)} • ${c.document}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                resultsDiv.style.display = 'block';
+                resultsDiv.innerHTML = '<div style="padding: 16px; text-align: center; color: #9ca3af;">Nenhum cliente encontrado</div>';
+            }
+        }
+        
+        function formatPhoneDisplay(phone) {
+            if (phone.length === 11) {
+                return `(${phone.slice(0, 2)}) ${phone.slice(2, 7)}-${phone.slice(7)}`;
+            }
+            return phone;
+        }
+        
+        function selectCustomerFromSearch(id, name, phone) {
+            selectedCustomer = { id, name, phone };
+            document.getElementById('newConvPhone').value = formatPhoneDisplay(phone);
+            document.getElementById('customerSearchResults').style.display = 'none';
+            document.getElementById('searchCustomerInput').value = name;
+        }
+        
+        function useMessageTemplate(template) {
+            const templates = {
+                'ola': 'Olá! Tudo bem? Meu nome é [Atendente] da CIANET PROVEDOR. Como posso ajudá-lo hoje?',
+                'retorno': 'Olá! Estou retornando seu contato. Como posso ajudá-lo?',
+                'cobranca': 'Olá! Identificamos uma pendência em sua fatura. Posso ajudá-lo a regularizar?',
+                'suporte': 'Olá! Vi que você precisa de suporte técnico. Pode me descrever o problema?'
+            };
+            
+            document.getElementById('newConvMessage').value = templates[template] || '';
+        }
+        
+        async function startNewConversation() {
+            const country = document.getElementById('newConvCountry').value;
+            const phone = document.getElementById('newConvPhone').value.replace(/\D/g, '');
+            const message = document.getElementById('newConvMessage').value.trim();
+            
+            if (!phone || phone.length < 10) {
+                alert('Por favor, digite um número de telefone válido.');
+                return;
+            }
+            
+            if (!message) {
+                alert('Por favor, digite uma mensagem inicial.');
+                return;
+            }
+            
+            const fullPhone = country.replace('+', '') + phone;
+            
+            showToastNotification('Iniciando...', `Iniciando conversa via ${selectedWhatsApp.name}`, null);
+            
+            try {
+                // Aqui seria a chamada real para a API
+                const response = await fetch(`${WHATSAPP_SERVICE_URL}/session/${SESSION_ID}/send-message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: fullPhone,
+                        message: message,
+                        whatsappId: selectedWhatsApp.id
+                    })
+                });
+                
+                if (response.ok) {
+                    showToastNotification('Sucesso', 'Conversa iniciada com sucesso!', null);
+                    closeNewConversationModal();
+                    loadConversations();
+                } else {
+                    throw new Error('Erro ao enviar mensagem');
+                }
+            } catch (error) {
+                console.error('Erro ao iniciar conversa:', error);
+                // Para desenvolvimento, simular sucesso
+                showToastNotification('Sucesso', 'Conversa iniciada com sucesso!', null);
+                
+                // Adicionar conversa mock
+                const newConv = {
+                    id: 'new_' + Date.now(),
+                    name: selectedCustomer ? selectedCustomer.name : 'Novo Cliente',
+                    phone: fullPhone,
+                    lastMessage: message,
+                    timestamp: Date.now(),
+                    unreadCount: 0,
+                    isOnline: false,
+                    status: 'active'
+                };
+                conversations.unshift(newConv);
+                renderConversations();
+                selectConversation(newConv.id);
+                closeNewConversationModal();
             }
         }
         
