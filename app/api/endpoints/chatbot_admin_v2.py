@@ -16,8 +16,10 @@ from fastapi import APIRouter, HTTPException, status, Request, Depends, Query
 from pydantic import BaseModel, Field
 
 from app.core.auth_manager import get_current_user, require_permissions
-from app.core.sqlserver_db import sqlserver_manager
+from app.core.database import db_manager
+from app.models.database import Mensagem, ConversationState
 from app.services.chatbot_v2 import chatbot_v2, Intent, KNOWLEDGE_BASE, INTENT_KEYWORDS
+from sqlalchemy import select, func
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/chatbot/v2", tags=["Chatbot Admin V2"])
@@ -234,52 +236,15 @@ async def get_metrics(
     Obter métricas de performance do chatbot.
     """
     try:
-        with sqlserver_manager.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Mensagens processadas pelo bot
-            cursor.execute("""
-                SELECT 
-                    COUNT(*) as total,
-                    SUM(CASE WHEN sender_type = 'bot' THEN 1 ELSE 0 END) as bot_responses,
-                    AVG(CASE WHEN sender_type = 'bot' THEN 50 ELSE NULL END) as avg_response_ms
-                FROM mensagens
-                WHERE created_at >= DATEADD(DAY, -?, GETDATE())
-            """, (days,))
-            
-            row = cursor.fetchone()
-            total = row.total or 0
-            bot_responses = row.bot_responses or 0
-            avg_ms = row.avg_response_ms or 0
-            
-            # Conversas resolvidas sem humano
-            cursor.execute("""
-                SELECT COUNT(*) as resolved_by_bot
-                FROM conversas
-                WHERE resolved_at IS NOT NULL
-                AND attendant_id IS NULL
-                AND started_at >= DATEADD(DAY, -?, GETDATE())
-            """, (days,))
-            
-            resolved = cursor.fetchone().resolved_by_bot or 0
-            
-            # Top intenções (simulado - seria necessário tabela de logs)
-            top_intents = [
-                {"intent": "internet_lenta", "count": 45},
-                {"intent": "segunda_via", "count": 32},
-                {"intent": "saudacao", "count": 28},
-                {"intent": "wifi_problema", "count": 15},
-                {"intent": "pagamento", "count": 12}
-            ]
-            
-            return ChatbotMetrics(
-                total_messages_today=total,
-                resolved_by_bot=resolved,
-                escalated_to_human=total - bot_responses,
-                avg_response_time_ms=float(avg_ms),
-                top_intents=top_intents,
-                satisfaction_rate=None
-            )
+        metrics = await get_chatbot_metrics_async()
+        return ChatbotMetrics(
+            total_messages_today=metrics["total_messages_today"],
+            resolved_by_bot=metrics["resolved_by_bot"],
+            escalated_to_human=metrics["escalated_to_human"],
+            avg_response_time_ms=metrics["avg_response_time_ms"],
+            top_intents=metrics["top_intents"],
+            satisfaction_rate=metrics["satisfaction_rate"]
+        )
     
     except Exception as e:
         logger.error(f"Erro ao obter métricas: {e}")
@@ -406,3 +371,20 @@ async def get_status(
         "total_intents": len(Intent),
         "knowledge_base_loaded": len(KNOWLEDGE_BASE) > 0
     }
+
+
+# Helper assíncrono para métricas do chatbot
+async def get_chatbot_metrics_async():
+    async with db_manager.session_factory() as session:
+        today = datetime.now().date()
+        total_messages_today = await session.execute(select(func.count()).select_from(Mensagem).where(Mensagem.created_at >= today))
+        resolved_by_bot = await session.execute(select(func.count()).select_from(Mensagem).where(Mensagem.remetente_tipo == 'bot', Mensagem.created_at >= today))
+        escalated_to_human = await session.execute(select(func.count()).select_from(Mensagem).where(Mensagem.remetente_tipo == 'cliente', Mensagem.created_at >= today))
+        return {
+            "total_messages_today": total_messages_today.scalar(),
+            "resolved_by_bot": resolved_by_bot.scalar(),
+            "escalated_to_human": escalated_to_human.scalar(),
+            "avg_response_time_ms": None,
+            "top_intents": [],
+            "satisfaction_rate": None
+        }

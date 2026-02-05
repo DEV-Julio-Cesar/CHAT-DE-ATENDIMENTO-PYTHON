@@ -7,7 +7,7 @@ Criptografia de mensagens em repouso
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding, hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 from app.core.config import settings
 from typing import Dict
@@ -66,7 +66,7 @@ class MessageEncryption:
             salt = f"salt_{client_id}".encode("utf-8")
             
             # PBKDF2 com SHA-256
-            kdf = PBKDF2(
+            kdf = PBKDF2HMAC(
                 algorithm=hashes.SHA256(),
                 length=32,  # 256 bits
                 salt=salt,

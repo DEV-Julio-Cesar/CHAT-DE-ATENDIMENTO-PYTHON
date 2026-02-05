@@ -12,8 +12,9 @@ class Settings(BaseSettings):
     VERSION: str = "2.0.0"
     DEBUG: bool = False
     
-    # Database PostgreSQL (legado)
-    DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/isp_support"
+    # Database MariaDB/MySQL (novo padrão)
+    # Exemplo: mysql+aiomysql://usuario:senha@localhost:3306/cianet_provedor
+    DATABASE_URL: str = "mysql+aiomysql://root:suasenha@localhost:3306/cianet_provedor"
     DATABASE_POOL_SIZE: int = 20
     DATABASE_MAX_OVERFLOW: int = 30
     

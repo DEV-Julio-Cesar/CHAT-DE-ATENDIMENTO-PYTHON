@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import structlog
 import time
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 from app.core.config import settings
 from app.core.database import create_tables, db_manager
@@ -51,25 +51,6 @@ structlog.configure(
 )
 
 logger = structlog.get_logger(__name__)
-
-# Métricas Prometheus
-REQUEST_COUNT = Counter(
-    'http_requests_total',
-    'Total HTTP requests',
-    ['method', 'endpoint', 'status_code']
-)
-
-REQUEST_DURATION = Histogram(
-    'http_request_duration_seconds',
-    'HTTP request duration in seconds',
-    ['method', 'endpoint']
-)
-
-ACTIVE_CONNECTIONS = Counter(
-    'websocket_connections_total',
-    'Total WebSocket connections',
-    ['status']
-)
 
 
 @asynccontextmanager
@@ -466,8 +447,8 @@ async def metrics_middleware(request: Request, call_next):
     status_code = response.status_code
     
     # Atualizar métricas
-    REQUEST_COUNT.labels(method=method, endpoint=endpoint, status_code=status_code).inc()
-    REQUEST_DURATION.labels(method=method, endpoint=endpoint).observe(duration)
+    metrics_collector.REQUEST_COUNT.labels(method=method, endpoint=endpoint, status_code=status_code).inc()
+    metrics_collector.REQUEST_DURATION.labels(method=method, endpoint=endpoint).observe(duration)
     
     # Adicionar headers de resposta
     response.headers["X-Process-Time"] = str(duration)

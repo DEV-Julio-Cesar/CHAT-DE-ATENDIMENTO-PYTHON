@@ -16,7 +16,9 @@ from fastapi import APIRouter, HTTPException, status, Request, Depends, Query
 from pydantic import BaseModel, Field
 
 from app.core.auth_manager import get_current_user, require_permissions
-from app.core.sqlserver_db import sqlserver_manager
+from app.core.database import db_manager
+from app.models.database import Conversa, Usuario
+from sqlalchemy import select, func
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/dashboard", tags=["Dashboard V2"])
@@ -95,20 +97,17 @@ async def get_today_metrics(
     Obter métricas consolidadas do dia atual.
     """
     try:
-        stats = sqlserver_manager.get_conversation_stats()
-        
-        # Obter agentes online
-        agents = sqlserver_manager.get_online_agents()
+        stats = await get_today_metrics_async()
         
         return TodayMetrics(
-            total_conversations=stats.get("total_today", 0),
-            waiting_in_queue=stats.get("waiting", 0),
-            in_progress=stats.get("in_progress", 0),
-            resolved_today=stats.get("resolved_today", 0),
-            avg_response_time_minutes=stats.get("avg_response_time_minutes"),
-            avg_resolution_time_minutes=stats.get("avg_resolution_time_minutes"),
-            avg_rating=None,  # TODO: Implementar
-            agents_online=len(agents)
+            total_conversations=stats["total_conversations"],
+            waiting_in_queue=stats["waiting_in_queue"],
+            in_progress=stats["in_progress"],
+            resolved_today=stats["resolved_today"],
+            avg_response_time_minutes=stats["avg_response_time_minutes"],
+            avg_resolution_time_minutes=stats["avg_resolution_time_minutes"],
+            avg_rating=stats["avg_rating"],
+            agents_online=stats["agents_online"]
         )
     except Exception as e:
         logger.error(f"Error getting today metrics: {e}")
@@ -502,3 +501,24 @@ async def get_my_stats(
     except Exception as e:
         logger.error(f"Error getting my stats: {e}")
         return {"today": {}, "month": {}}
+
+
+# Helper assíncrono para métricas do dashboard
+async def get_today_metrics_async():
+    async with db_manager.session_factory() as session:
+        today = datetime.now().date()
+        total_conversations = await session.execute(select(func.count()).select_from(Conversa).where(Conversa.created_at >= today))
+        waiting_in_queue = await session.execute(select(func.count()).select_from(Conversa).where(Conversa.estado == 'espera'))
+        in_progress = await session.execute(select(func.count()).select_from(Conversa).where(Conversa.estado == 'atendimento'))
+        resolved_today = await session.execute(select(func.count()).select_from(Conversa).where(Conversa.estado == 'encerrado', Conversa.created_at >= today))
+        agents_online = await session.execute(select(func.count()).select_from(Usuario).where(Usuario.ativo == True))
+        return {
+            "total_conversations": total_conversations.scalar(),
+            "waiting_in_queue": waiting_in_queue.scalar(),
+            "in_progress": in_progress.scalar(),
+            "resolved_today": resolved_today.scalar(),
+            "avg_response_time_minutes": None,
+            "avg_resolution_time_minutes": None,
+            "avg_rating": None,
+            "agents_online": agents_online.scalar()
+        }

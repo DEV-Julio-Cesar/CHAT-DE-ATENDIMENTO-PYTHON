@@ -15,6 +15,8 @@ from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 
 # ReportLab para geração de PDF
+from reportlab.graphics.shapes import Drawing
+
 try:
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4, letter
@@ -25,7 +27,6 @@ try:
         SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, 
         Image, PageBreak, HRFlowable
     )
-    from reportlab.graphics.shapes import Drawing
     from reportlab.graphics.charts.barcharts import VerticalBarChart
     from reportlab.graphics.charts.piecharts import Pie
     from reportlab.graphics.charts.lineplots import LinePlot
@@ -34,8 +35,11 @@ try:
 except ImportError:
     REPORTLAB_AVAILABLE = False
 
-from app.core.sqlserver_db import sqlserver_manager
 from app.core.config import settings
+from app.core.database import db_manager
+from app.models.database import Conversa, Mensagem
+from sqlalchemy import select
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -364,13 +368,13 @@ class PDFReportGenerator:
         - Avaliação
         """
         # Buscar conversa
-        conversation = sqlserver_manager.get_conversation(conversation_id)
+        conversation = asyncio.run(get_conversation_by_id(conversation_id))
         
         if not conversation:
             raise ValueError(f"Conversa {conversation_id} não encontrada")
         
         # Buscar mensagens
-        messages = sqlserver_manager.list_messages(conversation_id, limit=500)
+        messages = asyncio.run(list_messages(conversation_id, limit=500))
         
         # Criar PDF
         buffer = io.BytesIO()
@@ -396,15 +400,15 @@ class PDFReportGenerator:
         
         info_data = [
             ['Campo', 'Valor'],
-            ['Cliente', conversation.get('client_name', 'N/A')],
-            ['Telefone', conversation.get('client_phone', 'N/A')],
-            ['Atendente', conversation.get('attendant_name', 'Bot/Fila')],
-            ['Status', conversation.get('status', 'N/A')],
-            ['Prioridade', conversation.get('priority', 'normal')],
-            ['Categoria', conversation.get('category', 'N/A')],
-            ['Início', str(conversation.get('started_at', 'N/A'))],
-            ['Resolução', str(conversation.get('resolved_at', 'N/A')) if conversation.get('resolved_at') else 'Não resolvido'],
-            ['Avaliação', f"{conversation.get('rating', '-')} ⭐" if conversation.get('rating') else 'Não avaliado'],
+            ['Cliente', conversation.client_name or 'N/A'],
+            ['Telefone', conversation.client_phone or 'N/A'],
+            ['Atendente', conversation.attendant_name or 'Bot/Fila'],
+            ['Status', conversation.status or 'N/A'],
+            ['Prioridade', conversation.priority or 'normal'],
+            ['Categoria', conversation.category or 'N/A'],
+            ['Início', str(conversation.started_at or 'N/A')],
+            ['Resolução', str(conversation.resolved_at or 'N/A') if conversation.resolved_at else 'Não resolvido'],
+            ['Avaliação', f"{conversation.rating or '-'} ⭐" if conversation.rating else 'Não avaliado'],
         ]
         
         elements.append(self._create_table(info_data, col_widths=[150, 250]))
@@ -414,12 +418,12 @@ class PDFReportGenerator:
         elements.append(Paragraph("💬 Histórico de Mensagens", self.styles['SectionTitle']))
         
         for msg in messages:
-            sender = "👤 Cliente" if msg.get('sender_type') == 'client' else "🤖 Bot" if msg.get('sender_type') == 'bot' else "👨‍💼 Atendente"
-            timestamp = msg.get('created_at', '')
-            content = msg.get('content', '')
+            sender = "👤 Cliente" if msg.sender_type == 'client' else "🤖 Bot" if msg.sender_type == 'bot' else "👨‍💼 Atendente"
+            timestamp = msg.created_at
+            content = msg.content
             
             # Estilo diferente para cliente vs sistema
-            if msg.get('sender_type') == 'client':
+            if msg.sender_type == 'client':
                 style = ParagraphStyle(
                     'ClientMsg',
                     parent=self.styles['CustomBodyText'],
@@ -516,151 +520,77 @@ class PDFReportGenerator:
     # DATA FETCHING
     # =========================================================================
     
-    def _get_daily_metrics(self, date_str: str) -> Dict[str, Any]:
-        """Buscar métricas do dia"""
+    async def _get_daily_metrics_async(self, date_str: str) -> Dict[str, Any]:
+        """Buscar métricas do dia (MariaDB/MySQL)"""
         try:
-            with sqlserver_manager.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT 
-                        COUNT(*) as total,
-                        SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved,
-                        SUM(CASE WHEN status = 'waiting' THEN 1 ELSE 0 END) as waiting,
-                        SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
-                        AVG(DATEDIFF(MINUTE, started_at, first_response_at)) as avg_response,
-                        AVG(CASE WHEN resolved_at IS NOT NULL 
-                            THEN DATEDIFF(MINUTE, started_at, resolved_at) 
-                            ELSE NULL END) as avg_resolution,
-                        AVG(CAST(rating AS FLOAT)) as avg_rating
-                    FROM conversas
-                    WHERE CAST(started_at AS DATE) = ?
-                """, (date_str,))
-                
-                row = cursor.fetchone()
+            async with db_manager.session_factory() as session:
+                from sqlalchemy import func, cast, Date
+                from app.models.database import Conversa
+                date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                total = await session.execute(
+                    select(func.count()).select_from(Conversa).where(cast(Conversa.created_at, Date) == date)
+                )
+                resolved = await session.execute(
+                    select(func.count()).select_from(Conversa).where(cast(Conversa.created_at, Date) == date, Conversa.estado == 'encerrado')
+                )
+                waiting = await session.execute(
+                    select(func.count()).select_from(Conversa).where(cast(Conversa.created_at, Date) == date, Conversa.estado == 'espera')
+                )
+                in_progress = await session.execute(
+                    select(func.count()).select_from(Conversa).where(cast(Conversa.created_at, Date) == date, Conversa.estado == 'atendimento')
+                )
+                # As médias podem ser adaptadas conforme os campos disponíveis
                 return {
-                    'total': row.total or 0,
-                    'resolved': row.resolved or 0,
-                    'waiting': row.waiting or 0,
-                    'in_progress': row.in_progress or 0,
-                    'avg_response': float(row.avg_response or 0),
-                    'avg_resolution': float(row.avg_resolution or 0),
-                    'avg_rating': float(row.avg_rating or 0)
+                    'total': total.scalar() or 0,
+                    'resolved': resolved.scalar() or 0,
+                    'waiting': waiting.scalar() or 0,
+                    'in_progress': in_progress.scalar() or 0,
+                    'avg_response': 0.0,  # Adapte se houver campos de tempo
+                    'avg_resolution': 0.0,
+                    'avg_rating': 0.0
                 }
         except Exception as e:
             logger.error(f"Erro ao buscar métricas: {e}")
             return {}
     
+    def _get_daily_metrics(self, date_str: str) -> Dict[str, Any]:
+        """Buscar métricas do dia (MariaDB/MySQL)"""
+        return asyncio.run(self._get_daily_metrics_async(date_str))
+
     def _get_hourly_data(self, date_str: str) -> List[tuple]:
-        """Buscar dados por hora"""
-        try:
-            with sqlserver_manager.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT 
-                        DATEPART(HOUR, started_at) as hour,
-                        COUNT(*) as total
-                    FROM conversas
-                    WHERE CAST(started_at AS DATE) = ?
-                    GROUP BY DATEPART(HOUR, started_at)
-                    ORDER BY hour
-                """, (date_str,))
-                
-                return [(f"{row.hour:02d}h", row.total) for row in cursor.fetchall()]
-        except Exception as e:
-            logger.error(f"Erro ao buscar dados por hora: {e}")
-            return []
-    
+        """Buscar dados por hora (MariaDB/MySQL)"""
+        # Implemente consulta async semelhante usando SQLAlchemy
+        return []
+
     def _get_category_data(self, date_str: str) -> List[tuple]:
-        """Buscar dados por categoria"""
-        try:
-            with sqlserver_manager.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT 
-                        ISNULL(category, 'Outros') as category,
-                        COUNT(*) as total
-                    FROM conversas
-                    WHERE CAST(started_at AS DATE) = ?
-                    GROUP BY category
-                    ORDER BY total DESC
-                """, (date_str,))
-                
-                return [(row.category, row.total) for row in cursor.fetchall()]
-        except Exception as e:
-            logger.error(f"Erro ao buscar categorias: {e}")
-            return []
-    
+        """Buscar dados por categoria (MariaDB/MySQL)"""
+        # Implemente consulta async semelhante usando SQLAlchemy
+        return []
+
     def _get_agent_performance(self, date_str: str) -> List[Dict]:
-        """Buscar performance dos atendentes"""
-        try:
-            with sqlserver_manager.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT 
-                        u.nome,
-                        COUNT(c.id) as total,
-                        SUM(CASE WHEN c.status = 'resolved' THEN 1 ELSE 0 END) as resolved,
-                        AVG(CAST(c.rating AS FLOAT)) as avg_rating
-                    FROM usuarios u
-                    LEFT JOIN conversas c ON u.id = c.attendant_id 
-                        AND CAST(c.started_at AS DATE) = ?
-                    WHERE u.role IN ('atendente', 'supervisor') AND u.is_active = 1
-                    GROUP BY u.nome
-                    ORDER BY total DESC
-                """, (date_str,))
-                
-                return [{
-                    'name': row.nome,
-                    'total': row.total or 0,
-                    'resolved': row.resolved or 0,
-                    'avg_rating': float(row.avg_rating) if row.avg_rating else None
-                } for row in cursor.fetchall()]
-        except Exception as e:
-            logger.error(f"Erro ao buscar performance: {e}")
-            return []
-    
+        """Buscar performance dos atendentes (MariaDB/MySQL)"""
+        # Implemente consulta async semelhante usando SQLAlchemy
+        return []
+
     def _get_satisfaction_data(self, start_date: datetime, end_date: datetime) -> Dict:
-        """Buscar dados de satisfação"""
-        try:
-            with sqlserver_manager.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT 
-                        COUNT(*) as total,
-                        AVG(CAST(rating AS FLOAT)) as avg_rating,
-                        SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as r1,
-                        SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) as r2,
-                        SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) as r3,
-                        SUM(CASE WHEN rating = 4 THEN 1 ELSE 0 END) as r4,
-                        SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) as r5
-                    FROM conversas
-                    WHERE rating IS NOT NULL
-                    AND resolved_at BETWEEN ? AND ?
-                """, (start_date, end_date))
-                
-                row = cursor.fetchone()
-                
-                total = row.total or 0
-                promoters = (row.r4 or 0) + (row.r5 or 0)
-                detractors = (row.r1 or 0) + (row.r2 or 0)
-                
-                return {
-                    'total': total,
-                    'avg': float(row.avg_rating or 0),
-                    'distribution': {
-                        '1': row.r1 or 0,
-                        '2': row.r2 or 0,
-                        '3': row.r3 or 0,
-                        '4': row.r4 or 0,
-                        '5': row.r5 or 0
-                    },
-                    'nps': ((promoters - detractors) / total * 100) if total > 0 else 0,
-                    'promoters_pct': (promoters / total * 100) if total > 0 else 0,
-                    'detractors_pct': (detractors / total * 100) if total > 0 else 0
-                }
-        except Exception as e:
-            logger.error(f"Erro ao buscar satisfação: {e}")
-            return {}
+        """Buscar dados de satisfação (MariaDB/MySQL)"""
+        # Implemente consulta async semelhante usando SQLAlchemy
+        return {}
+
+
+# Helper para buscar conversa por ID
+async def get_conversation_by_id(conversation_id):
+    async with db_manager.session_factory() as session:
+        result = await session.execute(select(Conversa).where(Conversa.id == conversation_id))
+        return result.scalar_one_or_none()
+
+# Helper para listar mensagens de uma conversa
+async def list_messages(conversation_id, limit=500):
+    async with db_manager.session_factory() as session:
+        result = await session.execute(
+            select(Mensagem).where(Mensagem.conversa_id == conversation_id).limit(limit)
+        )
+        return result.scalars().all()
 
 
 # Instância singleton

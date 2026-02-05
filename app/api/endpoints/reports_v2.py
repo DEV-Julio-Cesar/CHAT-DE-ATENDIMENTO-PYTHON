@@ -19,7 +19,9 @@ from pydantic import BaseModel, Field
 
 from app.core.dependencies import get_current_user
 from app.services.pdf_export import pdf_generator, REPORTLAB_AVAILABLE
-from app.core.sqlserver_db import sqlserver_manager
+from app.core.database import db_manager
+from app.models.database import Conversa, ClienteWhatsApp, Usuario, Mensagem
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +76,13 @@ def parse_date(date_str: str, default_delta: int = 0) -> datetime:
             status_code=400,
             detail=f"Data inválida: {date_str}. Use formato YYYY-MM-DD"
         )
+
+
+# Helper assíncrono para buscar conversa por ID
+async def get_conversation_async(conversation_id: str):
+    async with db_manager.session_factory() as session:
+        result = await session.execute(select(Conversa).where(Conversa.id == conversation_id))
+        return result.scalar_one_or_none()
 
 
 # ============================================================================
@@ -137,7 +146,7 @@ async def get_daily_report(
     description="Gera PDF com histórico completo da conversa"
 )
 async def get_conversation_report(
-    conversation_id: int,
+    conversation_id: str,
     current_user: dict = Depends(get_current_user)
 ):
     """
@@ -152,7 +161,7 @@ async def get_conversation_report(
     check_reportlab()
     
     # Verificar se conversa existe
-    conversation = sqlserver_manager.get_conversation(conversation_id)
+    conversation = await get_conversation_async(conversation_id)
     
     if not conversation:
         raise HTTPException(
@@ -165,7 +174,7 @@ async def get_conversation_report(
     user_id = current_user.get('user_id')
     
     if user_role not in ['supervisor', 'admin']:
-        if conversation.get('attendant_id') != user_id:
+        if str(conversation.atendente_id) != user_id:
             raise HTTPException(
                 status_code=403,
                 detail="Sem permissão para acessar esta conversa"

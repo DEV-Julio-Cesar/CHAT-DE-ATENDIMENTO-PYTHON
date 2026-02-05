@@ -16,7 +16,9 @@ from fastapi import APIRouter, HTTPException, status, Request, Depends, Query, P
 from pydantic import BaseModel, Field
 
 from app.core.auth_manager import get_current_user, require_permissions
-from app.core.sqlserver_db import sqlserver_manager
+from app.core.database import db_manager
+from app.models.database import ClienteWhatsApp, Conversa, Usuario, ConversationState, Mensagem
+from sqlalchemy import select, and_, or_
 from app.core.audit_logger import audit_logger, AuditEventTypes
 
 logger = logging.getLogger(__name__)
@@ -114,20 +116,128 @@ class ConversationStats(BaseModel):
 # HELPERS
 # ============================================================================
 
-def get_or_create_client(phone: str, name: Optional[str] = None) -> int:
-    """Obter ou criar cliente pelo telefone"""
-    client = sqlserver_manager.get_client_by_phone(phone)
-    
-    if client:
-        return int(client["id"])
-    
-    # Criar novo cliente
-    new_client = sqlserver_manager.create_client(
-        phone=phone,
-        name=name or f"Cliente {phone[-4:]}"
-    )
-    
-    return int(new_client["id"]) if new_client else None
+# Helper assíncrono para buscar ou criar cliente
+async def get_or_create_client_async(phone: str, name: Optional[str] = None) -> str:
+    async with db_manager.session_factory() as session:
+        result = await session.execute(select(ClienteWhatsApp).where(ClienteWhatsApp.telefone == phone))
+        client = result.scalar_one_or_none()
+        if client:
+            return str(client.id)
+        # Criar novo cliente
+        new_client = ClienteWhatsApp(
+            client_id=f"cli_{phone}",
+            nome=name or f"Cliente {phone[-4:]}",
+            telefone=phone,
+            status=ConversationState.AUTOMACAO
+        )
+        session.add(new_client)
+        await session.commit()
+        await session.refresh(new_client)
+        return str(new_client.id)
+
+# Helper assíncrono para listar conversas
+async def list_conversations_async(limit, offset, status, priority, attendant_id, date_from, date_to):
+    async with db_manager.session_factory() as session:
+        query = select(Conversa)
+        filters = []
+        if status:
+            filters.append(Conversa.estado == status)
+        if priority:
+            filters.append(Conversa.prioridade == priority)
+        if attendant_id:
+            filters.append(Conversa.atendente_id == attendant_id)
+        if date_from:
+            filters.append(Conversa.created_at >= date_from)
+        if date_to:
+            filters.append(Conversa.created_at <= date_to)
+        if filters:
+            query = query.where(and_(*filters))
+        query = query.offset(offset).limit(limit)
+        result = await session.execute(query)
+        return result.scalars().all()
+
+# Helpers assíncronos para conversas e mensagens
+async def get_conversation_stats_async():
+    async with db_manager.session_factory() as session:
+        total_today = await session.execute(select(Conversa).where(Conversa.created_at >= datetime.now().date()))
+        waiting = await session.execute(select(Conversa).where(Conversa.estado == ConversationState.ESPERA))
+        in_progress = await session.execute(select(Conversa).where(Conversa.estado == ConversationState.ATENDIMENTO))
+        resolved_today = await session.execute(select(Conversa).where(Conversa.estado == ConversationState.ENCERRADO, Conversa.created_at >= datetime.now().date()))
+        return {
+            "total_today": total_today.rowcount,
+            "waiting": waiting.rowcount,
+            "in_progress": in_progress.rowcount,
+            "resolved_today": resolved_today.rowcount,
+            "avg_response_time_minutes": None,
+            "avg_resolution_time_minutes": None
+        }
+
+async def get_waiting_conversations_async():
+    async with db_manager.session_factory() as session:
+        result = await session.execute(select(Conversa).where(Conversa.estado == ConversationState.ESPERA))
+        return result.scalars().all()
+
+async def create_conversation_async(cliente_id, chat_id, estado, atendente_id=None, prioridade=0, tags=None, conversation_metadata=None):
+    async with db_manager.session_factory() as session:
+        conversa = Conversa(
+            cliente_id=cliente_id,
+            chat_id=chat_id,
+            estado=estado,
+            atendente_id=atendente_id,
+            prioridade=prioridade,
+            tags=tags,
+            conversation_metadata=conversation_metadata
+        )
+        session.add(conversa)
+        await session.commit()
+        await session.refresh(conversa)
+        return conversa
+
+async def get_conversation_async(conversation_id):
+    async with db_manager.session_factory() as session:
+        result = await session.execute(select(Conversa).where(Conversa.id == conversation_id))
+        return result.scalar_one_or_none()
+
+async def update_conversation_async(conversation_id, **kwargs):
+    async with db_manager.session_factory() as session:
+        conversa = await get_conversation_async(conversation_id)
+        if not conversa:
+            return None
+        for key, value in kwargs.items():
+            setattr(conversa, key, value)
+        await session.commit()
+        await session.refresh(conversa)
+        return conversa
+
+async def assign_conversation_async(conversation_id, atendente_id):
+    return await update_conversation_async(conversation_id, atendente_id=atendente_id)
+
+async def transfer_conversation_async(conversation_id, new_atendente_id):
+    return await update_conversation_async(conversation_id, atendente_id=new_atendente_id)
+
+async def close_conversation_async(conversation_id, encerrada_em=None):
+    return await update_conversation_async(conversation_id, estado=ConversationState.ENCERRADO, encerrada_em=encerrada_em or datetime.now())
+
+async def list_messages_async(conversa_id):
+    async with db_manager.session_factory() as session:
+        result = await session.execute(select(Mensagem).where(Mensagem.conversa_id == conversa_id))
+        return result.scalars().all()
+
+async def create_message_async(conversa_id, remetente_tipo, remetente_id, conteudo, tipo_mensagem, arquivo_url=None, message_metadata=None):
+    async with db_manager.session_factory() as session:
+        mensagem = Mensagem(
+            conversa_id=conversa_id,
+            remetente_tipo=remetente_tipo,
+            remetente_id=remetente_id,
+            conteudo=conteudo,
+            tipo_mensagem=tipo_mensagem,
+            arquivo_url=arquivo_url,
+            message_metadata=message_metadata
+        )
+        session.add(mensagem)
+        await session.commit()
+        await session.refresh(mensagem)
+        return mensagem
 
 
 # ============================================================================
@@ -145,24 +255,15 @@ async def list_conversations(
     per_page: int = Query(20, ge=1, le=100),
     status: Optional[str] = Query(None, description="waiting, in_progress, resolved, closed"),
     priority: Optional[str] = Query(None, description="low, normal, high, urgent"),
-    attendant_id: Optional[int] = Query(None, description="Filtrar por atendente"),
+    attendant_id: Optional[str] = Query(None, description="Filtrar por atendente"),
     date_from: Optional[str] = Query(None, description="Data início (YYYY-MM-DD)"),
     date_to: Optional[str] = Query(None, description="Data fim (YYYY-MM-DD)"),
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Listar conversas com filtros.
-    
-    - Atendentes veem apenas suas conversas
-    - Supervisores/Admin veem todas
-    """
     offset = (page - 1) * per_page
-    
-    # Atendente só vê suas próprias conversas
     if current_user["role"] == "atendente":
         attendant_id = current_user["id"]
-    
-    conversations = sqlserver_manager.list_conversations(
+    conversations = await list_conversations_async(
         limit=per_page,
         offset=offset,
         status=status,
@@ -171,42 +272,13 @@ async def list_conversations(
         date_from=date_from,
         date_to=date_to
     )
-    
-    total = sqlserver_manager.count_conversations(
-        status=status,
-        priority=priority,
-        attendant_id=attendant_id,
-        date_from=date_from,
-        date_to=date_to
-    )
-    
-    pages = (total + per_page - 1) // per_page if total > 0 else 1
-    
+    # TODO: Implementar count_conversations_async se necessário
+    total = len(conversations)
     return ConversationListResponse(
-        conversations=[
-            ConversationResponse(
-                id=c["id"],
-                client_id=c["client_id"],
-                client_phone=c.get("client_phone", ""),
-                client_name=c.get("client_name"),
-                attendant_id=c.get("attendant_id"),
-                attendant_name=c.get("attendant_name"),
-                status=c["status"],
-                priority=c.get("priority", "normal"),
-                category=c.get("category"),
-                subject=c.get("subject"),
-                total_messages=c.get("total_messages", 0),
-                rating=c.get("rating"),
-                started_at=str(c.get("started_at", "")),
-                last_message_at=str(c.get("last_message_at")) if c.get("last_message_at") else None,
-                resolved_at=str(c.get("resolved_at")) if c.get("resolved_at") else None
-            )
-            for c in conversations
-        ],
+        conversations=conversations,
         total=total,
         page=page,
-        per_page=per_page,
-        pages=pages
+        pages=(total // per_page) + 1
     )
 
 
@@ -222,7 +294,7 @@ async def get_conversation_stats(
     """
     Obter estatísticas de conversas do dia.
     """
-    stats = sqlserver_manager.get_conversation_stats()
+    stats = await get_conversation_stats_async()
     
     return ConversationStats(
         total_today=stats.get("total_today", 0),
@@ -245,18 +317,18 @@ async def get_queue(
     """
     Obter conversas na fila de espera.
     """
-    conversations = sqlserver_manager.get_waiting_conversations()
+    conversations = await get_waiting_conversations_async()
     
     return {
         "queue": [
             {
-                "id": c["id"],
-                "client_phone": c.get("client_phone"),
-                "client_name": c.get("client_name"),
-                "subject": c.get("subject"),
-                "priority": c.get("priority", "normal"),
-                "waiting_since": str(c.get("started_at", "")),
-                "waiting_minutes": c.get("waiting_minutes", 0)
+                "id": c.id,
+                "client_phone": c.cliente_id,
+                "client_name": c.cliente_id,
+                "subject": c.tags,
+                "priority": c.prioridade,
+                "waiting_since": str(c.created_at),
+                "waiting_minutes": (datetime.now() - c.created_at).total_seconds() // 60
             }
             for c in conversations
         ],
@@ -281,7 +353,7 @@ async def create_conversation(
     client_ip = request.client.host if request.client else "unknown"
     
     # Obter ou criar cliente
-    client_id = get_or_create_client(data.client_phone, data.client_name)
+    client_id = await get_or_create_client_async(data.client_phone, data.client_name)
     
     if not client_id:
         raise HTTPException(
@@ -290,11 +362,13 @@ async def create_conversation(
         )
     
     # Criar conversa
-    conversation = sqlserver_manager.create_conversation(
-        client_id=client_id,
-        subject=data.subject,
-        category=data.category,
-        priority=data.priority
+    conversation = await create_conversation_async(
+        cliente_id=client_id,
+        chat_id=None,
+        estado=ConversationState.ESPERA,
+        prioridade=data.priority,
+        tags=data.category,
+        conversation_metadata={"subject": data.subject}
     )
     
     if not conversation:
@@ -308,13 +382,13 @@ async def create_conversation(
         user_id=current_user["id"],
         action="create_conversation",
         resource_type="conversation",
-        resource_id=str(conversation["id"]),
+        resource_id=str(conversation.id),
         ip_address=client_ip,
         status="success"
     )
     
     return ConversationResponse(
-        id=conversation["id"],
+        id=conversation.id,
         client_id=client_id,
         client_phone=data.client_phone,
         client_name=data.client_name,
@@ -345,7 +419,7 @@ async def get_conversation(
     """
     Obter detalhes de uma conversa.
     """
-    conversation = sqlserver_manager.get_conversation(conversation_id)
+    conversation = await get_conversation_async(conversation_id)
     
     if not conversation:
         raise HTTPException(
@@ -355,29 +429,29 @@ async def get_conversation(
     
     # Verificar permissão
     if (current_user["role"] == "atendente" and 
-        conversation.get("attendant_id") != current_user["id"] and
-        conversation.get("status") != "waiting"):
+        conversation.atendente_id != current_user["id"] and
+        conversation.estado != ConversationState.ESPERA):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Sem permissão para visualizar esta conversa"
         )
     
     return ConversationResponse(
-        id=conversation["id"],
-        client_id=conversation["client_id"],
-        client_phone=conversation.get("client_phone", ""),
-        client_name=conversation.get("client_name"),
-        attendant_id=conversation.get("attendant_id"),
-        attendant_name=conversation.get("attendant_name"),
-        status=conversation["status"],
-        priority=conversation.get("priority", "normal"),
-        category=conversation.get("category"),
-        subject=conversation.get("subject"),
-        total_messages=conversation.get("total_messages", 0),
-        rating=conversation.get("rating"),
-        started_at=str(conversation.get("started_at", "")),
-        last_message_at=str(conversation.get("last_message_at")) if conversation.get("last_message_at") else None,
-        resolved_at=str(conversation.get("resolved_at")) if conversation.get("resolved_at") else None
+        id=conversation.id,
+        client_id=conversation.cliente_id,
+        client_phone=conversation.cliente_id,
+        client_name=conversation.cliente_id,
+        attendant_id=conversation.atendente_id,
+        attendant_name=None,
+        status=conversation.estado,
+        priority=conversation.prioridade,
+        category=conversation.tags,
+        subject=conversation.conversation_metadata.get("subject"),
+        total_messages=0,
+        rating=None,
+        started_at=str(conversation.created_at),
+        last_message_at=None,
+        resolved_at=None
     )
 
 
@@ -395,7 +469,7 @@ async def update_conversation(
     """
     Atualizar dados da conversa.
     """
-    conversation = sqlserver_manager.get_conversation(conversation_id)
+    conversation = await get_conversation_async(conversation_id)
     
     if not conversation:
         raise HTTPException(
@@ -407,36 +481,36 @@ async def update_conversation(
     update_fields = data.dict(exclude_unset=True)
     
     if update_fields:
-        success = sqlserver_manager.update_conversation(
+        updated_conversation = await update_conversation_async(
             conversation_id=conversation_id,
             **update_fields
         )
         
-        if not success:
+        if not updated_conversation:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Erro ao atualizar conversa"
             )
     
     # Retornar atualizada
-    updated = sqlserver_manager.get_conversation(conversation_id)
+    updated = await get_conversation_async(conversation_id)
     
     return ConversationResponse(
-        id=updated["id"],
-        client_id=updated["client_id"],
-        client_phone=updated.get("client_phone", ""),
-        client_name=updated.get("client_name"),
-        attendant_id=updated.get("attendant_id"),
-        attendant_name=updated.get("attendant_name"),
-        status=updated["status"],
-        priority=updated.get("priority", "normal"),
-        category=updated.get("category"),
-        subject=updated.get("subject"),
-        total_messages=updated.get("total_messages", 0),
-        rating=updated.get("rating"),
-        started_at=str(updated.get("started_at", "")),
-        last_message_at=str(updated.get("last_message_at")) if updated.get("last_message_at") else None,
-        resolved_at=str(updated.get("resolved_at")) if updated.get("resolved_at") else None
+        id=updated.id,
+        client_id=updated.cliente_id,
+        client_phone=updated.cliente_id,
+        client_name=updated.cliente_id,
+        attendant_id=updated.atendente_id,
+        attendant_name=None,
+        status=updated.estado,
+        priority=updated.prioridade,
+        category=updated.tags,
+        subject=updated.conversation_metadata.get("subject"),
+        total_messages=0,
+        rating=None,
+        started_at=str(updated.created_at),
+        last_message_at=None,
+        resolved_at=None
     )
 
 
@@ -456,7 +530,7 @@ async def assign_conversation(
     - Sem attendant_id: assume para si mesmo
     - Com attendant_id: atribui para outro (requer supervisor/admin)
     """
-    conversation = sqlserver_manager.get_conversation(conversation_id)
+    conversation = await get_conversation_async(conversation_id)
     
     if not conversation:
         raise HTTPException(
@@ -475,12 +549,12 @@ async def assign_conversation(
             )
     
     # Atribuir
-    success = sqlserver_manager.assign_conversation(
+    updated_conversation = await assign_conversation_async(
         conversation_id=conversation_id,
-        attendant_id=target_attendant
+        atendente_id=target_attendant
     )
     
-    if not success:
+    if not updated_conversation:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro ao atribuir conversa"
@@ -513,7 +587,7 @@ async def transfer_conversation(
     """
     Transferir conversa para outro atendente.
     """
-    conversation = sqlserver_manager.get_conversation(conversation_id)
+    conversation = await get_conversation_async(conversation_id)
     
     if not conversation:
         raise HTTPException(
@@ -522,7 +596,7 @@ async def transfer_conversation(
         )
     
     # Verificar se é o atendente atual ou supervisor
-    if (conversation.get("attendant_id") != current_user["id"] and 
+    if (conversation.atendente_id != current_user["id"] and 
         current_user["role"] == "atendente"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -530,13 +604,12 @@ async def transfer_conversation(
         )
     
     # Transferir
-    success = sqlserver_manager.transfer_conversation(
+    updated_conversation = await transfer_conversation_async(
         conversation_id=conversation_id,
-        from_attendant_id=conversation.get("attendant_id"),
-        to_attendant_id=target_attendant_id
+        new_atendente_id=target_attendant_id
     )
     
-    if not success:
+    if not updated_conversation:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro ao transferir conversa"
@@ -544,7 +617,7 @@ async def transfer_conversation(
     
     return {
         "message": "Conversa transferida com sucesso",
-        "from_attendant": conversation.get("attendant_id"),
+        "from_attendant": conversation.atendente_id,
         "to_attendant": target_attendant_id
     }
 
@@ -562,7 +635,7 @@ async def close_conversation(
     """
     Encerrar uma conversa com avaliação opcional.
     """
-    conversation = sqlserver_manager.get_conversation(conversation_id)
+    conversation = await get_conversation_async(conversation_id)
     
     if not conversation:
         raise HTTPException(
@@ -571,7 +644,7 @@ async def close_conversation(
         )
     
     # Verificar permissão
-    if (conversation.get("attendant_id") != current_user["id"] and 
+    if (conversation.atendente_id != current_user["id"] and 
         current_user["role"] == "atendente"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -579,14 +652,12 @@ async def close_conversation(
         )
     
     # Encerrar
-    success = sqlserver_manager.close_conversation(
+    updated_conversation = await close_conversation_async(
         conversation_id=conversation_id,
-        rating=data.rating,
-        feedback=data.feedback,
-        resolution_notes=data.resolution_notes
+        encerrada_em=datetime.now()
     )
     
-    if not success:
+    if not updated_conversation:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro ao encerrar conversa"
@@ -624,7 +695,7 @@ async def list_messages(
     """
     Listar mensagens de uma conversa.
     """
-    conversation = sqlserver_manager.get_conversation(conversation_id)
+    conversation = await get_conversation_async(conversation_id)
     
     if not conversation:
         raise HTTPException(
@@ -633,23 +704,19 @@ async def list_messages(
         )
     
     offset = (page - 1) * per_page
-    messages = sqlserver_manager.list_messages(
-        conversation_id=conversation_id,
-        limit=per_page,
-        offset=offset
-    )
+    messages = await list_messages_async(conversation_id)
     
     return [
         MessageResponse(
-            id=m["id"],
+            id=m.id,
             conversation_id=conversation_id,
-            sender_type=m["sender_type"],
-            sender_id=m.get("sender_id"),
-            content=m["content"],
-            message_type=m.get("message_type", "text"),
-            status=m.get("status", "sent"),
-            is_from_me=m.get("is_from_me", False),
-            created_at=str(m.get("created_at", ""))
+            sender_type=m.remetente_tipo,
+            sender_id=m.remetente_id,
+            content=m.conteudo,
+            message_type=m.tipo_mensagem,
+            status="sent",
+            is_from_me=m.remetente_id == current_user["id"],
+            created_at=str(m.created_at)
         )
         for m in messages
     ]
@@ -670,7 +737,7 @@ async def send_message(
     """
     Enviar mensagem em uma conversa.
     """
-    conversation = sqlserver_manager.get_conversation(conversation_id)
+    conversation = await get_conversation_async(conversation_id)
     
     if not conversation:
         raise HTTPException(
@@ -679,13 +746,13 @@ async def send_message(
         )
     
     # Criar mensagem
-    message = sqlserver_manager.create_message(
-        conversation_id=conversation_id,
-        sender_type="attendant",
-        sender_id=current_user["id"],
-        content=data.content,
-        message_type=data.message_type,
-        media_url=data.media_url
+    message = await create_message_async(
+        conversa_id=conversation_id,
+        remetente_tipo="attendant",
+        remetente_id=current_user["id"],
+        conteudo=data.content,
+        tipo_mensagem=data.message_type,
+        arquivo_url=data.media_url
     )
     
     if not message:
@@ -695,12 +762,12 @@ async def send_message(
         )
     
     return MessageResponse(
-        id=message["id"],
+        id=message.id,
         conversation_id=conversation_id,
         sender_type="attendant",
         sender_id=current_user["id"],
         content=data.content,
-        message_type=data.message_type,
+        message_type=message.tipo_mensagem,
         status="sent",
         is_from_me=True,
         created_at=str(datetime.now())

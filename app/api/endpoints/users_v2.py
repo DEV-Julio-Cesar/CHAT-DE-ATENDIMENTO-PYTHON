@@ -21,8 +21,11 @@ from app.core.auth_manager import (
     require_permissions,
     auth_manager
 )
-from app.core.sqlserver_db import sqlserver_manager
 from app.core.audit_logger import audit_logger, AuditEventTypes
+from app.core.database import db_manager
+from app.models.database import Usuario, UserRole
+from sqlalchemy import select, or_
+import bcrypt
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["Usuários"])
@@ -122,6 +125,101 @@ class PasswordReset(BaseModel):
 # ENDPOINTS
 # ============================================================================
 
+# Helper assíncrono para listar usuários
+async def list_users_filtered_async(limit, offset, role, search, is_active):
+    async with db_manager.session_factory() as session:
+        query = select(Usuario)
+        filters = []
+        if role:
+            filters.append(Usuario.role == role)
+        if is_active is not None:
+            filters.append(Usuario.ativo == is_active)
+        if search:
+            filters.append(or_(Usuario.username.ilike(f"%{search}%"), Usuario.email.ilike(f"%{search}%")))
+        if filters:
+            query = query.where(*filters)
+        query = query.offset(offset).limit(limit)
+        result = await session.execute(query)
+        return result.scalars().all()
+
+async def count_users_async(role, search, is_active):
+    async with db_manager.session_factory() as session:
+        query = select(Usuario)
+        filters = []
+        if role:
+            filters.append(Usuario.role == role)
+        if is_active is not None:
+            filters.append(Usuario.ativo == is_active)
+        if search:
+            filters.append(or_(Usuario.username.ilike(f"%{search}%"), Usuario.email.ilike(f"%{search}%")))
+        if filters:
+            query = query.where(*filters)
+        result = await session.execute(query)
+        return result.scalars().count()
+
+# Helpers assíncronos CRUD usuário
+async def get_user_by_email_async(email: str):
+    async with db_manager.session_factory() as session:
+        result = await session.execute(select(Usuario).where(Usuario.email == email))
+        return result.scalar_one_or_none()
+
+async def get_user_by_id_async(user_id: str):
+    async with db_manager.session_factory() as session:
+        result = await session.execute(select(Usuario).where(Usuario.id == user_id))
+        return result.scalar_one_or_none()
+
+async def create_user_async(email, password, nome, role):
+    async with db_manager.session_factory() as session:
+        password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        new_user = Usuario(
+            email=email,
+            password_hash=password_hash,
+            username=nome,
+            role=role,
+            ativo=True
+        )
+        session.add(new_user)
+        await session.commit()
+        await session.refresh(new_user)
+        return new_user
+
+async def update_user_full_async(user_id, **kwargs):
+    async with db_manager.session_factory() as session:
+        user = await get_user_by_id_async(user_id)
+        if not user:
+            return None
+        for key, value in kwargs.items():
+            setattr(user, key, value)
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+async def delete_user_async(user_id):
+    async with db_manager.session_factory() as session:
+        user = await get_user_by_id_async(user_id)
+        if not user:
+            return False
+        await session.delete(user)
+        await session.commit()
+        return True
+
+async def update_user_password_async(user_id, new_password):
+    async with db_manager.session_factory() as session:
+        user = await get_user_by_id_async(user_id)
+        if not user:
+            return False
+        user.password_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+        await session.commit()
+        await session.refresh(user)
+        return True
+
+async def activate_user_async(user_id):
+    return await update_user_full_async(user_id, ativo=True)
+
+async def deactivate_user_async(user_id):
+    return await update_user_full_async(user_id, ativo=False)
+
+# Refatorar endpoint de listagem de usuários
 @router.get(
     "/",
     response_model=UserListResponse,
@@ -140,72 +238,37 @@ async def list_users(
     is_active: Optional[bool] = Query(None, description="Filtrar por status"),
     current_user: dict = Depends(require_permissions("users.view"))
 ):
-    """
-    Lista todos os usuários com paginação e filtros.
-    
-    **Permissão necessária**: users.view
-    """
-    try:
-        # Calcular offset
-        offset = (page - 1) * per_page
-        
-        # Buscar usuários do SQL Server
-        users_data = sqlserver_manager.list_users_filtered(
-            limit=per_page,
-            offset=offset,
-            role=role,
-            search=search,
-            is_active=is_active
+    offset = (page - 1) * per_page
+    users_data = await list_users_filtered_async(
+        limit=per_page,
+        offset=offset,
+        role=role,
+        search=search,
+        is_active=is_active
+    )
+    total = await count_users_async(role=role, search=search, is_active=is_active)
+    users = [
+        UserResponse(
+            id=str(u.id),
+            email=u.email,
+            nome=u.username,
+            role=u.role.value,
+            is_active=u.ativo,
+            phone=None,
+            department=None,
+            avatar_url=None,
+            created_at=str(u.created_at) if u.created_at else None,
+            last_login=str(u.ultimo_login) if u.ultimo_login else None
         )
-        
-        # Contar total
-        total = sqlserver_manager.count_users(role=role, search=search, is_active=is_active)
-        
-        # Converter para response
-        users = [
-            UserResponse(
-                id=int(u["id"]),
-                email=u["email"],
-                nome=u["nome"],
-                role=u["role"],
-                is_active=u.get("is_active", True),
-                phone=u.get("phone"),
-                department=u.get("department"),
-                avatar_url=u.get("avatar_url"),
-                created_at=str(u.get("created_at")) if u.get("created_at") else None,
-                last_login=str(u.get("last_login")) if u.get("last_login") else None
-            )
-            for u in users_data
-        ]
-        
-        # Calcular páginas
-        pages = (total + per_page - 1) // per_page if total > 0 else 1
-        
-        await audit_logger.log(
-            event_type=AuditEventTypes.DATA_ACCESSED,
-            user_id=current_user["id"],
-            action="list_users",
-            resource_type="user",
-            ip_address=request.client.host if request.client else "unknown",
-            status="success",
-            details={"count": len(users), "page": page}
-        )
-        
-        return UserListResponse(
-            users=users,
-            total=total,
-            page=page,
-            per_page=per_page,
-            pages=pages
-        )
-        
-    except Exception as e:
-        logger.error(f"Error listing users: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao listar usuários"
-        )
-
+        for u in users_data
+    ]
+    pages = (total // per_page) + 1
+    return UserListResponse(
+        users=users,
+        total=total,
+        page=page,
+        pages=pages
+    )
 
 @router.post(
     "/",
@@ -232,7 +295,7 @@ async def create_user(
     
     try:
         # Verificar se email já existe
-        existing = sqlserver_manager.get_user_by_email(user_data.email)
+        existing = await get_user_by_email_async(user_data.email)
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -240,7 +303,7 @@ async def create_user(
             )
         
         # Criar usuário
-        new_user = sqlserver_manager.create_user(
+        new_user = await create_user_async(
             email=user_data.email,
             password=user_data.password,
             nome=user_data.nome,
@@ -260,17 +323,17 @@ async def create_user(
             user_id=current_user["id"],
             action="create_user",
             resource_type="user",
-            resource_id=str(new_user["id"]),
+            resource_id=str(new_user.id),
             ip_address=client_ip,
             status="success",
             details={"email": user_data.email, "role": user_data.role}
         )
         
         return UserResponse(
-            id=int(new_user["id"]),
-            email=new_user["email"],
-            nome=new_user["nome"],
-            role=new_user["role"],
+            id=int(new_user.id),
+            email=new_user.email,
+            nome=new_user.username,
+            role=new_user.role,
             is_active=True,
             created_at=str(datetime.now())
         )
@@ -323,7 +386,7 @@ async def get_user(
             detail="Sem permissão para visualizar este usuário"
         )
     
-    user = sqlserver_manager.get_user_by_id(user_id)
+    user = await get_user_by_id_async(user_id)
     
     if not user:
         raise HTTPException(
@@ -332,16 +395,16 @@ async def get_user(
         )
     
     return UserResponse(
-        id=int(user["id"]),
-        email=user["email"],
-        nome=user["nome"],
-        role=user["role"],
-        is_active=user.get("is_active", True),
-        phone=user.get("phone"),
-        department=user.get("department"),
-        avatar_url=user.get("avatar_url"),
-        created_at=str(user.get("created_at")) if user.get("created_at") else None,
-        last_login=str(user.get("last_login")) if user.get("last_login") else None
+        id=int(user.id),
+        email=user.email,
+        nome=user.username,
+        role=user.role,
+        is_active=user.ativo,
+        phone=user.phone,
+        department=user.department,
+        avatar_url=user.avatar_url,
+        created_at=str(user.created_at) if user.created_at else None,
+        last_login=str(user.ultimo_login) if user.ultimo_login else None
     )
 
 
@@ -371,7 +434,7 @@ async def update_user(
     client_ip = request.client.host if request.client else "unknown"
     
     # Buscar usuário atual
-    target_user = sqlserver_manager.get_user_by_id(user_id)
+    target_user = await get_user_by_id_async(user_id)
     if not target_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -386,7 +449,7 @@ async def update_user(
         can_edit = True
         can_change_role = True
     elif current_user["role"] == "supervisor":
-        if target_user["role"] == "atendente" or current_user["id"] == user_id:
+        if target_user.role == "atendente" or current_user["id"] == user_id:
             can_edit = True
     elif current_user["id"] == user_id:
         can_edit = True
@@ -408,7 +471,7 @@ async def update_user(
     update_fields = user_data.dict(exclude_unset=True)
     
     if update_fields:
-        success = sqlserver_manager.update_user_full(
+        success = await update_user_full_async(
             user_id=user_id,
             **update_fields
         )
@@ -431,19 +494,19 @@ async def update_user(
     )
     
     # Retornar usuário atualizado
-    updated_user = sqlserver_manager.get_user_by_id(user_id)
+    updated_user = await get_user_by_id_async(user_id)
     
     return UserResponse(
-        id=int(updated_user["id"]),
-        email=updated_user["email"],
-        nome=updated_user["nome"],
-        role=updated_user["role"],
-        is_active=updated_user.get("is_active", True),
-        phone=updated_user.get("phone"),
-        department=updated_user.get("department"),
-        avatar_url=updated_user.get("avatar_url"),
-        created_at=str(updated_user.get("created_at")) if updated_user.get("created_at") else None,
-        last_login=str(updated_user.get("last_login")) if updated_user.get("last_login") else None
+        id=int(updated_user.id),
+        email=updated_user.email,
+        nome=updated_user.username,
+        role=updated_user.role,
+        is_active=updated_user.ativo,
+        phone=updated_user.phone,
+        department=updated_user.department,
+        avatar_url=updated_user.avatar_url,
+        created_at=str(updated_user.created_at) if updated_user.created_at else None,
+        last_login=str(updated_user.ultimo_login) if updated_user.ultimo_login else None
     )
 
 
@@ -477,7 +540,7 @@ async def delete_user(
         )
     
     # Verificar se usuário existe
-    user = sqlserver_manager.get_user_by_id(user_id)
+    user = await get_user_by_id_async(user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -485,8 +548,8 @@ async def delete_user(
         )
     
     # Não permitir deletar admin se for o único
-    if user["role"] == "admin":
-        admin_count = sqlserver_manager.count_users(role="admin", is_active=True)
+    if user.role == "admin":
+        admin_count = await count_users_async(role="admin", is_active=True)
         if admin_count <= 1:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -494,7 +557,7 @@ async def delete_user(
             )
     
     # Soft delete
-    success = sqlserver_manager.delete_user(user_id)
+    success = await delete_user_async(user_id)
     
     if not success:
         raise HTTPException(
@@ -505,7 +568,7 @@ async def delete_user(
     # Revogar todas as sessões do usuário
     await auth_manager.revoke_all_user_sessions(user_id)
     
-    logger.info(f"User {current_user['email']} deleted user {user['email']}")
+    logger.info(f"User {current_user['email']} deleted user {user.email}")
     
     await audit_logger.log(
         event_type=AuditEventTypes.DATA_DELETED,
@@ -515,7 +578,7 @@ async def delete_user(
         resource_id=str(user_id),
         ip_address=client_ip,
         status="success",
-        details={"deleted_email": user["email"]}
+        details={"deleted_email": user.email}
     )
     
     return None
@@ -544,7 +607,7 @@ async def reset_user_password(
     client_ip = request.client.host if request.client else "unknown"
     
     # Verificar se usuário existe
-    user = sqlserver_manager.get_user_by_id(user_id)
+    user = await get_user_by_id_async(user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -552,7 +615,7 @@ async def reset_user_password(
         )
     
     # Supervisor não pode resetar senha de admin
-    if current_user["role"] == "supervisor" and user["role"] == "admin":
+    if current_user["role"] == "supervisor" and user.role == "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Sem permissão para alterar senha de administradores"
@@ -560,7 +623,7 @@ async def reset_user_password(
     
     # Resetar senha
     new_hash = auth_manager.hash_password(password_data.new_password)
-    success = sqlserver_manager.update_user_password(user_id, new_hash)
+    success = await update_user_password_async(user_id, new_hash)
     
     if not success:
         raise HTTPException(
@@ -571,7 +634,7 @@ async def reset_user_password(
     # Revogar todas as sessões do usuário
     await auth_manager.revoke_all_user_sessions(user_id)
     
-    logger.info(f"Password reset for user {user['email']} by {current_user['email']}")
+    logger.info(f"Password reset for user {user.email} by {current_user['email']}")
     
     await audit_logger.log(
         event_type=AuditEventTypes.DATA_UPDATED,
@@ -581,7 +644,7 @@ async def reset_user_password(
         resource_id=str(user_id),
         ip_address=client_ip,
         status="success",
-        details={"target_email": user["email"]}
+        details={"target_email": user.email}
     )
     
     return {"message": "Senha resetada com sucesso", "sessions_revoked": True}
@@ -604,14 +667,14 @@ async def activate_user(
     
     **Permissão necessária**: users.edit
     """
-    user = sqlserver_manager.get_user_by_id(user_id)
+    user = await get_user_by_id_async(user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuário não encontrado"
         )
     
-    success = sqlserver_manager.activate_user(user_id)
+    success = await activate_user_async(user_id)
     
     if not success:
         raise HTTPException(
@@ -649,7 +712,7 @@ async def list_user_sessions(
     
     **Permissão necessária**: users.view
     """
-    user = sqlserver_manager.get_user_by_id(user_id)
+    user = await get_user_by_id_async(user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -660,7 +723,7 @@ async def list_user_sessions(
     
     return {
         "user_id": user_id,
-        "user_email": user["email"],
+        "user_email": user.email,
         "sessions": [
             {
                 "session_id": s["session_id"],
@@ -692,7 +755,7 @@ async def revoke_user_sessions(
     
     **Permissão necessária**: users.edit
     """
-    user = sqlserver_manager.get_user_by_id(user_id)
+    user = await get_user_by_id_async(user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

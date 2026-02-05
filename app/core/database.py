@@ -32,43 +32,33 @@ class DatabaseManager:
         """Inicializar conexão com banco de dados"""
         if self._initialized:
             return
-            
         try:
-            # Configurar engine com otimizações
+            pool_class = AsyncAdaptedQueuePool if not settings.DEBUG else NullPool
+            engine_args = {
+                "echo": settings.DEBUG,
+                "pool_pre_ping": True,
+                "pool_recycle": 3600,
+                "poolclass": pool_class,
+            }
+            # Só adicionar pool_size e max_overflow se não for NullPool
+            if pool_class is AsyncAdaptedQueuePool:
+                engine_args["pool_size"] = settings.DATABASE_POOL_SIZE
+                engine_args["max_overflow"] = settings.DATABASE_MAX_OVERFLOW
+            # connect_args só para Postgres, remover para MariaDB/MySQL
             self.engine = create_async_engine(
                 settings.DATABASE_URL,
-                echo=settings.DEBUG,
-                pool_size=settings.DATABASE_POOL_SIZE,
-                max_overflow=settings.DATABASE_MAX_OVERFLOW,
-                pool_pre_ping=True,
-                pool_recycle=3600,  # Reciclar conexões a cada hora
-                poolclass=AsyncAdaptedQueuePool if not settings.DEBUG else NullPool,
-                connect_args={
-                    "server_settings": {
-                        "application_name": settings.APP_NAME,
-                        "jit": "off",  # Desabilitar JIT para melhor performance em queries simples
-                    }
-                }
+                **engine_args
             )
-            
             # Configurar session factory
             self.session_factory = async_sessionmaker(
                 bind=self.engine,
                 class_=AsyncSession,
                 expire_on_commit=False,
-                autoflush=False,  # Controle manual de flush
+                autoflush=False,
                 autocommit=False
             )
-            
-            # Configurar listeners para logging de queries lentas
-            if settings.DEBUG:
-                self._setup_query_logging()
-            
             self._initialized = True
-            logger.info("Database connection initialized", 
-                       pool_size=settings.DATABASE_POOL_SIZE,
-                       max_overflow=settings.DATABASE_MAX_OVERFLOW)
-            
+            logger.info("Database async engine initialized")
         except Exception as e:
             logger.error("Failed to initialize database", error=str(e))
             raise

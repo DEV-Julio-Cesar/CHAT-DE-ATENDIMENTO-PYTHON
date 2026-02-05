@@ -15,7 +15,9 @@ from fastapi import APIRouter, HTTPException, status, Request, Query, Background
 from fastapi.responses import PlainTextResponse
 
 from app.services.whatsapp_cloud_api import whatsapp_client, WebhookMessage
-from app.core.sqlserver_db import sqlserver_manager
+from app.core.database import db_manager
+from app.models.database import ClienteWhatsApp, Conversa, Mensagem, ConversationState, SenderType, MessageType
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/whatsapp/v2", tags=["WhatsApp Cloud API"])
@@ -139,85 +141,25 @@ async def process_incoming_message(msg: WebhookMessage):
     """
     try:
         logger.info(f"Processando mensagem de {msg.from_number}: {msg.type}")
-        
-        # 1. Buscar ou criar cliente
-        client = sqlserver_manager.get_client_by_phone(msg.from_number)
-        
+        client = await get_client_by_phone_async(msg.from_number)
         if not client:
-            client = sqlserver_manager.create_client(
-                phone=msg.from_number,
-                name=f"Cliente {msg.from_number[-4:]}"
-            )
-        
+            client = await create_client_async(msg.from_number, f"Cliente {msg.from_number[-4:]}")
         if not client:
             logger.error(f"Erro ao criar cliente: {msg.from_number}")
             return
-        
-        client_id = client["id"]
-        
-        # 2. Buscar conversa ativa ou criar nova
-        conversation = get_active_conversation(client_id)
-        
+        client_id = str(client.id)
+        conversation = await get_active_conversation_async(client_id)
         if not conversation:
-            conversation = sqlserver_manager.create_conversation(
-                client_id=client_id,
-                subject=f"Atendimento WhatsApp",
-                category="whatsapp",
-                priority="normal"
-            )
-        
+            conversation = await create_conversation_async(client_id, "Atendimento WhatsApp", "whatsapp", "normal")
         if not conversation:
             logger.error(f"Erro ao criar conversa para cliente: {client_id}")
             return
-        
-        conversation_id = conversation["id"]
-        
-        # 3. Extrair conteúdo da mensagem
+        conversation_id = str(conversation.id)
         content = extract_message_content(msg)
-        
-        # 4. Salvar mensagem
-        message = sqlserver_manager.create_message(
-            conversation_id=conversation_id,
-            sender_type="client",
-            sender_id=client_id,
-            content=content,
-            message_type=msg.type
-        )
-        
-        # 5. Marcar como lida (opcional)
-        await whatsapp_client.mark_as_read(msg.message_id)
-        
-        # 6. Acionar chatbot se conversa em fila
-        if conversation.get("status") == "waiting":
-            from app.services.chatbot_ai import chatbot_service
-            
-            # Tentar resposta automática
-            bot_response = await chatbot_service.process_message(
-                content=content,
-                conversation_id=conversation_id,
-                client_name=client.get("name", "")
-            )
-            
-            if bot_response:
-                # Enviar resposta do bot
-                await whatsapp_client.send_text(
-                    to=msg.from_number,
-                    text=bot_response
-                )
-                
-                # Salvar resposta
-                sqlserver_manager.create_message(
-                    conversation_id=conversation_id,
-                    sender_type="bot",
-                    sender_id=0,
-                    content=bot_response,
-                    message_type="text"
-                )
-        
-        logger.info(f"Mensagem processada: {msg.message_id}")
-    
+        await create_message_async(conversation_id, SenderType.CLIENTE, msg.from_number, content, MessageType.TEXTO)
     except Exception as e:
-        logger.error(f"Erro ao processar mensagem: {e}")
+        logger.error(f"Erro no webhook: {e}")
+        return {"status": "error", "message": str(e)}
 
 
 async def process_status_update(status_data: Dict[str, Any]):
@@ -255,32 +197,56 @@ async def process_status_update(status_data: Dict[str, Any]):
 # HELPERS
 # ============================================================================
 
-def get_active_conversation(client_id: int) -> Optional[Dict]:
-    """Buscar conversa ativa do cliente"""
-    try:
-        with sqlserver_manager.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT TOP 1 id, status, attendant_id
-                FROM conversas
-                WHERE client_id = ? 
-                AND status IN ('waiting', 'in_progress')
-                ORDER BY started_at DESC
-            """, (client_id,))
-            
-            row = cursor.fetchone()
-            if row:
-                return {
-                    "id": row.id,
-                    "status": row.status,
-                    "attendant_id": row.attendant_id
-                }
-            
-            return None
-    except Exception as e:
-        logger.error(f"Erro ao buscar conversa ativa: {e}")
-        return None
+async def get_client_by_phone_async(phone: str):
+    async with db_manager.session_factory() as session:
+        result = await session.execute(select(ClienteWhatsApp).where(ClienteWhatsApp.telefone == phone))
+        return result.scalar_one_or_none()
 
+async def create_client_async(phone: str, name: str):
+    async with db_manager.session_factory() as session:
+        new_client = ClienteWhatsApp(
+            client_id=f"cli_{phone}",
+            nome=name,
+            telefone=phone,
+            status=ConversationState.AUTOMACAO
+        )
+        session.add(new_client)
+        await session.commit()
+        await session.refresh(new_client)
+        return new_client
+
+async def get_active_conversation_async(client_id: str):
+    async with db_manager.session_factory() as session:
+        result = await session.execute(select(Conversa).where(Conversa.cliente_id == client_id, Conversa.estado.in_([ConversationState.ESPERA, ConversationState.ATENDIMENTO])))
+        return result.scalar_one_or_none()
+
+async def create_conversation_async(client_id: str, subject: str, category: str, priority: str):
+    async with db_manager.session_factory() as session:
+        conversa = Conversa(
+            cliente_id=client_id,
+            chat_id=f"chat_{client_id}_{datetime.now().timestamp()}",
+            estado=ConversationState.ESPERA,
+            prioridade=priority,
+            conversation_metadata={"subject": subject, "category": category}
+        )
+        session.add(conversa)
+        await session.commit()
+        await session.refresh(conversa)
+        return conversa
+
+async def create_message_async(conversation_id: str, sender_type: str, sender_id: str, content: str, message_type: str):
+    async with db_manager.session_factory() as session:
+        mensagem = Mensagem(
+            conversa_id=conversation_id,
+            remetente_tipo=sender_type,
+            remetente_id=sender_id,
+            conteudo=content,
+            tipo_mensagem=message_type
+        )
+        session.add(mensagem)
+        await session.commit()
+        await session.refresh(mensagem)
+        return mensagem
 
 def extract_message_content(msg: WebhookMessage) -> str:
     """Extrair conteúdo textual da mensagem"""

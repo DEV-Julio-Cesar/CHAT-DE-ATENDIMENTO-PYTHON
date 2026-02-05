@@ -1,0 +1,23 @@
+{
+  "summary": {
+    "total_tests": 2,
+    "success_count": 0,
+    "error_count": 2,
+    "success_rate": 0.0,
+    "timestamp": "2026-02-04T21:05:29.596251"
+  },
+  "results": [
+    {
+      "test": "Health Check",
+      "status": "ERROR",
+      "message": "Status code: 500",
+      "timestamp": "2026-02-04T21:05:29.587259"
+    },
+    {
+      "test": "Authentication",
+      "status": "ERROR",
+      "message": "[WinError 64] O nome da rede especificado não está mais disponível",
+      "timestamp": "2026-02-04T21:05:29.594243"
+    }
+  ]
+}

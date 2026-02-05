@@ -13,11 +13,10 @@ from app.core.config import settings
 from app.core.dependencies import revoke_token
 from app.core.audit_logger import audit_logger, AuditEventTypes
 from app.core.rate_limiter import rate_limiter, RateLimitConfig
-from app.core.sqlserver_db import sqlserver_manager
-
-# Imports do projeto
-# from app.core.security_simple import security_manager  # Verificar disponibilidade
-# from app.core.database import db_manager  # Para buscar usuário
+from app.core.database import db_manager
+from app.models.database import Usuario
+from sqlalchemy import select
+import bcrypt
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -190,14 +189,22 @@ async def login(
                 is_demo_user = True
                 logger.info(f"Demo user login: {credentials.email}")
         
-        # Se não for demo, tentar buscar no SQL Server
+        # Se não for demo, tentar buscar no banco MariaDB/MySQL
         if not user:
             try:
-                user = sqlserver_manager.get_user_by_email(credentials.email)
-                if user and not sqlserver_manager.verify_password(credentials.password, user.get("password_hash", "")):
-                    user = None  # Senha incorreta
+                db_user = await get_user_by_email(credentials.email)
+                if db_user and await verify_password(credentials.password, db_user.password_hash):
+                    user = {
+                        "id": str(db_user.id),
+                        "email": db_user.email,
+                        "nome": db_user.username,
+                        "role": db_user.role.value,
+                        "ativo": db_user.ativo
+                    }
+                else:
+                    user = None  # Senha incorreta ou usuário não existe
             except Exception as db_error:
-                logger.warning(f"SQL Server not available, using demo mode only: {db_error}")
+                logger.warning(f"Banco MariaDB/MySQL não disponível, usando modo demo: {db_error}")
                 user = None
         
         if not user:
@@ -241,12 +248,16 @@ async def login(
             algorithm=settings.ALGORITHM
         )
         
-        # Atualizar last_login no SQL Server (apenas se não for demo user)
-        if not is_demo_user:
+        # Atualizar last_login no banco MariaDB/MySQL (apenas se não for demo user)
+        if not is_demo_user and user:
             try:
-                sqlserver_manager.update_last_login(int(user_id))
+                async with db_manager.session_factory() as session:
+                    db_user = await get_user_by_email(credentials.email)
+                    if db_user:
+                        db_user.ultimo_login = datetime.now(timezone.utc)
+                        await session.commit()
             except Exception as e:
-                logger.warning(f"Could not update last_login: {e}")
+                logger.warning(f"Não foi possível atualizar ultimo_login: {e}")
         
         # ===== 4. REGISTRAR EM AUDITORIA =====
         await audit_logger.log(
@@ -421,3 +432,14 @@ async def validate_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
         )
+
+# Função utilitária para buscar usuário por e-mail
+async def get_user_by_email(email: str):
+    async with db_manager.session_factory() as session:
+        result = await session.execute(select(Usuario).where(Usuario.email == email))
+        user = result.scalar_one_or_none()
+        return user
+
+# Função utilitária para verificar senha
+async def verify_password(password: str, password_hash: str) -> bool:
+    return bcrypt.checkpw(password.encode(), password_hash.encode())

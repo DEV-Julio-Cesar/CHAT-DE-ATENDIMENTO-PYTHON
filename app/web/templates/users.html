@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuários - CIANET PROVEDOR</title>
+    <link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👥</text></svg>">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0fdfa 100%);
+            min-height: 100vh; 
+        }
+        
+        .app-layout { display: flex; min-height: 100vh; }
+        
+        /* ========== SIDEBAR ========== */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #166534 0%, #15803d 30%, #22c55e 70%, #16a34a 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            box-shadow: 4px 0 25px rgba(22, 101, 52, 0.3);
+        }
+        
+        .sidebar-brand { 
+            padding: 28px 24px; 
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15); 
+        }
+        
+        .sidebar-brand-logo { display: flex; align-items: center; gap: 14px; }
+        
+        .sidebar-brand-icon {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
+        }
+        
+        .sidebar-brand-text h1 { font-size: 20px; font-weight: 700; color: white; }
+        .sidebar-brand-text span { font-size: 12px; color: rgba(255, 255, 255, 0.75); }
+        
+        .sidebar-nav { flex: 1; padding: 20px 16px; overflow-y: auto; }
+        .nav-section { margin-bottom: 28px; }
+        
+        .nav-section-title {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1.5px; color: rgba(255, 255, 255, 0.5);
+            padding: 0 12px; margin-bottom: 12px;
+        }
+        
+        .nav-menu { list-style: none; }
+        
+        .nav-link {
+            display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+            color: rgba(255, 255, 255, 0.85); text-decoration: none;
+            border-radius: 14px; margin-bottom: 6px;
+            transition: all 0.3s ease; font-weight: 500;
+        }
+        
+        .nav-link:hover { 
+            background: rgba(255, 255, 255, 0.15); 
+            color: white; 
+            transform: translateX(4px); 
+        }
+        
+        .nav-link.active { 
+            background: linear-gradient(135deg, #f97316, #ea580c); 
+            color: white; 
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.35); 
+        }
+        
+        .nav-link i { font-size: 20px; width: 24px; text-align: center; }
+        
+        .nav-badge {
+            margin-left: auto; background: #f97316; color: white;
+            font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;
+        }
+        
+        .nav-link.active .nav-badge { background: rgba(255, 255, 255, 0.25); }
+        
+        /* ========== MAIN CONTENT ========== */
+        .main-content { 
+            flex: 1; 
+            margin-left: 280px; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        
+        /* ========== HEADER ========== */
+        .top-header {
+            background: white;
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .header-left { display: flex; align-items: center; gap: 20px; }
+        
+        .header-title { display: flex; align-items: center; gap: 14px; }
+        
+        .header-title-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+        }
+        
+        .header-title h1 { 
+            font-size: 26px; 
+            font-weight: 700; 
+            color: #1e293b;
+            background: linear-gradient(135deg, #166534, #22c55e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header-title p { font-size: 14px; color: #6b7280; margin-top: 2px; }
+        
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+        
+        /* ========== BUTTONS ========== */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .btn-primary { 
+            background: linear-gradient(135deg, #22c55e, #16a34a); 
+            color: white; 
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+        }
+        
+        .btn-primary:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4); 
+        }
+        
+        .btn-secondary { 
+            background: #f4f4f5; 
+            color: #374151; 
+        }
+        
+        .btn-secondary:hover { 
+            background: #e5e7eb; 
+        }
+        
+        .btn-danger { 
+            background: linear-gradient(135deg, #ef4444, #dc2626); 
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+        
+        .btn-danger:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4); 
+        }
+        
+        .btn-orange { 
+            background: linear-gradient(135deg, #f97316, #ea580c); 
+            color: white;
+            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+        }
+        
+        .btn-orange:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 8px 25px rgba(249, 115, 22, 0.4); 
+        }
+        
+        /* ========== PAGE CONTENT ========== */
+        .page-content { padding: 32px; }
+        
+        /* ========== STATS GRID ========== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+        
+        .stat-card.green::before { background: linear-gradient(90deg, #22c55e, #16a34a); }
+        .stat-card.orange::before { background: linear-gradient(90deg, #f97316, #ea580c); }
+        .stat-card.blue::before { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+        .stat-card.purple::before { background: linear-gradient(90deg, #8b5cf6, #7c3aed); }
+        
+        .stat-card:hover { 
+            transform: translateY(-4px); 
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1); 
+        }
+        
+        .stat-card-header { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            margin-bottom: 16px; 
+        }
+        
+        .stat-card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+        }
+        
+        .stat-card.green .stat-card-icon { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #16a34a; }
+        .stat-card.orange .stat-card-icon { background: linear-gradient(135deg, #ffedd5, #fed7aa); color: #ea580c; }
+        .stat-card.blue .stat-card-icon { background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: #2563eb; }
+        .stat-card.purple .stat-card-icon { background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #7c3aed; }
+        
+        .stat-card-value { 
+            font-size: 36px; 
+            font-weight: 800; 
+            color: #1e293b;
+            line-height: 1;
+        }
+        
+        .stat-card-label { 
+            font-size: 14px; 
+            color: #6b7280; 
+            margin-top: 8px;
+            font-weight: 500;
+        }
+        
+        /* ========== USERS CARD ========== */
+        .users-card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+        
+        .card-header {
+            padding: 24px 28px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, #fafffe 0%, #f0fdf4 100%);
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .card-title i { color: #22c55e; }
+        
+        .header-filters { display: flex; align-items: center; gap: 12px; }
+        
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 12px 18px;
+            border-radius: 12px;
+            width: 300px;
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+        
+        .search-box:focus-within { 
+            border-color: #22c55e; 
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1); 
+        }
+        
+        .search-box input {
+            border: none;
+            background: transparent;
+            outline: none;
+            flex: 1;
+            font-size: 14px;
+            color: #1e293b;
+        }
+        
+        .search-box input::placeholder { color: #9ca3af; }
+        .search-box i { color: #9ca3af; font-size: 18px; }
+        
+        .filter-select {
+            padding: 12px 18px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 14px;
+            color: #1e293b;
+            background: white;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-select:focus {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+        }
+        
+        /* ========== TABLE ========== */
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .users-table th,
+        .users-table td {
+            padding: 18px 28px;
+            text-align: left;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .users-table th {
+            background: #fafafa;
+            font-weight: 600;
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .users-table tbody tr { 
+            transition: all 0.2s ease; 
+        }
+        
+        .users-table tbody tr:hover { 
+            background: linear-gradient(90deg, #f0fdf4 0%, #fafffe 100%); 
+        }
+        
+        .user-cell {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .user-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            color: white;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .user-avatar.admin { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+        .user-avatar.supervisor { background: linear-gradient(135deg, #f97316, #ea580c); }
+        .user-avatar.atendente { background: linear-gradient(135deg, #22c55e, #16a34a); }
+        
+        .user-info h4 { 
+            font-size: 15px; 
+            font-weight: 600; 
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+        
+        .user-info p { 
+            font-size: 13px; 
+            color: #64748b; 
+        }
+        
+        .role-badge {
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .role-badge.admin { 
+            background: linear-gradient(135deg, #ede9fe, #ddd6fe); 
+            color: #6d28d9; 
+        }
+        
+        .role-badge.supervisor { 
+            background: linear-gradient(135deg, #ffedd5, #fed7aa); 
+            color: #c2410c; 
+        }
+        
+        .role-badge.atendente { 
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0); 
+            color: #166534; 
+        }
+        
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .status-badge.online { 
+            background: #dcfce7; 
+            color: #166534; 
+        }
+        
+        .status-badge.online::before { 
+            background: #22c55e; 
+        }
+        
+        .status-badge.offline { 
+            background: #f4f4f5; 
+            color: #64748b; 
+        }
+        
+        .status-badge.offline::before { 
+            background: #9ca3af;
+            animation: none;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+        
+        .action-buttons { display: flex; gap: 8px; }
+        
+        .action-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .action-btn.edit { 
+            background: #dbeafe; 
+            color: #2563eb; 
+        }
+        
+        .action-btn.edit:hover { 
+            background: #2563eb; 
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        
+        .action-btn.delete { 
+            background: #fee2e2; 
+            color: #dc2626; 
+        }
+        
+        .action-btn.delete:hover { 
+            background: #dc2626; 
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+        
+        /* ========== EMPTY STATE ========== */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .empty-state-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: #22c55e;
+            margin: 0 auto 24px;
+        }
+        
+        .empty-state h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+        
+        .empty-state p {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        /* ========== MODAL ========== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(8px);
+        }
+        
+        .modal-overlay.active { display: flex; }
+        
+        .modal-content {
+            background: white;
+            border-radius: 28px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25);
+            animation: modalSlideIn 0.3s ease;
+        }
+        
+        @keyframes modalSlideIn {
+            from { transform: translateY(-30px) scale(0.95); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        
+        .modal-header {
+            padding: 28px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+            border-radius: 28px 28px 0 0;
+        }
+        
+        .modal-header h3 {
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-close:hover { 
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+        
+        .modal-body { padding: 28px; }
+        
+        .modal-footer {
+            padding: 20px 28px;
+            border-top: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            background: #fafafa;
+            border-radius: 0 0 28px 28px;
+        }
+        
+        /* ========== FORM ========== */
+        .form-group { margin-bottom: 24px; }
+        
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 10px;
+        }
+        
+        .form-label span { color: #ef4444; }
+        
+        .form-input {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            color: #1e293b;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+        }
+        
+        .form-input::placeholder { color: #9ca3af; }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            color: #1e293b;
+            transition: all 0.3s ease;
+        }
+        
+        .form-select:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+        }
+        
+        /* ========== AVATAR UPLOAD ========== */
+        .avatar-upload {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 24px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+            border-radius: 20px;
+            margin-bottom: 28px;
+            border: 2px dashed #86efac;
+        }
+        
+        .avatar-preview {
+            width: 90px;
+            height: 90px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 700;
+            color: white;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
+        }
+        
+        .avatar-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .avatar-actions { flex: 1; }
+        
+        .avatar-actions h4 { 
+            font-size: 16px; 
+            font-weight: 600; 
+            color: #1e293b; 
+            margin-bottom: 8px; 
+        }
+        
+        .avatar-actions p { 
+            font-size: 13px; 
+            color: #64748b; 
+            margin-bottom: 16px; 
+        }
+        
+        .avatar-buttons { display: flex; gap: 10px; }
+        
+        .avatar-btn {
+            padding: 10px 18px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .avatar-btn:hover { 
+            border-color: #22c55e; 
+            color: #16a34a;
+            background: #f0fdf4;
+        }
+        
+        .avatar-btn.remove { color: #dc2626; }
+        
+        .avatar-btn.remove:hover { 
+            border-color: #dc2626; 
+            background: #fef2f2; 
+        }
+        
+        /* ========== DELETE MODAL ========== */
+        .delete-modal .modal-header {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        
+        .delete-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+        }
+        
+        .delete-icon i {
+            font-size: 48px;
+            color: #ef4444;
+        }
+        
+        /* ========== NOTIFICATIONS ========== */
+        .notification {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            padding: 18px 28px;
+            border-radius: 16px;
+            font-weight: 600;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: notificationSlideIn 0.4s ease;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .notification.success {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            color: #166534;
+            border: 2px solid #22c55e;
+        }
+        
+        .notification.error {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            color: #991b1b;
+            border: 2px solid #ef4444;
+        }
+        
+        @keyframes notificationSlideIn { 
+            from { transform: translateX(100%); opacity: 0; } 
+            to { transform: translateX(0); opacity: 1; } 
+        }
+        
+        @keyframes notificationSlideOut { 
+            from { transform: translateX(0); opacity: 1; } 
+            to { transform: translateX(100%); opacity: 0; } 
+        }
+        
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 1400px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        @media (max-width: 1024px) {
+            .header-filters { flex-wrap: wrap; }
+            .search-box { width: 100%; }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+            .top-header { flex-direction: column; gap: 16px; }
+            .header-actions { width: 100%; }
+            .btn { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="sidebar-brand-logo">
+                    <div class="sidebar-brand-icon"><i class="bi bi-headset"></i></div>
+                    <div class="sidebar-brand-text">
+                        <h1>CIANET</h1>
+                        <span>Sistema de Atendimento</span>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Principal</div>
+                    <ul class="nav-menu">
+                        <li><a href="/dashboard" class="nav-link"><i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span></a></li>
+                        <li><a href="/chat" class="nav-link"><i class="bi bi-chat-dots-fill"></i><span>Atendimentos</span></a></li>
+                        <li><a href="/whatsapp" class="nav-link"><i class="bi bi-whatsapp"></i><span>WhatsApp</span></a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Gestão</div>
+                    <ul class="nav-menu">
+                        <li><a href="/customers" class="nav-link"><i class="bi bi-people-fill"></i><span>Clientes</span></a></li>
+                        <li><a href="/chatbot-admin" class="nav-link"><i class="bi bi-robot"></i><span>Treinar Chatbot</span></a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Marketing</div>
+                    <ul class="nav-menu">
+                        <li><a href="/campaigns" class="nav-link"><i class="bi bi-megaphone-fill"></i><span>Campanhas</span></a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Sistema</div>
+                    <ul class="nav-menu">
+                        <li><a href="/users" class="nav-link active"><i class="bi bi-person-badge-fill"></i><span>Usuários</span></a></li>
+                        <li><a href="/settings" class="nav-link"><i class="bi bi-gear-fill"></i><span>Configurações</span></a></li>
+                        <li><a href="/login" class="nav-link" onclick="localStorage.clear(); sessionStorage.clear();"><i class="bi bi-box-arrow-left"></i><span>Sair</span></a></li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-left">
+                    <div class="header-title">
+                        <div class="header-title-icon">
+                            <i class="bi bi-person-badge-fill"></i>
+                        </div>
+                        <div>
+                            <h1>Gerenciar Usuários</h1>
+                            <p>Gerencie os usuários e permissões do sistema</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openUserModal()">
+                        <i class="bi bi-plus-lg"></i> Novo Usuário
+                    </button>
+                </div>
+            </header>
+            
+            <div class="page-content">
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card green">
+                        <div class="stat-card-header">
+                            <div class="stat-card-icon"><i class="bi bi-people-fill"></i></div>
+                        </div>
+                        <div class="stat-card-value" id="totalUsers">0</div>
+                        <div class="stat-card-label">Total de Usuários</div>
+                    </div>
+                    <div class="stat-card orange">
+                        <div class="stat-card-header">
+                            <div class="stat-card-icon"><i class="bi bi-person-check-fill"></i></div>
+                        </div>
+                        <div class="stat-card-value" id="onlineUsers">0</div>
+                        <div class="stat-card-label">Usuários Online</div>
+                    </div>
+                    <div class="stat-card purple">
+                        <div class="stat-card-header">
+                            <div class="stat-card-icon"><i class="bi bi-shield-fill-check"></i></div>
+                        </div>
+                        <div class="stat-card-value" id="adminUsers">0</div>
+                        <div class="stat-card-label">Administradores</div>
+                    </div>
+                    <div class="stat-card blue">
+                        <div class="stat-card-header">
+                            <div class="stat-card-icon"><i class="bi bi-headset"></i></div>
+                        </div>
+                        <div class="stat-card-value" id="attendantUsers">0</div>
+                        <div class="stat-card-label">Atendentes</div>
+                    </div>
+                </div>
+                
+                <!-- Users Table Card -->
+                <div class="users-card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="bi bi-list-ul"></i> Lista de Usuários</h3>
+                        <div class="header-filters">
+                            <div class="search-box">
+                                <i class="bi bi-search"></i>
+                                <input type="text" id="searchUsers" placeholder="Buscar por nome ou email..." oninput="filterUsers()">
+                            </div>
+                            <select class="filter-select" id="roleFilter" onchange="filterUsers()">
+                                <option value="">Todos os perfis</option>
+                                <option value="admin">Administrador</option>
+                                <option value="supervisor">Supervisor</option>
+                                <option value="atendente">Atendente</option>
+                            </select>
+                            <select class="filter-select" id="statusFilter" onchange="filterUsers()">
+                                <option value="">Todos os status</option>
+                                <option value="online">Online</option>
+                                <option value="offline">Offline</option>
+                            </select>
+                        </div>
+                    </div>
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>Usuário</th>
+                                <th>Telefone</th>
+                                <th>Perfil</th>
+                                <th>Status</th>
+                                <th>Último Acesso</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Será preenchido via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Modal de Usuário -->
+    <div class="modal-overlay" id="userModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="bi bi-person-plus-fill"></i> <span id="modalTitle">Novo Usuário</span></h3>
+                <button class="modal-close" onclick="closeUserModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userId" value="">
+                    
+                    <!-- Avatar Upload -->
+                    <div class="avatar-upload">
+                        <div class="avatar-preview" id="avatarPreview">
+                            <span id="avatarInitials">U</span>
+                            <img id="avatarImage" src="" style="display: none;">
+                        </div>
+                        <div class="avatar-actions">
+                            <h4>Foto de Perfil</h4>
+                            <p>Formatos aceitos: JPG, PNG ou GIF. Tamanho máximo: 2MB.</p>
+                            <div class="avatar-buttons">
+                                <button type="button" class="avatar-btn" onclick="document.getElementById('avatarInput').click()">
+                                    <i class="bi bi-upload"></i> Carregar Foto
+                                </button>
+                                <button type="button" class="avatar-btn remove" onclick="removeAvatar()">
+                                    <i class="bi bi-trash"></i> Remover
+                                </button>
+                            </div>
+                            <input type="file" id="avatarInput" accept="image/*" style="display: none;" onchange="previewAvatar(this)">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Nome Completo <span>*</span></label>
+                            <input type="text" class="form-input" id="userName" placeholder="Ex: João Silva" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email <span>*</span></label>
+                            <input type="email" class="form-input" id="userEmail" placeholder="Ex: joao@empresa.com" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Telefone</label>
+                            <input type="tel" class="form-input" id="userPhone" placeholder="Ex: (11) 99999-9999">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Perfil de Acesso <span>*</span></label>
+                            <select class="form-select" id="userRole" required>
+                                <option value="">Selecione o perfil...</option>
+                                <option value="admin">👑 Administrador</option>
+                                <option value="supervisor">⭐ Supervisor</option>
+                                <option value="atendente">🎧 Atendente</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Senha <span id="passwordHint">(mínimo 6 caracteres)</span></label>
+                            <input type="password" class="form-input" id="userPassword" placeholder="••••••••" minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Confirmar Senha</label>
+                            <input type="password" class="form-input" id="userPasswordConfirm" placeholder="••••••••">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="userStatus">
+                            <option value="active">✅ Ativo</option>
+                            <option value="inactive">⏸️ Inativo</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeUserModal()">
+                    <i class="bi bi-x-lg"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveUser()">
+                    <i class="bi bi-check-lg"></i> Salvar Usuário
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Confirmação de Exclusão -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal-content delete-modal" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3><i class="bi bi-exclamation-triangle-fill"></i> Confirmar Exclusão</h3>
+                <button class="modal-close" onclick="closeDeleteModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 40px 32px;">
+                <div class="delete-icon">
+                    <i class="bi bi-person-x-fill"></i>
+                </div>
+                <h4 style="font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 12px;">Excluir usuário?</h4>
+                <p style="color: #64748b; font-size: 15px; line-height: 1.6;">
+                    Esta ação não pode ser desfeita.<br>
+                    O usuário <strong id="deleteUserName" style="color: #ef4444;"></strong> será removido permanentemente do sistema.
+                </p>
+            </div>
+            <div class="modal-footer" style="justify-content: center; gap: 16px;">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">
+                    <i class="bi bi-x-lg"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" onclick="confirmDelete()">
+                    <i class="bi bi-trash"></i> Sim, Excluir
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Dados dos usuários (simulado)
+        let users = [
+            {
+                id: "1",
+                nome: "Administrador",
+                email: "admin@empresa.com.br",
+                telefone: "(11) 99999-0001",
+                role: "admin",
+                status: "online",
+                avatar: null,
+                lastAccess: "Agora"
+            },
+            {
+                id: "2",
+                nome: "Atendente Demo",
+                email: "atendente@empresa.com.br",
+                telefone: "(11) 99999-0002",
+                role: "atendente",
+                status: "online",
+                avatar: null,
+                lastAccess: "Há 5 min"
+            },
+            {
+                id: "3",
+                nome: "Supervisor Demo",
+                email: "supervisor@empresa.com.br",
+                telefone: "(11) 99999-0003",
+                role: "supervisor",
+                status: "offline",
+                avatar: null,
+                lastAccess: "Há 2 horas"
+            },
+            {
+                id: "4",
+                nome: "Maria Silva",
+                email: "maria.silva@empresa.com.br",
+                telefone: "(11) 98888-1234",
+                role: "atendente",
+                status: "online",
+                avatar: null,
+                lastAccess: "Há 10 min"
+            },
+            {
+                id: "5",
+                nome: "João Santos",
+                email: "joao.santos@empresa.com.br",
+                telefone: "(11) 97777-5678",
+                role: "atendente",
+                status: "offline",
+                avatar: null,
+                lastAccess: "Ontem"
+            },
+            {
+                id: "6",
+                nome: "Ana Costa",
+                email: "ana.costa@empresa.com.br",
+                telefone: "(11) 96666-9012",
+                role: "supervisor",
+                status: "online",
+                avatar: null,
+                lastAccess: "Há 30 min"
+            }
+        ];
+        
+        let deleteUserId = null;
+        
+        // Inicializar página
+        document.addEventListener('DOMContentLoaded', function() {
+            renderUsers();
+            updateStats();
+        });
+        
+        // Renderizar tabela de usuários
+        function renderUsers() {
+            const tbody = document.getElementById('usersTableBody');
+            const searchTerm = document.getElementById('searchUsers').value.toLowerCase();
+            const roleFilter = document.getElementById('roleFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+            const filteredUsers = users.filter(u => {
+                const matchSearch = u.nome.toLowerCase().includes(searchTerm) || 
+                                   u.email.toLowerCase().includes(searchTerm);
+                const matchRole = !roleFilter || u.role === roleFilter;
+                const matchStatus = !statusFilter || u.status === statusFilter;
+                return matchSearch && matchRole && matchStatus;
+            });
+            
+            if (filteredUsers.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <div class="empty-state-icon"><i class="bi bi-person-x"></i></div>
+                                <h3>Nenhum usuário encontrado</h3>
+                                <p>Tente ajustar os filtros ou adicione um novo usuário.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = filteredUsers.map(user => `
+                <tr>
+                    <td>
+                        <div class="user-cell">
+                            <div class="user-avatar ${user.role}">
+                                ${user.avatar ? `<img src="${user.avatar}" alt="${user.nome}">` : getInitials(user.nome)}
+                            </div>
+                            <div class="user-info">
+                                <h4>${user.nome}</h4>
+                                <p>${user.email}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="color: #64748b;">${user.telefone || '—'}</td>
+                    <td><span class="role-badge ${user.role}">${getRoleIcon(user.role)} ${getRoleName(user.role)}</span></td>
+                    <td><span class="status-badge ${user.status}">${user.status === 'online' ? 'Online' : 'Offline'}</span></td>
+                    <td style="color: #64748b;">${user.lastAccess}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn edit" onclick="editUser('${user.id}')" title="Editar usuário">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+                            <button class="action-btn delete" onclick="deleteUser('${user.id}')" title="Excluir usuário">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // Atualizar estatísticas
+        function updateStats() {
+            document.getElementById('totalUsers').textContent = users.length;
+            document.getElementById('onlineUsers').textContent = users.filter(u => u.status === 'online').length;
+            document.getElementById('adminUsers').textContent = users.filter(u => u.role === 'admin').length;
+            document.getElementById('attendantUsers').textContent = users.filter(u => u.role === 'atendente').length;
+        }
+        
+        // Filtrar usuários
+        function filterUsers() {
+            renderUsers();
+        }
+        
+        // Obter iniciais do nome
+        function getInitials(name) {
+            return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        }
+        
+        // Obter nome do perfil
+        function getRoleName(role) {
+            const roles = {
+                'admin': 'Administrador',
+                'supervisor': 'Supervisor',
+                'atendente': 'Atendente'
+            };
+            return roles[role] || role;
+        }
+        
+        // Obter ícone do perfil
+        function getRoleIcon(role) {
+            const icons = {
+                'admin': '👑',
+                'supervisor': '⭐',
+                'atendente': '🎧'
+            };
+            return icons[role] || '';
+        }
+        
+        // Abrir modal de usuário
+        function openUserModal(userId = null) {
+            const modal = document.getElementById('userModal');
+            const title = document.getElementById('modalTitle');
+            const form = document.getElementById('userForm');
+            const passwordHint = document.getElementById('passwordHint');
+            
+            form.reset();
+            document.getElementById('userId').value = '';
+            document.getElementById('avatarImage').style.display = 'none';
+            document.getElementById('avatarInitials').style.display = 'block';
+            document.getElementById('avatarInitials').textContent = 'U';
+            
+            if (userId) {
+                const user = users.find(u => u.id === userId);
+                if (user) {
+                    title.textContent = 'Editar Usuário';
+                    passwordHint.textContent = '(deixe em branco para manter)';
+                    
+                    document.getElementById('userId').value = user.id;
+                    document.getElementById('userName').value = user.nome;
+                    document.getElementById('userEmail').value = user.email;
+                    document.getElementById('userPhone').value = user.telefone || '';
+                    document.getElementById('userRole').value = user.role;
+                    document.getElementById('userStatus').value = user.status === 'online' ? 'active' : 'inactive';
+                    document.getElementById('avatarInitials').textContent = getInitials(user.nome);
+                    
+                    if (user.avatar) {
+                        document.getElementById('avatarImage').src = user.avatar;
+                        document.getElementById('avatarImage').style.display = 'block';
+                        document.getElementById('avatarInitials').style.display = 'none';
+                    }
+                }
+            } else {
+                title.textContent = 'Novo Usuário';
+                passwordHint.textContent = '(mínimo 6 caracteres)';
+            }
+            
+            modal.classList.add('active');
+        }
+        
+        // Fechar modal de usuário
+        function closeUserModal() {
+            document.getElementById('userModal').classList.remove('active');
+        }
+        
+        // Editar usuário
+        function editUser(userId) {
+            openUserModal(userId);
+        }
+        
+        // Excluir usuário
+        function deleteUser(userId) {
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                deleteUserId = userId;
+                document.getElementById('deleteUserName').textContent = user.nome;
+                document.getElementById('deleteModal').classList.add('active');
+            }
+        }
+        
+        // Fechar modal de exclusão
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+            deleteUserId = null;
+        }
+        
+        // Confirmar exclusão
+        function confirmDelete() {
+            if (deleteUserId) {
+                users = users.filter(u => u.id !== deleteUserId);
+                renderUsers();
+                updateStats();
+                closeDeleteModal();
+                showNotification('Usuário excluído com sucesso!', 'success');
+            }
+        }
+        
+        // Preview do avatar
+        function previewAvatar(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('avatarImage').src = e.target.result;
+                    document.getElementById('avatarImage').style.display = 'block';
+                    document.getElementById('avatarInitials').style.display = 'none';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        // Remover avatar
+        function removeAvatar() {
+            document.getElementById('avatarInput').value = '';
+            document.getElementById('avatarImage').style.display = 'none';
+            document.getElementById('avatarInitials').style.display = 'block';
+        }
+        
+        // Salvar usuário
+        function saveUser() {
+            const userId = document.getElementById('userId').value;
+            const nome = document.getElementById('userName').value.trim();
+            const email = document.getElementById('userEmail').value.trim();
+            const telefone = document.getElementById('userPhone').value.trim();
+            const role = document.getElementById('userRole').value;
+            const status = document.getElementById('userStatus').value;
+            const password = document.getElementById('userPassword').value;
+            const passwordConfirm = document.getElementById('userPasswordConfirm').value;
+            
+            // Validações
+            if (!nome || !email || !role) {
+                showNotification('Preencha todos os campos obrigatórios!', 'error');
+                return;
+            }
+            
+            // Validar email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showNotification('Digite um email válido!', 'error');
+                return;
+            }
+            
+            if (!userId && (!password || password.length < 6)) {
+                showNotification('A senha deve ter no mínimo 6 caracteres!', 'error');
+                return;
+            }
+            
+            if (password && password !== passwordConfirm) {
+                showNotification('As senhas não coincidem!', 'error');
+                return;
+            }
+            
+            // Verificar email duplicado
+            const emailExists = users.some(u => u.email.toLowerCase() === email.toLowerCase() && u.id !== userId);
+            if (emailExists) {
+                showNotification('Este email já está cadastrado!', 'error');
+                return;
+            }
+            
+            // Obter avatar
+            const avatarImg = document.getElementById('avatarImage');
+            const avatar = avatarImg.style.display !== 'none' ? avatarImg.src : null;
+            
+            if (userId) {
+                // Editar usuário existente
+                const index = users.findIndex(u => u.id === userId);
+                if (index !== -1) {
+                    users[index] = {
+                        ...users[index],
+                        nome,
+                        email,
+                        telefone,
+                        role,
+                        status: status === 'active' ? 'online' : 'offline',
+                        avatar
+                    };
+                    showNotification('Usuário atualizado com sucesso!', 'success');
+                }
+            } else {
+                // Criar novo usuário
+                const newUser = {
+                    id: String(Date.now()),
+                    nome,
+                    email,
+                    telefone,
+                    role,
+                    status: status === 'active' ? 'online' : 'offline',
+                    avatar,
+                    lastAccess: 'Nunca'
+                };
+                users.push(newUser);
+                showNotification('Usuário criado com sucesso!', 'success');
+            }
+            
+            renderUsers();
+            updateStats();
+            closeUserModal();
+        }
+        
+        // Notificação
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="bi bi-${type === 'success' ? 'check-circle-fill' : 'exclamation-circle-fill'}"></i>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'notificationSlideOut 0.4s ease forwards';
+                setTimeout(() => notification.remove(), 400);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
