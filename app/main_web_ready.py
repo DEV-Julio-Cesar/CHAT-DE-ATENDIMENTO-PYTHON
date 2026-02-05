@@ -799,6 +799,24 @@ async def whatsapp_config_page(request: Request):
     """Página de configuração do WhatsApp"""
     return templates.TemplateResponse("whatsapp_config.html", {"request": request})
 
+# Endpoint para campanhas
+@app.get("/campaigns", response_class=HTMLResponse)
+async def campaigns_page(request: Request):
+    """Página de campanhas de marketing"""
+    return templates.TemplateResponse("campaigns.html", {"request": request})
+
+# Endpoint para clientes/customers
+@app.get("/customers", response_class=HTMLResponse)
+async def customers_page(request: Request):
+    """Página de clientes"""
+    return templates.TemplateResponse("customers.html", {"request": request})
+
+# Endpoint para configurações
+@app.get("/settings", response_class=HTMLResponse)
+async def settings_page(request: Request):
+    """Página de configurações"""
+    return templates.TemplateResponse("settings.html", {"request": request})
+
 # Endpoint para chatbot admin
 @app.get("/chatbot-admin", response_class=HTMLResponse)
 async def chatbot_admin_page(request: Request):
