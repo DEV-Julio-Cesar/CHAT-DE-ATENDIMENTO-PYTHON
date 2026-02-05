@@ -637,14 +637,6 @@ class WhatsAppChatFlow:
         
         return True
     
-    
-            conversation_id=conversation_id,
-            sender_type=SenderType.BOT,
-            sender_id="bot",
-            content=content,
-            message_type=MessageType.TEXT
-        )
-    
     # Sistema de Automação
     async def process_automation(
         self,
