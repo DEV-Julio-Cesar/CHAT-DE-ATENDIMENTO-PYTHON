@@ -6,7 +6,11 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 # Cliente de teste síncrono
-client = TestClient(app)
+try:
+    client = TestClient(app)
+except TypeError:
+    # Compatibilidade com versões mais recentes do Starlette/FastAPI
+    client = TestClient(application=app)
 
 
 class TestMainApp:
