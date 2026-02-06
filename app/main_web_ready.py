@@ -32,7 +32,7 @@ metrics_data = {
 
 # Criar aplicação FastAPI
 app = FastAPI(
-    title="ISP Customer Support",
+    title="CIANET PROVEDOR",
     version="2.0.0",
     description="Sistema profissional de atendimento ao cliente via WhatsApp",
     docs_url="/docs",
@@ -1091,7 +1091,7 @@ async def test_login_page():
 
 if __name__ == "__main__":
     import uvicorn
-    print("🚀 Iniciando ISP Customer Support - Versão Web")
+    print("🚀 Iniciando CIANET PROVEDOR - Versão Web")
     print("📊 Dashboard: http://localhost:8000")
     print("📚 API Docs: http://localhost:8000/docs")
     print("💚 Health: http://localhost:8000/health")

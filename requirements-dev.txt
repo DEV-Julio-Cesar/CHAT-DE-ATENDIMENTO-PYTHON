@@ -1,5 +1,5 @@
 # ============================================================================
-# ISP Customer Support - Dependências de Desenvolvimento
+# CIANET PROVEDOR - Dependências de Desenvolvimento
 # Versão: 2.0.0
 # ============================================================================
 

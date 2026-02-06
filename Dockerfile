@@ -1,8 +1,8 @@
-# 🐳 Dockerfile para ISP Customer Support
+# 🐳 Dockerfile para CIANET PROVEDOR
 FROM python:3.11-slim
 
 # Metadados
-LABEL maintainer="ISP Customer Support Team"
+LABEL maintainer="CIANET PROVEDOR Team"
 LABEL version="2.0.0"
 LABEL description="Sistema de Atendimento via WhatsApp"
 
