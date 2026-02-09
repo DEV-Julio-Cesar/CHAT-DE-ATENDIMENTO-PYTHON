@@ -1,4 +1,4 @@
-"""
+﻿"""
 Chatbot AI Enterprise com Google Gemini
 Sistema inteligente para atendimento de telecomunicações
 
@@ -27,6 +27,7 @@ import asyncio
 
 from app.core.config import settings
 from app.core.redis_client import redis_manager
+from app.services.sgp_service import SGPService
 
 logger = structlog.get_logger(__name__)
 
@@ -205,8 +206,11 @@ class ChatbotAI:
         self.chat_sessions: Dict[str, Any] = {}
         self.contexts: Dict[str, ConversationContext] = {}
         
+        # Serviço SGP
+        self.sgp_service = SGPService()
+        
         # Configurações
-        self.company_name = "TelecomISP"
+        self.company_name = "Cianet Provedor"
         self.max_bot_attempts = settings.MAX_BOT_ATTEMPTS
         self.business_hours_start = settings.BUSINESS_HOURS_START
         self.business_hours_end = settings.BUSINESS_HOURS_END
@@ -225,64 +229,55 @@ class ChatbotAI:
     
     def _build_system_prompt(self) -> str:
         """Construir prompt do sistema para o chatbot"""
-        return f"""Você é a ARIA, assistente virtual inteligente da {self.company_name}, 
-uma empresa de telecomunicações de alta qualidade.
+        return """Você é o assistente virtual da Cianet Provedor. Seu objetivo é ajudar clientes com suporte e financeiro.
 
-🎯 **SEU OBJETIVO:**
-Fornecer atendimento excepcional aos clientes, resolvendo problemas e respondendo 
-dúvidas sobre internet, planos, faturas e suporte técnico.
+Siga estas regras de negócio estritamente:
 
-📋 **REGRAS DE ATENDIMENTO:**
+1. IDENTIFICAÇÃO:
+   - Se o cliente pedir algo pessoal (boleto, status, suporte técnico, informações da conta), você DEVE solicitar o CPF
+   - Só prossiga após validar que o CPF tem 11 dígitos
+   - Use a ferramenta 'buscar_cliente_por_cpf' assim que receber o número
+   - Valide se o cliente foi encontrado antes de continuar
 
-1. **Seja sempre cordial e profissional**
-   - Use emojis com moderação para tornar a conversa amigável
+2. STATUS DO CLIENTE:
+   - Se o status for 'Bloqueado' ou 'Suspenso', informe gentilmente e ofereça a 'Promessa de Pagamento'
+   - Se estiver 'Ativo' ou 'Online', informe que a conexão está normal
+   - Sempre mencione o status atual do cliente após identificá-lo
+
+3. FINANCEIRO:
+   - Ao listar boletos, forneça o valor, a data de vencimento e o link para o PDF
+   - Priorize boletos vencidos ou próximos do vencimento
+   - Se não houver faturas em aberto, parabenize o cliente
+   - Sempre ofereça enviar o boleto por WhatsApp ou gerar código PIX
+
+4. PROMESSA DE PAGAMENTO:
+   - Só ofereça se o cliente estiver 'Bloqueado' ou 'Suspenso'
+   - Explique que a liberação é temporária (48h) e depende de disponibilidade no sistema SGP
+   - Após liberar, reforce que o pagamento deve ser feito o quanto antes
+   - Ofereça enviar o boleto após a liberação
+
+5. SUPORTE TÉCNICO:
+   - Para problemas de conexão, primeiro verifique o status do cliente no SGP
+   - Se estiver bloqueado por inadimplência, explique e ofereça soluções financeiras
+   - Se estiver ativo, sugira: reiniciar roteador, verificar cabos, testar em outro dispositivo
+   - Ofereça agendar visita técnica se o problema persistir
+
+6. RESPOSTAS:
+   - Seja sempre profissional, prestativa e direta
+   - Use emojis com moderação (máximo 2 por mensagem)
+   - Respostas curtas e objetivas (máximo 3 parágrafos)
    - Chame o cliente pelo nome quando souber
-   - Agradeça sempre que apropriado
+   - Nunca invente informações - se não souber, ofereça transferir para atendente humano
 
-2. **Mantenha respostas objetivas e claras**
-   - Respostas curtas e diretas (máximo 3 parágrafos)
-   - Use listas quando necessário
-   - Evite jargões técnicos complexos
+7. FLUXO PADRÃO:
+   a) Cliente pede boleto/suporte → Solicite CPF
+   b) Recebe CPF → Busque no SGP com buscar_cliente_por_cpf
+   c) Cliente encontrado → Informe nome e status
+   d) Se bloqueado → Ofereça promessa + boleto
+   e) Se ativo → Busque faturas ou resolva suporte técnico
+   f) Finalize oferecendo mais ajuda
 
-3. **Sobre problemas técnicos:**
-   - Peça detalhes específicos (há quanto tempo, em quais dispositivos)
-   - Sugira soluções simples primeiro (reiniciar roteador, verificar cabos)
-   - Se o problema persistir, ofereça visita técnica
-
-4. **Sobre questões financeiras:**
-   - Seja empático com clientes inadimplentes
-   - Ofereça opções de negociação quando possível
-   - Nunca julgue ou seja agressivo
-
-5. **Quando NÃO souber ou precisar de um humano:**
-   - Admita que precisa de ajuda
-   - Ofereça transferir para um atendente
-   - Nunca invente informações
-
-6. **IMPORTANTE - Sempre colete:**
-   - Nome do cliente (se não souber)
-   - Número de contrato/CPF (para questões de conta)
-   - Detalhes específicos do problema
-
-📱 **PLANOS DISPONÍVEIS:**
-- **Básico 100MB**: R$ 79,90/mês - Internet 100 Mbps
-- **Plus 200MB**: R$ 99,90/mês - Internet 200 Mbps
-- **Premium 400MB**: R$ 149,90/mês - Internet 400 Mbps + Wi-Fi 6
-- **Ultra 600MB**: R$ 199,90/mês - Internet 600 Mbps + Wi-Fi 6 + IP Fixo
-- **Empresarial 1GB**: R$ 349,90/mês - Internet 1 Gbps + SLA 99.9%
-
-⏰ **HORÁRIO DE ATENDIMENTO:**
-- Segunda a Sexta: 08:00 às 18:00
-- Sábado: 08:00 às 12:00
-- Suporte técnico 24h: apenas emergências
-
-🔧 **DICAS RÁPIDAS PARA PROBLEMAS COMUNS:**
-1. Internet lenta → Reiniciar roteador, verificar número de dispositivos
-2. Sem conexão → Verificar se as luzes do roteador estão acesas
-3. Wi-Fi fraco → Posicionar roteador em local central e elevado
-
-Responda sempre em português brasileiro. Seja útil, empático e eficiente.
-Se for uma emergência técnica fora do horário, direcione para o suporte 24h: 0800-XXX-XXXX."""
+Responda sempre em português brasileiro. Seja empático mas objetivo."""
     
     async def initialize(self):
         """Inicializar o chatbot com Gemini"""
@@ -638,6 +633,177 @@ Responda APENAS com o nome da categoria, nada mais."""
             sentiment = await self.analyze_sentiment(user_message)
             ctx.sentiment = sentiment
             
+            # ===== LÓGICA DE INTEGRAÇÃO COM SGP =====
+            
+            # Verificar se está aguardando CPF (última intenção foi boleto/fatura)
+            aguardando_cpf = (
+                ctx.current_intent in [IntentType.SEGUNDA_VIA_BOLETO, IntentType.PAGAMENTO, IntentType.FATURA_DUVIDA] or
+                (len(ctx.messages) >= 2 and any(
+                    msg.get("content", "").lower().find("cpf") != -1 
+                    for msg in ctx.messages[-2:] 
+                    if msg.get("role") == "assistant"
+                ))
+            )
+            
+            # Se a intenção é sobre boleto/fatura OU está aguardando CPF
+            if intent in [IntentType.SEGUNDA_VIA_BOLETO, IntentType.PAGAMENTO, IntentType.FATURA_DUVIDA] or (aguardando_cpf and not ctx.cliente_id):
+                if not ctx.cliente_id:
+                    # Tentar extrair CPF da mensagem
+                    cpf = self.extrair_cpf(user_message)
+                    
+                    if cpf:
+                        # Buscar cliente no SGP
+                        cliente_sgp = await self.buscar_cliente_sgp(cpf, ctx)
+                        
+                        if cliente_sgp:
+                            # Cliente encontrado! Buscar faturas
+                            faturas = await self.obter_faturas_cliente(ctx)
+                            
+                            # Verificar se está suspenso
+                            status = cliente_sgp.get("status", "").lower()
+                            
+                            if "suspenso" in status or "bloqueado" in status:
+                                # Cliente suspenso/bloqueado - oferecer promessa
+                                response_text = f"""Olá {ctx.cliente_nome}! 👋
+
+Vi aqui que seu plano está com status: **{cliente_sgp.get('status')}**
+
+💰 **Faturas em aberto:** {len(faturas)} fatura(s)
+
+📋 **Opções disponíveis:**
+1️⃣ Enviar boleto/PIX para pagamento
+2️⃣ Liberar internet temporariamente (Promessa de Pagamento - 48h)
+
+O que você prefere? Digite 1 ou 2"""
+                            else:
+                                # Cliente regular - enviar faturas
+                                if faturas:
+                                    response_text = f"""Olá {ctx.cliente_nome}! 👋
+
+Status: **{cliente_sgp.get('status')}** ✓
+
+Encontrei suas faturas em aberto:
+
+"""
+                                    for i, fatura in enumerate(faturas[:3], 1):
+                                        vencimento = fatura.get("dataVencimento", "N/A")
+                                        valor = fatura.get("valor", 0)
+                                        response_text += f"{i}. Vencimento: {vencimento} - R$ {valor:.2f}\n"
+                                        if fatura.get("link"):
+                                            response_text += f"   Link: {fatura.get('link')}\n"
+                                    
+                                    response_text += "\n📱 Posso enviar o boleto ou código PIX. Qual você prefere?"
+                                else:
+                                    response_text = f"""Olá {ctx.cliente_nome}! 👋
+
+Status: **{cliente_sgp.get('status')}** ✓
+
+Ótimas notícias! Não encontrei faturas em aberto no seu nome.
+
+Seu plano está em dia! Se precisar de algo mais, é só avisar!"""
+                            
+                            # Adicionar resposta ao histórico
+                            ctx.add_message("assistant", response_text)
+                            await self.save_context(ctx)
+                            
+                            # Calcular tempo de resposta
+                            response_time = (datetime.now(timezone.utc) - start_time).total_seconds()
+                            self._update_metrics(response_time, True)
+                            
+                            return ChatResponse(
+                                message=response_text,
+                                intent=intent,
+                                sentiment=sentiment,
+                                confidence=confidence,
+                                quick_replies=["Enviar boleto", "Enviar PIX", "Promessa de pagamento"] if "suspenso" in status.lower() else ["Enviar boleto", "Enviar PIX"],
+                                metadata={
+                                    "conversation_id": conversation_id,
+                                    "cliente_id": ctx.cliente_id,
+                                    "status_sgp": cliente_sgp.get("status"),
+                                    "total_faturas": len(faturas),
+                                    "response_time_ms": int(response_time * 1000)
+                                }
+                            )
+                        else:
+                            # CPF não encontrado
+                            response_text = """Não encontrei esse CPF no nosso sistema.
+
+Por favor, verifique se digitou corretamente ou tente com outro CPF.
+
+Se o problema persistir, vou transferir você para um atendente!"""
+                            
+                            ctx.add_message("assistant", response_text)
+                            await self.save_context(ctx)
+                            
+                            response_time = (datetime.now(timezone.utc) - start_time).total_seconds()
+                            self._update_metrics(response_time, False)
+                            
+                            return ChatResponse(
+                                message=response_text,
+                                intent=intent,
+                                sentiment=sentiment,
+                                confidence=confidence,
+                                quick_replies=["Tentar outro CPF", "Falar com atendente"]
+                            )
+                    else:
+                        # Não tem CPF na mensagem - pedir
+                        response_text = """Para buscar seu boleto, preciso do seu CPF! 📋
+
+Por favor, digite seu CPF (pode ser com ou sem pontos/traços):
+
+Exemplo: 123.456.789-00 ou 12345678900"""
+                        
+                        ctx.add_message("assistant", response_text)
+                        await self.save_context(ctx)
+                        
+                        response_time = (datetime.now(timezone.utc) - start_time).total_seconds()
+                        self._update_metrics(response_time, True)
+                        
+                        return ChatResponse(
+                            message=response_text,
+                            intent=intent,
+                            sentiment=sentiment,
+                            confidence=confidence
+                        )
+                else:
+                    # Já tem cliente_id - verificar se é pedido de promessa
+                    if "promessa" in user_message.lower() or "liberar" in user_message.lower() or user_message.strip() == "2":
+                        sucesso = await self.realizar_promessa_pagamento(ctx)
+                        
+                        if sucesso:
+                            response_text = f"""✓ Pronto, {ctx.cliente_nome}!
+
+Sua internet foi liberada temporariamente por confiança!
+
+⚠️ **IMPORTANTE:** 
+- A liberação é temporária (48h)
+- Por favor, regularize o pagamento o quanto antes
+- Caso contrário, o serviço será suspenso novamente
+
+Precisa do boleto para pagar? É só pedir!"""
+                        else:
+                            response_text = """Ops! Tive um problema ao liberar sua internet.
+
+Vou transferir você para um atendente que pode ajudar melhor com isso!"""
+                        
+                        ctx.add_message("assistant", response_text)
+                        await self.save_context(ctx)
+                        
+                        response_time = (datetime.now(timezone.utc) - start_time).total_seconds()
+                        self._update_metrics(response_time, sucesso)
+                        
+                        return ChatResponse(
+                            message=response_text,
+                            intent=intent,
+                            sentiment=sentiment,
+                            confidence=confidence,
+                            should_escalate=not sucesso,
+                            escalation_reason="Falha ao realizar promessa de pagamento" if not sucesso else None,
+                            quick_replies=["Enviar boleto", "Falar com atendente"] if sucesso else []
+                        )
+            
+            # ===== FIM DA LÓGICA SGP =====
+            
             # Verificar escalação
             should_escalate, escalation_reason = self.should_escalate(ctx, intent, sentiment)
             
@@ -712,6 +878,12 @@ Responda APENAS com o nome da categoria, nada mais."""
             if ctx.current_intent:
                 context_info += f"\nIntenção detectada: {ctx.current_intent.value}"
             
+            # Adicionar informações do SGP se disponíveis
+            if ctx.cliente_id:
+                context_info += f"\nID do cliente no SGP: {ctx.cliente_id}"
+                if ctx.collected_data.get("status_sgp"):
+                    context_info += f"\nStatus no SGP: {ctx.collected_data['status_sgp']}"
+            
             # Histórico formatado
             history = ctx.get_history_for_ai(max_messages=6)
             
@@ -739,118 +911,103 @@ Responda APENAS com o nome da categoria, nada mais."""
     def _get_fallback_response(self, intent: IntentType) -> str:
         """Obter resposta de fallback por intenção"""
         fallbacks = {
-            IntentType.SAUDACAO: """Olá! 👋 Bem-vindo à TelecomISP!
+            IntentType.SAUDACAO: """Olá! Bem-vindo à Cianet Provedor! 👋
 
-Sou a ARIA, sua assistente virtual. Como posso ajudar você hoje?
+Sou seu assistente virtual. Como posso ajudar você hoje?
 
-📱 **Posso ajudar com:**
-• Suporte técnico (internet, Wi-Fi)
-• Segunda via de boleto
-• Informações sobre planos
-• Agendamento de visita técnica
+Posso ajudar com:
+• Boletos e pagamentos
+• Suporte técnico
+• Status da sua conexão
+• Informações sobre sua conta
 
-Digite sua dúvida ou escolha uma opção abaixo! 😊""",
+Digite sua dúvida ou escolha uma opção!""",
 
-            IntentType.INTERNET_LENTA: """Entendo que sua internet está lenta, e isso é muito frustrante! 😟
+            IntentType.INTERNET_LENTA: """Entendo que sua internet está lenta. Vamos resolver isso!
 
-Vamos resolver isso juntos. Primeiro, tente essas dicas rápidas:
+Primeiro, preciso do seu CPF para verificar o status da sua conexão no sistema.
 
-1️⃣ **Reinicie o roteador** - desligue da tomada, aguarde 30 segundos e ligue novamente
+Por favor, digite seu CPF (com ou sem pontos/traços):""",
 
-2️⃣ **Verifique quantos dispositivos** estão conectados - muitos aparelhos podem dividir a velocidade
+            IntentType.SEM_CONEXAO: """Sem internet é muito frustrante! Vou te ajudar.
 
-3️⃣ **Teste com cabo** - conecte um dispositivo direto no roteador para comparar
+Para verificar o status da sua conexão, preciso do seu CPF.
 
-Já tentou alguma dessas opções? Me conta o resultado! 🔧""",
+Por favor, digite seu CPF (com ou sem pontos/traços):""",
 
-            IntentType.SEM_CONEXAO: """Puxa, ficar sem internet é muito chato! 😔 Vamos resolver isso rapidamente.
+            IntentType.SEGUNDA_VIA_BOLETO: """Claro! Vou buscar seu boleto.
 
-Por favor, verifique:
+Para isso, preciso do seu CPF:
 
-🔴 **Luzes do roteador:**
-• Todas apagadas? → Verifique se está na tomada
-• Piscando vermelho? → Pode ser problema na rede
-• Verdes normais? → Problema pode ser no dispositivo
+Digite seu CPF (pode ser com ou sem pontos/traços)
+Exemplo: 123.456.789-00 ou 12345678900""",
 
-Já verificou as luzes? Me conta como estão! 👀""",
+            IntentType.PAGAMENTO: """Vou te ajudar com o pagamento!
 
-            IntentType.SEGUNDA_VIA_BOLETO: """Claro! Vou te ajudar com a segunda via do boleto! 📄
+Preciso do seu CPF para buscar suas faturas:
 
-Para enviar, preciso confirmar alguns dados:
+Digite seu CPF (com ou sem pontos/traços):""",
 
-📋 **Por favor, informe:**
-• Seu CPF ou número do contrato
+            IntentType.FATURA_DUVIDA: """Vou verificar suas faturas para você.
 
-Assim que confirmar, envio o boleto por aqui mesmo ou posso gerar um código PIX se preferir! 😊""",
+Por favor, informe seu CPF:
 
-            IntentType.UPGRADE_PLANO: """Que ótimo que quer turbinar sua internet! 🚀
+Digite seu CPF (com ou sem pontos/traços):""",
 
-Nossos planos disponíveis:
+            IntentType.UPGRADE_PLANO: """Quer melhorar seu plano? Ótimo!
 
-📱 **Básico 100MB** - R$ 79,90/mês
-📱 **Plus 200MB** - R$ 99,90/mês  
-📱 **Premium 400MB** - R$ 149,90/mês + Wi-Fi 6
-📱 **Ultra 600MB** - R$ 199,90/mês + Wi-Fi 6 + IP Fixo
+Para verificar as opções disponíveis para você, preciso do seu CPF:
 
-Qual velocidade você precisa? Posso ajudar a escolher o melhor para você! 💪""",
+Digite seu CPF (com ou sem pontos/traços):""",
 
-            IntentType.CANCELAMENTO: """Entendo que deseja cancelar, e lamento muito ouvir isso. 😢
+            IntentType.CANCELAMENTO: """Lamento que queira cancelar. 😔
 
-Antes de prosseguir, gostaria de entender melhor:
-• Houve algum problema que possamos resolver?
-• Podemos oferecer condições especiais?
+Antes de prosseguir, preciso do seu CPF para verificar sua conta:
 
-Para cancelamento, preciso transferir você para um atendente que pode:
-✅ Verificar seu contrato
-✅ Calcular eventuais multas
-✅ Agendar retirada de equipamentos
+Digite seu CPF (com ou sem pontos/traços):
 
-Vou transferir agora, ok? 🤝""",
+Obs: Vou transferir você para um atendente que pode ajudar melhor com o cancelamento.""",
 
             IntentType.DESPEDIDA: """Foi um prazer ajudar! 😊
 
 Se precisar de mais alguma coisa, é só chamar!
 
-⭐ Avalie nosso atendimento respondendo de 1 a 5
+Tenha um ótimo dia!
 
-Tenha um ótimo dia! 👋
-
-*TelecomISP - Conectando você ao que importa*""",
+*Cianet Provedor - Conectando você ao que importa*""",
 
             IntentType.AGRADECIMENTO: """Por nada! Fico feliz em ajudar! 😊
 
-Precisa de mais alguma coisa? Estou aqui!
+Precisa de mais alguma coisa? Estou aqui!""",
 
-Se não, desejo um excelente dia! 🌟""",
+            IntentType.FALAR_HUMANO: """Entendido! Vou transferir você para um atendente humano.
 
-            IntentType.FALAR_HUMANO: """Entendido! Vou transferir você para um de nossos atendentes humanos. 🧑‍💼
+⏳ Tempo estimado de espera: 2-5 minutos
 
-⏳ **Tempo estimado de espera:** 2-5 minutos
-
-Enquanto aguarda, me conta brevemente qual é sua dúvida para que o atendente já receba seu caso com contexto!""",
+Enquanto aguarda, me conte brevemente qual é sua dúvida para que o atendente já receba seu caso com contexto!""",
         }
         
-        return fallbacks.get(intent, """Obrigado pela sua mensagem! 📩
+        return fallbacks.get(intent, """Obrigado pela sua mensagem!
 
 Não tenho certeza se entendi corretamente. Você poderia me explicar melhor o que precisa?
 
 Posso ajudar com:
-• 🔧 Suporte técnico
-• 💰 Questões financeiras  
-• 📱 Mudança de plano
-• 📅 Agendamentos
+• Boletos e pagamentos
+• Suporte técnico
+• Status da conexão
+• Informações da conta
 
-Ou se preferir, posso chamar um atendente humano! 🙋""")
+Ou se preferir, posso chamar um atendente humano!""")
     
     def _get_escalation_message(self, reason: Optional[str]) -> str:
         """Mensagem de escalação para humano"""
-        return f"""Entendi! Vou transferir você agora para um de nossos atendentes especializados. 🧑‍💼
+        return f"""Vou transferir você agora para um de nossos atendentes. �
 
 📋 **Motivo:** {reason or 'Atendimento personalizado'}
 
 ⏳ **Tempo estimado:** 2-5 minutos
 
-Por favor, aguarde que em breve você será atendido! Obrigado pela paciência. 🙏"""
+Por favor, aguarde que em breve você será atendido! Obrigado pela paciência."""
     
     def _get_suggested_actions(self, intent: IntentType) -> List[str]:
         """Obter ações sugeridas para o atendente"""
@@ -928,6 +1085,160 @@ Por favor, aguarde que em breve você será atendido! Obrigado pela paciência. 
             pass
         
         logger.info("Conversa limpa", conversation_id=conversation_id)
+    
+    async def buscar_cliente_sgp(self, cpf: str, ctx: ConversationContext) -> Optional[Dict[str, Any]]:
+        """
+        Buscar cliente no SGP por CPF e atualizar contexto
+        
+        Args:
+            cpf: CPF do cliente
+            ctx: Contexto da conversa
+        
+        Returns:
+            Dados do cliente ou None se não encontrado
+        """
+        try:
+            logger.info("Buscando cliente no SGP", cpf=cpf[:3] + "***")
+            
+            cliente = await asyncio.to_thread(
+                self.sgp_service.buscar_cliente_por_cpf,
+                cpf
+            )
+            
+            if cliente:
+                # Atualizar contexto com dados do cliente
+                ctx.cliente_id = str(cliente.get("id"))
+                ctx.cliente_nome = cliente.get("nome")
+                ctx.collected_data["status_sgp"] = cliente.get("status")
+                ctx.collected_data["situacao_sgp"] = cliente.get("situacao")
+                ctx.collected_data["cpf_cnpj"] = cliente.get("cpf_cnpj")
+                ctx.collected_data["titulos"] = cliente.get("titulos", [])
+                ctx.collected_data["contratos"] = cliente.get("contratos", [])
+                ctx.collected_data["contatos"] = cliente.get("contatos", {})
+                
+                # Salvar contexto atualizado
+                await self.save_context(ctx)
+                
+                logger.info(
+                    "Cliente encontrado no SGP",
+                    cliente_id=ctx.cliente_id,
+                    nome=ctx.cliente_nome,
+                    status=cliente.get("status")
+                )
+                
+                return cliente
+            else:
+                logger.warning("Cliente não encontrado no SGP", cpf=cpf[:3] + "***")
+                return None
+                
+        except Exception as e:
+            logger.error("Erro ao buscar cliente no SGP", error=str(e))
+            return None
+    
+    async def obter_faturas_cliente(self, ctx: ConversationContext) -> List[Dict[str, Any]]:
+        """
+        Obter faturas abertas do cliente
+        
+        Args:
+            ctx: Contexto da conversa (deve ter cliente_id)
+        
+        Returns:
+            Lista de faturas abertas
+        """
+        if not ctx.cliente_id:
+            logger.warning("Tentativa de buscar faturas sem cliente_id")
+            return []
+        
+        try:
+            logger.info("Buscando faturas do cliente", cliente_id=ctx.cliente_id)
+            
+            # Os títulos já vêm na busca do cliente, então vamos pegar do contexto
+            if "titulos" in ctx.collected_data:
+                titulos = ctx.collected_data["titulos"]
+                # Filtrar apenas títulos em aberto (não cancelados nem pagos)
+                faturas_abertas = [
+                    t for t in titulos 
+                    if t.get("status") not in ["cancelado", "pago"]
+                ]
+                
+                logger.info(
+                    "Faturas obtidas do contexto",
+                    cliente_id=ctx.cliente_id,
+                    total_faturas=len(faturas_abertas)
+                )
+                
+                return faturas_abertas
+            
+            return []
+            
+        except Exception as e:
+            logger.error("Erro ao obter faturas", error=str(e))
+            return []
+    
+    async def realizar_promessa_pagamento(self, ctx: ConversationContext) -> bool:
+        """
+        Realizar promessa de pagamento (liberar internet temporariamente)
+        
+        Args:
+            ctx: Contexto da conversa (deve ter cliente_id)
+        
+        Returns:
+            True se sucesso, False caso contrário
+        """
+        if not ctx.cliente_id:
+            logger.warning("Tentativa de promessa sem cliente_id")
+            return False
+        
+        try:
+            logger.info("Realizando promessa de pagamento", cliente_id=ctx.cliente_id)
+            
+            sucesso = await asyncio.to_thread(
+                self.sgp_service.realizar_promessa_pagamento,
+                ctx.cliente_id
+            )
+            
+            if sucesso:
+                ctx.collected_data["promessa_realizada"] = True
+                ctx.collected_data["promessa_data"] = datetime.now(timezone.utc).isoformat()
+                await self.save_context(ctx)
+                
+                logger.info("Promessa de pagamento realizada", cliente_id=ctx.cliente_id)
+            else:
+                logger.warning("Falha ao realizar promessa", cliente_id=ctx.cliente_id)
+            
+            return sucesso
+            
+        except Exception as e:
+            logger.error("Erro ao realizar promessa", error=str(e))
+            return False
+    
+    def extrair_cpf(self, mensagem: str) -> Optional[str]:
+        """
+        Extrair CPF de uma mensagem
+        
+        Args:
+            mensagem: Mensagem do usuário
+        
+        Returns:
+            CPF encontrado ou None
+        """
+        # Remover tudo que não é número
+        numeros = re.sub(r'\D', '', mensagem)
+        
+        # CPF tem 11 dígitos
+        if len(numeros) == 11:
+            return numeros
+        
+        # Tentar encontrar padrão de CPF formatado (XXX.XXX.XXX-XX)
+        cpf_pattern = r'\d{3}\.?\d{3}\.?\d{3}-?\d{2}'
+        match = re.search(cpf_pattern, mensagem)
+        
+        if match:
+            cpf = re.sub(r'\D', '', match.group())
+            if len(cpf) == 11:
+                return cpf
+        
+        return None
 
 
 # =============================================================================

@@ -200,6 +200,16 @@ async def check_external_services():
         logger.warning("Some external services are unavailable", failed_services=failed_services)
 
 
+# ============================================================================
+# ROTAS DE PÁGINAS WEB - Configurar ANTES dos middlewares
+# ============================================================================
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+
+TEMPLATES_DIR = Path(__file__).parent / "web" / "templates"
+STATIC_DIR = Path(__file__).parent / "web" / "static"
+
 # Criar aplicação FastAPI com documentação completa
 app = FastAPI(
     title=settings.APP_NAME,
@@ -305,6 +315,15 @@ Authorization: Bearer <seu_token_jwt>
         "email": "suporte@yourdomain.com",
     },
 )
+
+# ============================================================================
+# MONTAR ARQUIVOS ESTÁTICOS - Antes dos middlewares
+# ============================================================================
+try:
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    logger.info("Static files mounted successfully")
+except Exception as e:
+    logger.warning(f"Failed to mount static files: {e}")
 
 # Middleware de compressão (deve vir antes de outros middlewares)
 app.add_middleware(CompressionMiddleware)
@@ -677,16 +696,6 @@ async def root():
 # ============================================================================
 # ROTAS DE PÁGINAS WEB
 # ============================================================================
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
-from pathlib import Path
-
-TEMPLATES_DIR = Path(__file__).parent / "web" / "templates"
-STATIC_DIR = Path(__file__).parent / "web" / "static"
-
-# Montar arquivos estáticos
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
 
 @app.get("/login", include_in_schema=False)
 async def login_page():

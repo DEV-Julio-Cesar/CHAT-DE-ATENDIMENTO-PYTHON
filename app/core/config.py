@@ -103,6 +103,15 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: Optional[str] = None
     SMTP_FROM_EMAIL: Optional[str] = None
     
+    # SGP Integration
+    SGP_BASE_URL: str = "http://sua-url-sgp.com.br/api/v1"
+    SGP_TOKEN: str = ""
+    SGP_APP_NAME: str = "Julio Sistem"
+    SGP_USERNAME: str = ""
+    SGP_PASSWORD: str = ""
+    SGP_TIMEOUT: int = 30
+    SGP_MAX_RETRIES: int = 3
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

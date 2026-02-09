@@ -28,6 +28,7 @@ Sistema completo de atendimento ao cliente via WhatsApp para provedores de inter
 
 - ✅ **Chat WhatsApp Integrado** - WhatsApp Business API oficial
 - ✅ **Chatbot IA** - Google Gemini para respostas automáticas
+- ✅ **Integração SGP** - Identificação automática por CPF, consulta de faturas, promessa de pagamento (48h)
 - ✅ **Dashboard Executivo** - Métricas em tempo real
 - ✅ **Campanhas de Marketing** - Envio em massa segmentado
 - ✅ **Gerenciamento de Clientes** - CRM integrado
