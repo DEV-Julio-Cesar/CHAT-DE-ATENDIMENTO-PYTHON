@@ -4,17 +4,14 @@ CIANET PROVEDOR - Sistema de Atendimento WhatsApp
 """
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
-from app.api.endpoints import auth, users, conversations, campaigns, whatsapp, dashboard, chatbot
+from app.api.endpoints import auth, users, conversations, campaigns, dashboard, chatbot
 from app.api.endpoints import gdpr
 from app.api.endpoints.dashboard_functional import router as dashboard_functional_router
-from app.api.endpoints.whatsapp_webhook import router as whatsapp_webhook_router
 from app.api.endpoints.chatbot_admin import router as chatbot_admin_router
-from app.api.endpoints.auth_v2 import router as auth_v2_router
+from app.api.endpoints.whatsapp_python import router as whatsapp_python_router
 from app.api.endpoints.users_v2 import router as users_v2_router
 from app.api.endpoints.conversations_v2 import router as conversations_v2_router
 from app.api.endpoints.dashboard_v2 import router as dashboard_v2_router
-from app.api.endpoints.whatsapp_v2 import router as whatsapp_v2_router
-from app.api.endpoints.whatsapp_send_v2 import router as whatsapp_send_v2_router
 from app.api.endpoints.chatbot_admin_v2 import router as chatbot_admin_v2_router
 from app.api.endpoints.reports_v2 import router as reports_v2_router
 from app.api.endpoints.mobile_pwa import router as mobile_pwa_router
@@ -22,11 +19,18 @@ from app.core.security_headers import security_headers_manager
 
 api_router = APIRouter()
 
-# Incluir rotas de autenticação V2 (JWT completo com refresh tokens)
+# Incluir rotas de autenticação (com suporte a usuários demo)
 api_router.include_router(
-    auth_v2_router,
-    tags=["authentication-v2"]
+    auth.router,
+    prefix="/auth",
+    tags=["authentication"]
 )
+
+# Incluir rotas de autenticação V2 (requer SQL Server - desabilitado)
+# api_router.include_router(
+#     auth_v2_router,
+#     tags=["authentication-v2"]
+# )
 
 # Incluir rotas de usuários V2 (CRUD completo com SQL Server)
 api_router.include_router(
@@ -46,17 +50,7 @@ api_router.include_router(
     tags=["dashboard-v2"]
 )
 
-# Incluir rotas WhatsApp V2 (Webhook Meta Cloud API)
-api_router.include_router(
-    whatsapp_v2_router,
-    tags=["whatsapp-v2"]
-)
-
-# Incluir rotas WhatsApp Send V2 (Envio de mensagens)
-api_router.include_router(
-    whatsapp_send_v2_router,
-    tags=["whatsapp-v2-send"]
-)
+# Rotas WhatsApp V2 removidas (dependiam de WhatsApp Business API)
 
 # Incluir rotas Chatbot Admin V2 (Treinamento e métricas)
 api_router.include_router(
@@ -76,12 +70,7 @@ api_router.include_router(
     tags=["mobile-pwa"]
 )
 
-# Incluir rotas de autenticação legadas (mantidas para compatibilidade)
-api_router.include_router(
-    auth.router,
-    prefix="/auth-legacy",
-    tags=["authentication-legacy"]
-)
+# Rotas legadas removidas (agora usando auth.py como principal)
 
 # Incluir rotas de usuários (legado)
 api_router.include_router(
@@ -110,14 +99,13 @@ api_router.include_router(
     tags=["campaigns"]
 )
 
-# Incluir rotas do WhatsApp
+# Incluir rotas do WhatsApp Python (novo)
 api_router.include_router(
-    whatsapp.router,
-    prefix="/whatsapp",
+    whatsapp_python_router,
     tags=["whatsapp"]
 )
 
-# Incluir rotas do dashboard
+# Incluir rotas do Chatbot AI
 api_router.include_router(
     dashboard.router,
     prefix="/dashboard",
@@ -136,17 +124,13 @@ api_router.include_router(
     tags=["dashboard-functional"]
 )
 
-# Incluir webhook e API do WhatsApp Enterprise
-api_router.include_router(
-    whatsapp_webhook_router,
-    tags=["whatsapp-enterprise"]
-)
-
 # Incluir rotas de administração do Chatbot Treinável
 api_router.include_router(
     chatbot_admin_router,
     tags=["chatbot-admin"]
 )
+
+# Rotas WhatsApp V2 removidas (dependiam de SQL Server e WhatsApp Business API)
 
 
 # =============================================================================

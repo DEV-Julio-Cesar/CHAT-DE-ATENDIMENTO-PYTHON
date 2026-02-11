@@ -226,8 +226,9 @@ class SecurityHeadersManager:
         
         for directive, values in self.config.csp_directives.items():
             if values:
-                # Adicionar nonce se fornecido e for diretiva de script/style
-                if nonce and directive in ["script-src", "style-src"]:
+                # Adicionar nonce APENAS se fornecido, for diretiva de script/style
+                # E NÃO tiver 'unsafe-inline' (nonce e unsafe-inline são mutuamente exclusivos)
+                if nonce and directive in ["script-src", "style-src"] and "'unsafe-inline'" not in values:
                     values = values + [f"'nonce-{nonce}'"]
                 
                 parts.append(f"{directive} {' '.join(values)}")

@@ -12,31 +12,31 @@ class Settings(BaseSettings):
     VERSION: str = "2.0.0"
     DEBUG: bool = False
     
-    # Database MariaDB/MySQL (novo padrão)
+    # Database MariaDB/MySQL (único banco de dados usado)
     # Exemplo: mysql+aiomysql://usuario:senha@localhost:3306/cianet_provedor
     DATABASE_URL: str = "mysql+aiomysql://root:suasenha@localhost:3306/cianet_provedor"
     DATABASE_POOL_SIZE: int = 20
     DATABASE_MAX_OVERFLOW: int = 30
     
-    # SQL Server (autenticação)
-    SQLSERVER_HOST: str = "localhost"
-    SQLSERVER_PORT: int = 1433
-    SQLSERVER_DATABASE: str = "isp_support"
-    SQLSERVER_USER: str = ""
-    SQLSERVER_PASSWORD: str = ""
-    SQLSERVER_DRIVER: str = "ODBC Driver 17 for SQL Server"
-    SQLSERVER_TRUST_CERT: bool = True
-    SQLSERVER_TRUSTED_CONNECTION: bool = True  # Autenticação Windows
-    SQLSERVER_MIN_POOL_SIZE: int = 5
-    SQLSERVER_MAX_POOL_SIZE: int = 20
-    SQLSERVER_CONNECTION_TIMEOUT: int = 30
+    # Security Settings - Password Policy
+    PASSWORD_MIN_LENGTH: int = 12  # Aumentado de 8 para 12
+    PASSWORD_REQUIRE_UPPERCASE: bool = True
+    PASSWORD_REQUIRE_LOWERCASE: bool = True
+    PASSWORD_REQUIRE_NUMBERS: bool = True
+    PASSWORD_REQUIRE_SPECIAL: bool = True
+    PASSWORD_HISTORY_COUNT: int = 5  # Não reutilizar últimas 5 senhas
+    PASSWORD_EXPIRY_DAYS: int = 90  # Expirar senha após 90 dias
     
-    # Security Settings
-    PASSWORD_MIN_LENGTH: int = 8
+    # Security Settings - Authentication
     MAX_LOGIN_ATTEMPTS: int = 5
     LOCKOUT_MINUTES: int = 15
-    SESSION_ABSOLUTE_TIMEOUT_HOURS: int = 24
+    SESSION_ABSOLUTE_TIMEOUT_HOURS: int = 1  # Reduzido de 24 para 1 hora
+    SESSION_IDLE_TIMEOUT_MINUTES: int = 30  # Timeout por inatividade
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    
+    # Security Settings - Encryption
+    MASTER_ENCRYPTION_KEY: Optional[str] = None  # Para criptografia de dados sensíveis
+    ENCRYPTION_SALT: str = "default-salt-change-in-production"
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -117,20 +117,6 @@ settings = Settings()
 def get_database_url() -> str:
     """Get database URL with proper configuration"""
     return settings.DATABASE_URL
-
-
-# SQL Server connection string
-def get_sqlserver_connection_string() -> str:
-    """Get SQL Server connection string"""
-    return (
-        f"DRIVER={{{settings.SQLSERVER_DRIVER}}};"
-        f"SERVER={settings.SQLSERVER_HOST},{settings.SQLSERVER_PORT};"
-        f"DATABASE={settings.SQLSERVER_DATABASE};"
-        f"UID={settings.SQLSERVER_USER};"
-        f"PWD={settings.SQLSERVER_PASSWORD};"
-        f"TrustServerCertificate={'yes' if settings.SQLSERVER_TRUST_CERT else 'no'};"
-        f"Connection Timeout={settings.SQLSERVER_CONNECTION_TIMEOUT};"
-    )
 
 
 # Redis configuration

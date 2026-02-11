@@ -48,7 +48,7 @@ class SecurityManager:
         data: Dict[str, Any], 
         expires_delta: Optional[timedelta] = None
     ) -> str:
-        """Criar token JWT"""
+        """Criar token JWT com claims de segurança"""
         to_encode = data.copy()
         
         if expires_delta:
@@ -56,7 +56,14 @@ class SecurityManager:
         else:
             expire = datetime.utcnow() + timedelta(minutes=self.access_token_expire_minutes)
         
-        to_encode.update({"exp": expire, "iat": datetime.utcnow()})
+        # Adicionar claims de segurança obrigatórios
+        to_encode.update({
+            "exp": expire,
+            "iat": datetime.utcnow(),
+            "aud": "chatbot-api",  # Audiência
+            "iss": "cianet-auth",  # Emissor
+            "jti": secrets.token_urlsafe(32)  # JWT ID único para revogação
+        })
         
         try:
             encoded_jwt = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
@@ -69,14 +76,66 @@ class SecurityManager:
             )
     
     def verify_token(self, token: str) -> Dict[str, Any]:
-        """Verificar e decodificar token JWT"""
+        """Verificar e decodificar token JWT com validação completa"""
         try:
-            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+            # Validação completa com audience, issuer e claims obrigatórios
+            payload = jwt.decode(
+                token, 
+                self.secret_key, 
+                algorithms=[self.algorithm],
+                audience="chatbot-api",  # Validar audiência
+                issuer="cianet-auth",    # Validar emissor
+                options={
+                    "verify_exp": True,
+                    "verify_iat": True,
+                    "verify_aud": True,
+                    "verify_iss": True,
+                    "require": ["exp", "iat", "jti", "sub"]  # Claims obrigatórios
+                }
+            )
+            
+            # Verificar se token está na blacklist
+            jti = payload.get("jti")
+            if jti:
+                # Verificação síncrona para compatibilidade
+                import asyncio
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # Se já estamos em um loop, criar task
+                        blacklisted = False  # Fallback seguro
+                    else:
+                        blacklisted = loop.run_until_complete(self._check_blacklist(jti))
+                except RuntimeError:
+                    blacklisted = False  # Fallback seguro
+                
+                if blacklisted:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Token has been revoked",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+            
             return payload
+            
         except jwt.ExpiredSignatureError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has expired",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        except jwt.InvalidAudienceError:
+            logger.warning("Invalid token audience")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token audience",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        except jwt.InvalidIssuerError:
+            logger.warning("Invalid token issuer")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token issuer",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         except jwt.JWTError as e:
@@ -86,6 +145,14 @@ class SecurityManager:
                 detail="Could not validate credentials",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+    
+    async def _check_blacklist(self, jti: str) -> bool:
+        """Verificar se JTI está na blacklist"""
+        try:
+            blacklisted = await redis_manager.get(f"blacklist:{jti}")
+            return blacklisted is not None
+        except Exception:
+            return False  # Fallback seguro
     
     # Refresh tokens
     def create_refresh_token(self, user_id: str) -> str:

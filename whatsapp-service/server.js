@@ -1,30 +1,28 @@
-/**
- * Serviço WhatsApp Web - CIANET PROVEDOR
- * Integração com whatsapp-web.js para gerenciar sessões do WhatsApp
- */
-
 const express = require('express');
 const cors = require('cors');
-const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
-const qrcodeTerminal = require('qrcode-terminal');
+const { Client, LocalAuth } = require('whatsapp-web.js');
 
 const app = express();
+const PORT = 3001;
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Armazenar sessões ativas
-const sessions = new Map();
-const qrCodes = new Map();
+// Estado do cliente WhatsApp
+let client = null;
+let qrCodeData = null;
+let isReady = false;
+let clientInfo = null;
 
-// Configuração do cliente WhatsApp
-function createWhatsAppClient(sessionId) {
-    console.log(`[${sessionId}] Criando cliente WhatsApp...`);
+// Inicializar cliente WhatsApp
+function initializeWhatsAppClient() {
+    console.log('🚀 Inicializando cliente WhatsApp...');
     
-    const client = new Client({
+    client = new Client({
         authStrategy: new LocalAuth({
-            clientId: sessionId,
-            dataPath: './sessions'
+            clientId: 'cianet-whatsapp'
         }),
         puppeteer: {
             headless: true,
@@ -42,505 +40,351 @@ function createWhatsAppClient(sessionId) {
 
     // Evento: QR Code gerado
     client.on('qr', async (qr) => {
-        console.log(`[${sessionId}] QR Code gerado`);
-        qrcodeTerminal.generate(qr, { small: true });
-        
-        // Converter para base64 para enviar ao frontend
-        const qrBase64 = await qrcode.toDataURL(qr, {
-            width: 300,
-            margin: 2,
-            color: {
-                dark: '#166534',
-                light: '#ffffff'
-            }
-        });
-        
-        qrCodes.set(sessionId, {
-            qr: qr,
-            qrBase64: qrBase64,
-            timestamp: Date.now(),
-            status: 'pending'
-        });
-    });
-
-    // Evento: Carregando
-    client.on('loading_screen', (percent, message) => {
-        console.log(`[${sessionId}] Carregando: ${percent}% - ${message}`);
-    });
-
-    // Evento: Autenticado
-    client.on('authenticated', () => {
-        console.log(`[${sessionId}] ✅ Autenticado!`);
-        const qrData = qrCodes.get(sessionId);
-        if (qrData) {
-            qrData.status = 'authenticated';
-            qrCodes.set(sessionId, qrData);
-        }
-    });
-
-    // Evento: Pronto
-    client.on('ready', () => {
-        console.log(`[${sessionId}] ✅ WhatsApp pronto!`);
-        const session = sessions.get(sessionId);
-        if (session) {
-            session.status = 'ready';
-            session.info = client.info;
-            sessions.set(sessionId, session);
-        }
-    });
-
-    // Evento: Desconectado
-    client.on('disconnected', (reason) => {
-        console.log(`[${sessionId}] ❌ Desconectado: ${reason}`);
-        sessions.delete(sessionId);
-        qrCodes.delete(sessionId);
-    });
-
-    // Evento: Mensagem recebida
-    client.on('message', async (msg) => {
-        console.log(`[${sessionId}] 📩 Mensagem de ${msg.from}: ${msg.body}`);
-        
-        // Notificar o backend Python via webhook
+        console.log('📱 QR Code gerado!');
         try {
-            await fetch('http://localhost:8000/api/v1/whatsapp/webhook/message', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sessionId: sessionId,
-                    from: msg.from,
-                    body: msg.body,
-                    timestamp: msg.timestamp,
-                    type: msg.type,
-                    isGroup: msg.from.includes('@g.us')
-                })
-            });
-        } catch (e) {
-            console.log(`[${sessionId}] Erro ao enviar webhook: ${e.message}`);
+            qrCodeData = await qrcode.toDataURL(qr);
+            console.log('✅ QR Code convertido para base64');
+        } catch (err) {
+            console.error('❌ Erro ao gerar QR Code:', err);
         }
     });
 
-    // Evento: Erro de autenticação
+    // Evento: Cliente autenticado
+    client.on('authenticated', () => {
+        console.log('✅ Cliente autenticado!');
+        qrCodeData = null;
+    });
+
+    // Evento: Autenticação falhou
     client.on('auth_failure', (msg) => {
-        console.log(`[${sessionId}] ❌ Falha na autenticação: ${msg}`);
-        const qrData = qrCodes.get(sessionId);
-        if (qrData) {
-            qrData.status = 'auth_failure';
-            qrCodes.set(sessionId, qrData);
+        console.error('❌ Falha na autenticação:', msg);
+        qrCodeData = null;
+    });
+
+    // Evento: Cliente pronto
+    client.on('ready', async () => {
+        console.log('✅ Cliente WhatsApp pronto!');
+        isReady = true;
+        qrCodeData = null;
+        
+        try {
+            clientInfo = {
+                number: client.info.wid.user,
+                name: client.info.pushname,
+                platform: client.info.platform
+            };
+            console.log('📞 Conectado como:', clientInfo);
+        } catch (err) {
+            console.error('Erro ao obter info do cliente:', err);
         }
     });
 
-    return client;
+    // Evento: Cliente desconectado
+    client.on('disconnected', (reason) => {
+        console.log('⚠️ Cliente desconectado:', reason);
+        isReady = false;
+        clientInfo = null;
+        qrCodeData = null;
+    });
+
+    // Inicializar
+    client.initialize().catch(err => {
+        console.error('❌ Erro ao inicializar cliente:', err);
+    });
 }
 
-// ========== ENDPOINTS ==========
+// Rotas da API
 
-// Health check
-app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'ok', 
-        service: 'whatsapp-web-service',
-        activeSessions: sessions.size,
-        timestamp: new Date().toISOString()
+// Status do serviço
+app.get('/status', (req, res) => {
+    res.json({
+        success: true,
+        service: 'WhatsApp Web Service',
+        version: '1.0.0',
+        status: isReady ? 'connected' : 'disconnected',
+        hasQrCode: !!qrCodeData,
+        clientInfo: clientInfo
     });
 });
 
-// Criar nova sessão e obter QR Code
-app.post('/session/create', async (req, res) => {
-    try {
-        const sessionId = req.body.sessionId || `session_${Date.now()}`;
-        
-        // Verificar se sessão já existe
-        if (sessions.has(sessionId)) {
-            const session = sessions.get(sessionId);
-            if (session.status === 'ready') {
-                return res.json({
-                    success: true,
-                    sessionId: sessionId,
-                    status: 'already_connected',
-                    info: session.info
-                });
-            }
-        }
-        
-        // Criar novo cliente
-        const client = createWhatsAppClient(sessionId);
-        
-        sessions.set(sessionId, {
-            client: client,
-            status: 'initializing',
-            createdAt: Date.now()
-        });
-        
-        // Inicializar cliente
-        client.initialize();
-        
-        // Aguardar QR Code ser gerado (máximo 30 segundos)
-        let attempts = 0;
-        const maxAttempts = 30;
-        
-        while (!qrCodes.has(sessionId) && attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            attempts++;
-            
-            // Verificar se já conectou (sessão existente)
-            const session = sessions.get(sessionId);
-            if (session && session.status === 'ready') {
-                return res.json({
-                    success: true,
-                    sessionId: sessionId,
-                    status: 'connected',
-                    message: 'Sessão restaurada automaticamente'
-                });
-            }
-        }
-        
-        if (qrCodes.has(sessionId)) {
-            const qrData = qrCodes.get(sessionId);
-            res.json({
-                success: true,
-                sessionId: sessionId,
-                qrCode: qrData.qrBase64,
-                status: 'qr_ready'
-            });
-        } else {
-            res.status(408).json({
-                success: false,
-                error: 'Timeout ao gerar QR Code'
-            });
-        }
-        
-    } catch (error) {
-        console.error('Erro ao criar sessão:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-// Obter QR Code atual
-app.get('/session/:sessionId/qr', (req, res) => {
-    const { sessionId } = req.params;
-    
-    if (qrCodes.has(sessionId)) {
-        const qrData = qrCodes.get(sessionId);
-        res.json({
+// Obter QR Code
+app.get('/qr-code', (req, res) => {
+    if (isReady) {
+        return res.json({
             success: true,
-            qrCode: qrData.qrBase64,
-            status: qrData.status,
-            timestamp: qrData.timestamp
-        });
-    } else {
-        res.status(404).json({
-            success: false,
-            error: 'QR Code não encontrado'
+            connected: true,
+            message: 'WhatsApp já está conectado',
+            clientInfo: clientInfo
         });
     }
-});
 
-// Verificar status da sessão
-app.get('/session/:sessionId/status', (req, res) => {
-    const { sessionId } = req.params;
-    
-    if (sessions.has(sessionId)) {
-        const session = sessions.get(sessionId);
-        const qrData = qrCodes.get(sessionId);
-        
-        res.json({
-            success: true,
-            sessionId: sessionId,
-            status: session.status,
-            qrStatus: qrData?.status || 'unknown',
-            connected: session.status === 'ready',
-            info: session.info || null
-        });
-    } else {
-        res.json({
+    if (!qrCodeData) {
+        return res.json({
             success: false,
-            sessionId: sessionId,
-            status: 'not_found',
-            connected: false
+            error: 'QR Code ainda não foi gerado. Aguarde alguns segundos e tente novamente.',
+            message: 'Inicializando conexão com WhatsApp Web...'
         });
     }
-});
 
-// Desconectar sessão
-app.post('/session/:sessionId/disconnect', async (req, res) => {
-    const { sessionId } = req.params;
-    
-    if (sessions.has(sessionId)) {
-        const session = sessions.get(sessionId);
-        try {
-            await session.client.logout();
-            await session.client.destroy();
-            sessions.delete(sessionId);
-            qrCodes.delete(sessionId);
-            
-            res.json({
-                success: true,
-                message: 'Sessão desconectada'
-            });
-        } catch (error) {
-            res.status(500).json({
-                success: false,
-                error: error.message
-            });
-        }
-    } else {
-        res.status(404).json({
-            success: false,
-            error: 'Sessão não encontrada'
-        });
-    }
+    res.json({
+        success: true,
+        qr_code: qrCodeData,
+        message: 'Escaneie o QR Code com seu WhatsApp'
+    });
 });
 
 // Enviar mensagem
-app.post('/session/:sessionId/send', async (req, res) => {
-    const { sessionId } = req.params;
-    const { to, message, type = 'text' } = req.body;
-    
-    if (!sessions.has(sessionId)) {
-        return res.status(404).json({
+app.post('/send-message', async (req, res) => {
+    if (!isReady) {
+        return res.status(503).json({
             success: false,
-            error: 'Sessão não encontrada'
+            error: 'WhatsApp não está conectado. Escaneie o QR Code primeiro.'
         });
     }
-    
-    const session = sessions.get(sessionId);
-    
-    if (session.status !== 'ready') {
+
+    const { phone, message } = req.body;
+
+    if (!phone || !message) {
         return res.status(400).json({
             success: false,
-            error: 'Sessão não está pronta'
+            error: 'Campos "phone" e "message" são obrigatórios'
         });
     }
-    
-    try {
-        // Formatar número (adicionar @c.us se necessário)
-        let chatId = to;
-        if (!to.includes('@')) {
-            chatId = `${to.replace(/\D/g, '')}@c.us`;
-        }
-        
-        let result;
-        if (type === 'text') {
-            result = await session.client.sendMessage(chatId, message);
-        }
-        
-        res.json({
-            success: true,
-            messageId: result.id._serialized,
-            timestamp: result.timestamp
-        });
-        
-    } catch (error) {
-        console.error('Erro ao enviar mensagem:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
 
-// Listar sessões ativas
-app.get('/sessions', (req, res) => {
-    const sessionList = [];
-    
-    sessions.forEach((session, sessionId) => {
-        sessionList.push({
-            sessionId: sessionId,
-            status: session.status,
-            createdAt: session.createdAt,
-            info: session.info || null
-        });
-    });
-    
-    res.json({
-        success: true,
-        count: sessionList.length,
-        sessions: sessionList
-    });
-});
-
-// Obter foto de perfil de um contato
-app.get('/session/:sessionId/profile-pic/:phoneNumber', async (req, res) => {
-    const { sessionId, phoneNumber } = req.params;
-    
-    if (!sessions.has(sessionId)) {
-        return res.status(404).json({
-            success: false,
-            error: 'Sessão não encontrada'
-        });
-    }
-    
-    const session = sessions.get(sessionId);
-    
-    if (session.status !== 'ready') {
-        return res.status(400).json({
-            success: false,
-            error: 'Sessão não está pronta'
-        });
-    }
-    
     try {
-        // Formatar número
-        let chatId = phoneNumber;
-        if (!phoneNumber.includes('@')) {
-            chatId = `${phoneNumber.replace(/\D/g, '')}@c.us`;
-        }
+        // Formatar número (remover caracteres especiais)
+        const cleanPhone = phone.replace(/\D/g, '');
         
-        const profilePicUrl = await session.client.getProfilePicUrl(chatId);
+        console.log(`📤 Tentando enviar mensagem para ${cleanPhone}`);
         
-        res.json({
-            success: true,
-            phoneNumber: phoneNumber,
-            profilePicUrl: profilePicUrl || null
-        });
+        // Tentar diferentes formatos de número
+        const formats = [
+            `${cleanPhone}@c.us`,           // Formato padrão
+            `55${cleanPhone}@c.us`,         // Com código do Brasil
+            `${cleanPhone}@s.whatsapp.net`  // Formato alternativo
+        ];
         
-    } catch (error) {
-        console.error('Erro ao obter foto de perfil:', error);
-        res.json({
-            success: true,
-            phoneNumber: phoneNumber,
-            profilePicUrl: null
-        });
-    }
-});
-
-// Listar conversas/chats recentes
-app.get('/session/:sessionId/chats', async (req, res) => {
-    const { sessionId } = req.params;
-    const limit = parseInt(req.query.limit) || 20;
-    
-    if (!sessions.has(sessionId)) {
-        return res.status(404).json({
-            success: false,
-            error: 'Sessão não encontrada'
-        });
-    }
-    
-    const session = sessions.get(sessionId);
-    
-    if (session.status !== 'ready') {
-        return res.status(400).json({
-            success: false,
-            error: 'Sessão não está pronta'
-        });
-    }
-    
-    try {
-        const chats = await session.client.getChats();
-        const chatList = [];
+        let sent = false;
+        let lastError = null;
         
-        for (let i = 0; i < Math.min(chats.length, limit); i++) {
-            const chat = chats[i];
-            
-            // Ignorar grupos por enquanto
-            if (chat.isGroup) continue;
-            
-            let profilePicUrl = null;
+        for (const chatId of formats) {
             try {
-                profilePicUrl = await session.client.getProfilePicUrl(chat.id._serialized);
-            } catch (e) {
-                // Sem foto de perfil
+                console.log(`   Tentando formato: ${chatId}`);
+                
+                // Tentar obter o número ID primeiro
+                try {
+                    const numberId = await client.getNumberId(chatId.replace('@c.us', '').replace('@s.whatsapp.net', ''));
+                    if (numberId) {
+                        console.log(`   ✅ Número encontrado: ${numberId._serialized}`);
+                        await client.sendMessage(numberId._serialized, message);
+                        sent = true;
+                        console.log(`✅ Mensagem enviada com sucesso para ${cleanPhone}`);
+                        break;
+                    }
+                } catch (e) {
+                    // Se getNumberId falhar, tentar enviar diretamente
+                    console.log(`   ⚠️ getNumberId falhou, tentando envio direto...`);
+                    await client.sendMessage(chatId, message);
+                    sent = true;
+                    console.log(`✅ Mensagem enviada com sucesso para ${cleanPhone}`);
+                    break;
+                }
+            } catch (error) {
+                lastError = error;
+                console.log(`   ❌ Falhou com formato ${chatId}: ${error.message}`);
+                continue;
             }
-            
-            chatList.push({
-                id: chat.id._serialized,
-                name: chat.name || chat.pushname || 'Desconhecido',
-                phoneNumber: chat.id.user,
-                lastMessage: chat.lastMessage?.body || '',
-                timestamp: chat.lastMessage?.timestamp || 0,
-                unreadCount: chat.unreadCount || 0,
-                isOnline: chat.isOnline || false,
-                profilePicUrl: profilePicUrl
-            });
         }
         
-        // Ordenar por timestamp (mais recentes primeiro)
-        chatList.sort((a, b) => b.timestamp - a.timestamp);
-        
+        if (!sent) {
+            throw new Error(lastError?.message || 'Não foi possível enviar a mensagem em nenhum formato');
+        }
+
         res.json({
             success: true,
-            count: chatList.length,
-            chats: chatList
+            message: 'Mensagem enviada com sucesso',
+            to: phone
         });
-        
     } catch (error) {
-        console.error('Erro ao listar chats:', error);
+        console.error('❌ Erro ao enviar mensagem:', error.message);
         res.status(500).json({
             success: false,
-            error: error.message
+            error: 'Erro ao enviar mensagem: ' + error.message
         });
     }
 });
 
-// Obter mensagens de um chat
-app.get('/session/:sessionId/messages/:chatId', async (req, res) => {
-    const { sessionId, chatId } = req.params;
-    const limit = parseInt(req.query.limit) || 50;
-    
-    if (!sessions.has(sessionId)) {
-        return res.status(404).json({
+// Listar chats/conversas
+app.get('/chats', async (req, res) => {
+    if (!isReady) {
+        return res.status(503).json({
             success: false,
-            error: 'Sessão não encontrada'
+            error: 'WhatsApp não está conectado'
         });
     }
-    
-    const session = sessions.get(sessionId);
-    
-    if (session.status !== 'ready') {
-        return res.status(400).json({
-            success: false,
-            error: 'Sessão não está pronta'
-        });
-    }
-    
+
     try {
-        // Formatar chatId
-        let formattedChatId = chatId;
-        if (!chatId.includes('@')) {
-            formattedChatId = `${chatId.replace(/\D/g, '')}@c.us`;
-        }
+        console.log('📋 Buscando lista de chats...');
         
-        const chat = await session.client.getChatById(formattedChatId);
-        const messages = await chat.fetchMessages({ limit: limit });
+        // Obter todos os chats
+        const chats = await client.getChats();
+        
+        // Filtrar apenas chats individuais (não grupos)
+        const individualChats = chats.filter(chat => !chat.isGroup);
+        
+        // Mapear para formato simplificado
+        const chatList = await Promise.all(individualChats.slice(0, 50).map(async (chat) => {
+            try {
+                const contact = await chat.getContact();
+                const lastMessage = chat.lastMessage;
+                
+                return {
+                    id: chat.id._serialized,
+                    name: contact.pushname || contact.name || chat.name || 'Sem nome',
+                    phone: contact.number,
+                    profilePic: contact.profilePicUrl || null,
+                    lastMessage: lastMessage ? {
+                        body: lastMessage.body,
+                        timestamp: lastMessage.timestamp,
+                        fromMe: lastMessage.fromMe
+                    } : null,
+                    unreadCount: chat.unreadCount,
+                    timestamp: chat.timestamp
+                };
+            } catch (err) {
+                console.error('Erro ao processar chat:', err);
+                return null;
+            }
+        }));
+        
+        // Remover nulls e ordenar por timestamp
+        const validChats = chatList
+            .filter(chat => chat !== null)
+            .sort((a, b) => b.timestamp - a.timestamp);
+        
+        console.log(`✅ ${validChats.length} chats encontrados`);
+        
+        res.json({
+            success: true,
+            chats: validChats,
+            total: validChats.length
+        });
+    } catch (error) {
+        console.error('❌ Erro ao buscar chats:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Erro ao buscar chats: ' + error.message
+        });
+    }
+});
+
+// Obter mensagens de um chat específico
+app.get('/chats/:chatId/messages', async (req, res) => {
+    if (!isReady) {
+        return res.status(503).json({
+            success: false,
+            error: 'WhatsApp não está conectado'
+        });
+    }
+
+    const { chatId } = req.params;
+    const limit = parseInt(req.query.limit) || 50;
+
+    try {
+        console.log(`📨 Buscando mensagens do chat: ${chatId}`);
+        
+        const chat = await client.getChatById(chatId);
+        const messages = await chat.fetchMessages({ limit });
         
         const messageList = messages.map(msg => ({
             id: msg.id._serialized,
             body: msg.body,
-            from: msg.from,
-            to: msg.to,
-            fromMe: msg.fromMe,
             timestamp: msg.timestamp,
+            fromMe: msg.fromMe,
             type: msg.type,
-            hasMedia: msg.hasMedia
+            hasMedia: msg.hasMedia,
+            author: msg.author
         }));
+        
+        console.log(`✅ ${messageList.length} mensagens encontradas`);
         
         res.json({
             success: true,
-            chatId: formattedChatId,
-            count: messageList.length,
-            messages: messageList
+            messages: messageList,
+            total: messageList.length
         });
-        
     } catch (error) {
-        console.error('Erro ao obter mensagens:', error);
+        console.error('❌ Erro ao buscar mensagens:', error.message);
         res.status(500).json({
             success: false,
-            error: error.message
+            error: 'Erro ao buscar mensagens: ' + error.message
+        });
+    }
+});
+app.post('/disconnect', async (req, res) => {
+    if (!client) {
+        return res.json({
+            success: false,
+            error: 'Cliente não está inicializado'
+        });
+    }
+
+    try {
+        await client.destroy();
+        isReady = false;
+        clientInfo = null;
+        qrCodeData = null;
+        
+        res.json({
+            success: true,
+            message: 'WhatsApp desconectado com sucesso'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: 'Erro ao desconectar: ' + error.message
         });
     }
 });
 
-// ========== INICIAR SERVIDOR ==========
-const PORT = process.env.PORT || 3001;
+// Reconectar
+app.post('/reconnect', async (req, res) => {
+    try {
+        if (client) {
+            await client.destroy();
+        }
+        
+        isReady = false;
+        clientInfo = null;
+        qrCodeData = null;
+        
+        initializeWhatsAppClient();
+        
+        res.json({
+            success: true,
+            message: 'Reconectando... Aguarde o QR Code ser gerado.'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: 'Erro ao reconectar: ' + error.message
+        });
+    }
+});
 
+// Iniciar servidor
 app.listen(PORT, () => {
-    console.log('═══════════════════════════════════════════');
-    console.log('   🟢 WhatsApp Web Service - CIANET');
-    console.log('═══════════════════════════════════════════');
-    console.log(`   📡 Servidor rodando na porta ${PORT}`);
-    console.log(`   🔗 http://localhost:${PORT}`);
-    console.log('═══════════════════════════════════════════');
+    console.log(`🚀 WhatsApp Service rodando na porta ${PORT}`);
+    console.log(`📡 API disponível em http://localhost:${PORT}`);
+    console.log('');
+    initializeWhatsAppClient();
+});
+
+// Tratamento de erros
+process.on('unhandledRejection', (err) => {
+    console.error('❌ Unhandled Rejection:', err);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('❌ Uncaught Exception:', err);
 });

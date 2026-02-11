@@ -11,7 +11,7 @@ Serve:
 import logging
 from pathlib import Path
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 
@@ -101,20 +101,20 @@ async def manifest():
     )
 
 
-@router.get("/static/css/{filename}", summary="CSS Files")
-async def css_files(filename: str):
-    """Servir arquivos CSS"""
+@router.get("/pwa/css/{filename}", summary="PWA CSS Files")
+async def pwa_css_files(filename: str):
+    """Servir arquivos CSS do PWA Mobile"""
     file_path = static_path / "css" / filename
     
     if file_path.exists() and file_path.is_file():
         return FileResponse(file_path, media_type="text/css")
     
-    return FileResponse(status_code=404)
+    raise HTTPException(status_code=404, detail="File not found")
 
 
-@router.get("/static/js/{filename}", summary="JavaScript Files")
-async def js_files(filename: str):
-    """Servir arquivos JavaScript"""
+@router.get("/pwa/js/{filename}", summary="PWA JavaScript Files")
+async def pwa_js_files(filename: str):
+    """Servir arquivos JavaScript do PWA Mobile"""
     file_path = static_path / "js" / filename
     
     if file_path.exists() and file_path.is_file():

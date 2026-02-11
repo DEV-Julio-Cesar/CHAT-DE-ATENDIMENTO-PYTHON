@@ -15,7 +15,8 @@ from fastapi import APIRouter, HTTPException, status, Request, Depends, Query, U
 from pydantic import BaseModel, Field
 
 from app.core.auth_manager import get_current_user, require_permissions
-from app.core.sqlserver_db import sqlserver_manager
+from app.core.database import db_manager
+from app.models.database import Usuario
 from app.core.audit_logger import audit_logger, AuditEventTypes
 from app.services.whatsapp_cloud_api import (
     whatsapp_client, 

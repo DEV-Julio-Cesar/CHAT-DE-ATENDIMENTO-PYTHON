@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atendimento WhatsApp - CIANET</title>
+    <link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f8fafc; height: 100vh; overflow: hidden; }
+        
+        .chat-layout {
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            height: 100vh;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            background: linear-gradient(180deg, #166534 0%, #15803d 30%, #22c55e 70%, #16a34a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            box-shadow: 4px 0 25px rgba(22, 101, 52, 0.3);
+        }
+        
+        .sidebar-logo {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 32px;
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
+        }
+        
+        .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 16px; width: 100%; padding: 0 16px; }
+        
+        .sidebar-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .sidebar-btn:hover { background: rgba(255, 255, 255, 0.2); color: white; transform: translateX(4px); }
+        .sidebar-btn.active { background: linear-gradient(135deg, #f97316, #ea580c); color: white; box-shadow: 0 8px 20px rgba(249, 115, 22, 0.35); }
+        
+        /* Main Content */
+        .main-content { display: flex; flex-direction: column; background: white; }
+        
+        .top-header {
+            padding: 20px 32px;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .header-title { font-size: 24px; font-weight: 700; color: #1f2937; display: flex; align-items: center; gap: 12px; }
+        
+        .whatsapp-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            background: #dcfce7;
+            border-radius: 12px;
+            border: 2px solid #22c55e;
+        }
+        
+        .whatsapp-status.disconnected { background: #fee2e2; border-color: #dc2626; }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse 2s infinite;
+        }
+        
+        .whatsapp-status.disconnected .status-dot { background: #dc2626; }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        .status-text { font-size: 14px; font-weight: 600; color: #166534; }
+        .whatsapp-status.disconnected .status-text { color: #991b1b; }
+        
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-container {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+            background: #f9fafb;
+        }
+        
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #6b7280;
+        }
+        
+        .empty-state i { font-size: 80px; margin-bottom: 20px; color: #d1d5db; }
+        .empty-state h3 { font-size: 20px; margin-bottom: 8px; color: #374151; }
+        .empty-state p { font-size: 14px; }
+        
+        /* Message Input */
+        .message-input-area {
+            padding: 24px 32px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .input-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .input-header input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .input-header input:focus { outline: none; border-color: #22c55e; }
+        
+        .message-input-box {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        
+        .message-input-box textarea {
+            flex: 1;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 15px;
+            resize: none;
+            font-family: inherit;
+            min-height: 60px;
+            max-height: 150px;
+            transition: all 0.3s;
+        }
+        
+        .message-input-box textarea:focus { outline: none; border-color: #22c55e; }
+        
+        .send-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+        
+        .send-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3); }
+        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        
+        /* Messages */
+        .message {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .message.sent { flex-direction: row-reverse; }
+        
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        
+        .message.received .message-avatar { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; }
+        .message.sent .message-avatar { background: linear-gradient(135deg, #f97316, #ea580c); color: white; }
+        
+        .message-content {
+            max-width: 60%;
+            padding: 14px 18px;
+            border-radius: 16px;
+            position: relative;
+        }
+        
+        .message.received .message-content { background: white; border: 1px solid #e5e7eb; border-bottom-left-radius: 4px; }
+        .message.sent .message-content { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-bottom-right-radius: 4px; }
+        
+        .message-text { font-size: 15px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; }
+        
+        .message-time {
+            font-size: 11px;
+            margin-top: 6px;
+            opacity: 0.7;
+        }
+        
+        .message.received .message-time { color: #6b7280; }
+        .message.sent .message-time { color: rgba(255, 255, 255, 0.9); }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            animation: slideInRight 0.3s ease;
+        }
+        
+        @keyframes slideInRight { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        .notification.success { background: #dcfce7; color: #166534; }
+        .notification.error { background: #fee2e2; color: #991b1b; }
+        
+        .char-count {
+            text-align: right;
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <i class="bi bi-headset"></i>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <button class="sidebar-btn active" title="Atendimento">
+                    <i class="bi bi-chat-dots-fill"></i>
+                </button>
+                <button class="sidebar-btn" onclick="window.location.href='/dashboard'" title="Dashboard">
+                    <i class="bi bi-grid-1x2-fill"></i>
+                </button>
+                <button class="sidebar-btn" onclick="window.location.href='/customers'" title="Clientes">
+                    <i class="bi bi-people-fill"></i>
+                </button>
+                <button class="sidebar-btn" onclick="window.location.href='/settings'" title="Configurações">
+                    <i class="bi bi-gear-fill"></i>
+                </button>
+            </nav>
+            
+            <button class="sidebar-btn" onclick="window.location.href='/login'" title="Sair">
+                <i class="bi bi-box-arrow-left"></i>
+            </button>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-title">
+                    <i class="bi bi-whatsapp" style="color: #25d366;"></i>
+                    Atendimento WhatsApp
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <!-- Seletor de Sessão -->
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: #f9fafb; border-radius: 12px; border: 2px solid #e5e7eb;">
+                        <i class="bi bi-phone" style="color: #6b7280;"></i>
+                        <select id="sessionSelect" onchange="changeSession()" style="border: none; background: transparent; font-size: 14px; font-weight: 600; color: #374151; cursor: pointer; outline: none;">
+                            <option value="">Carregando...</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Status da Sessão -->
+                    <div class="whatsapp-status" id="whatsappStatus">
+                        <div class="status-dot"></div>
+                        <span class="status-text">Verificando...</span>
+                    </div>
+                    
+                    <!-- Botão Nova Sessão -->
+                    <button onclick="showNewSessionModal()" style="padding: 10px 16px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.3s;">
+                        <i class="bi bi-plus-circle"></i>
+                        Nova Sessão
+                    </button>
+                </div>
+            </header>
+            
+            <div class="chat-area">
+                <div class="chat-container" id="chatContainer">
+                    <div class="empty-state">
+                        <i class="bi bi-chat-dots"></i>
+                        <h3>Nenhuma conversa ativa</h3>
+                        <p>Digite um número abaixo para iniciar um atendimento</p>
+                    </div>
+                </div>
+                
+                <div class="message-input-area">
+                    <div class="input-header">
+                        <i class="bi bi-phone" style="color: #6b7280; font-size: 18px;"></i>
+                        <input 
+                            type="text" 
+                            id="phoneInput" 
+                            placeholder="Número do WhatsApp (ex: 558488986845)"
+                            onkeypress="if(event.key==='Enter') document.getElementById('messageInput').focus()"
+                        >
+                    </div>
+                    
+                    <div class="message-input-box">
+                        <textarea 
+                            id="messageInput" 
+                            placeholder="Digite sua mensagem..."
+                            onkeypress="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"
+                            oninput="updateCharCount()"
+                        ></textarea>
+                        <button class="send-btn" onclick="sendMessage()" id="sendBtn">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </div>
+                    <div class="char-count" id="charCount">0 caracteres</div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        let currentPhone = '';
+        let messages = [];
+        let currentSessionId = 'default';
+        let sessions = [];
+        
+        // Verificar status do WhatsApp ao carregar
+        window.addEventListener('load', () => {
+            loadSessions();
+            setInterval(() => {
+                loadSessions();
+                checkCurrentSessionStatus();
+            }, 10000); // Atualizar a cada 10 segundos
+        });
+        
+        async function loadSessions() {
+            try {
+                const response = await fetch('http://localhost:3001/sessions');
+                const data = await response.json();
+                
+                if (data.success) {
+                    sessions = data.sessions;
+                    updateSessionSelect();
+                    
+                    // Se não houver sessão selecionada, selecionar a primeira conectada
+                    if (!currentSessionId && sessions.length > 0) {
+                        const connectedSession = sessions.find(s => s.isReady);
+                        currentSessionId = connectedSession ? connectedSession.sessionId : sessions[0].sessionId;
+                    }
+                    
+                    checkCurrentSessionStatus();
+                }
+            } catch (error) {
+                console.error('Erro ao carregar sessões:', error);
+            }
+        }
+        
+        function updateSessionSelect() {
+            const select = document.getElementById('sessionSelect');
+            const currentValue = select.value;
+            
+            select.innerHTML = '';
+            
+            // Adicionar apenas sessões conectadas
+            const connectedSessions = sessions.filter(s => s.isReady);
+            
+            if (connectedSessions.length === 0) {
+                select.innerHTML = '<option value="">Nenhuma sessão conectada</option>';
+                select.disabled = true;
+                return;
+            }
+            
+            select.disabled = false;
+            
+            connectedSessions.forEach(session => {
+                const option = document.createElement('option');
+                option.value = session.sessionId;
+                option.textContent = `${session.name} ${session.clientInfo ? `(+${session.clientInfo.number})` : ''}`;
+                select.appendChild(option);
+            });
+            
+            // Restaurar seleção ou selecionar primeira conectada
+            if (currentValue && connectedSessions.find(s => s.sessionId === currentValue)) {
+                select.value = currentValue;
+            } else {
+                select.value = connectedSessions[0].sessionId;
+                currentSessionId = connectedSessions[0].sessionId;
+            }
+        }
+        
+        function changeSession() {
+            const select = document.getElementById('sessionSelect');
+            currentSessionId = select.value;
+            checkCurrentSessionStatus();
+        }
+        
+        async function checkCurrentSessionStatus() {
+            if (!currentSessionId) return;
+            
+            const session = sessions.find(s => s.sessionId === currentSessionId);
+            if (!session) return;
+            
+            const statusEl = document.getElementById('whatsappStatus');
+            
+            if (session.isReady) {
+                statusEl.className = 'whatsapp-status';
+                statusEl.querySelector('.status-text').textContent = `Conectado: ${session.clientInfo?.name || session.name}`;
+            } else {
+                statusEl.className = 'whatsapp-status disconnected';
+                statusEl.querySelector('.status-text').textContent = 'Desconectado';
+            }
+        }
+        
+        function showNewSessionModal() {
+            document.getElementById('newSessionModal').style.display = 'flex';
+        }
+        
+        function closeNewSessionModal() {
+            document.getElementById('newSessionModal').style.display = 'none';
+            document.getElementById('newSessionName').value = '';
+            document.getElementById('newSessionId').value = '';
+        }
+        
+        async function createNewSession() {
+            const name = document.getElementById('newSessionName').value.trim();
+            const sessionId = document.getElementById('newSessionId').value.trim().toLowerCase();
+            
+            if (!name || !sessionId) {
+                showNotification('Preencha todos os campos', 'error');
+                return;
+            }
+            
+            // Validar ID
+            if (!/^[a-z0-9-]+$/.test(sessionId)) {
+                showNotification('ID inválido. Use apenas letras minúsculas, números e hífen', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:3001/sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId, name })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('✅ Sessão criada! Aguarde o QR Code...', 'success');
+                    closeNewSessionModal();
+                    
+                    // Aguardar 3 segundos e mostrar QR Code
+                    setTimeout(() => {
+                        showQrCode(sessionId, name);
+                    }, 3000);
+                    
+                    // Recarregar sessões
+                    setTimeout(loadSessions, 1000);
+                } else {
+                    showNotification('❌ Erro: ' + data.error, 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao criar sessão:', error);
+                showNotification('❌ Erro ao criar sessão', 'error');
+            }
+        }
+        
+        async function showQrCode(sessionId, name) {
+            document.getElementById('qrModal').style.display = 'flex';
+            document.getElementById('qrModalSubtitle').textContent = `Sessão: ${name}`;
+            document.getElementById('qrCodeContainer').innerHTML = '<i class="bi bi-arrow-repeat" style="font-size: 48px; color: #d1d5db; animation: spin 1s linear infinite;"></i>';
+            
+            // Tentar obter QR Code
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            const checkQr = setInterval(async () => {
+                attempts++;
+                
+                try {
+                    const response = await fetch(`http://localhost:3001/sessions/${sessionId}/qr-code`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.qr_code) {
+                        clearInterval(checkQr);
+                        document.getElementById('qrCodeContainer').innerHTML = `<img src="${data.qr_code}" style="max-width: 100%; height: auto; border-radius: 12px;">`;
+                        
+                        // Verificar conexão a cada 3 segundos
+                        const checkConnection = setInterval(async () => {
+                            const statusResponse = await fetch(`http://localhost:3001/sessions/${sessionId}/status`);
+                            const statusData = await statusResponse.json();
+                            
+                            if (statusData.isReady) {
+                                clearInterval(checkConnection);
+                                showNotification('✅ WhatsApp conectado!', 'success');
+                                closeQrModal();
+                                loadSessions();
+                            }
+                        }, 3000);
+                        
+                        // Parar verificação após 2 minutos
+                        setTimeout(() => clearInterval(checkConnection), 120000);
+                    } else if (data.connected) {
+                        clearInterval(checkQr);
+                        showNotification('✅ Já está conectado!', 'success');
+                        closeQrModal();
+                        loadSessions();
+                    }
+                } catch (error) {
+                    console.error('Erro ao obter QR Code:', error);
+                }
+                
+                if (attempts >= maxAttempts) {
+                    clearInterval(checkQr);
+                    showNotification('❌ Timeout ao gerar QR Code', 'error');
+                }
+            }, 2000);
+        }
+        
+        function closeQrModal() {
+            document.getElementById('qrModal').style.display = 'none';
+        }
+        
+        async function sendMessage() {
+            const phoneInput = document.getElementById('phoneInput');
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            
+            const phone = phoneInput.value.trim();
+            const message = messageInput.value.trim();
+            
+            if (!currentSessionId) {
+                showNotification('Nenhuma sessão selecionada', 'error');
+                return;
+            }
+            
+            if (!phone) {
+                showNotification('Digite o número do WhatsApp', 'error');
+                phoneInput.focus();
+                return;
+            }
+            
+            if (!message) {
+                showNotification('Digite uma mensagem', 'error');
+                messageInput.focus();
+                return;
+            }
+            
+            // Validar número
+            const cleanPhone = phone.replace(/\D/g, '');
+            if (cleanPhone.length < 10) {
+                showNotification('Número inválido. Use o formato: 558488986845', 'error');
+                return;
+            }
+            
+            // Desabilitar botão
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation: spin 1s linear infinite;"></i>';
+            
+            try {
+                const response = await fetch(`http://localhost:3001/sessions/${currentSessionId}/send-message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: cleanPhone, message })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Adicionar mensagem enviada
+                    addMessage(message, 'sent', cleanPhone);
+                    
+                    // Limpar input
+                    messageInput.value = '';
+                    updateCharCount();
+                    
+                    // Atualizar número atual
+                    currentPhone = cleanPhone;
+                    
+                    showNotification('✅ Mensagem enviada!', 'success');
+                } else {
+                    showNotification('❌ Erro: ' + data.error, 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao enviar:', error);
+                showNotification('❌ Erro ao enviar mensagem', 'error');
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i class="bi bi-send-fill"></i>';
+            }
+        }
+        
+        function addMessage(text, type, phone) {
+            const container = document.getElementById('chatContainer');
+            
+            // Remover empty state
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${type}`;
+            messageEl.innerHTML = `
+                <div class="message-avatar">
+                    <i class="bi bi-${type === 'sent' ? 'person-fill' : 'whatsapp'}"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-text">${text}</div>
+                    <div class="message-time">${timeStr}</div>
+                </div>
+            `;
+            
+            container.appendChild(messageEl);
+            container.scrollTop = container.scrollHeight;
+            
+            messages.push({ text, type, phone, time: now });
+        }
+        
+        function updateCharCount() {
+            const messageInput = document.getElementById('messageInput');
+            const charCount = document.getElementById('charCount');
+            charCount.textContent = `${messageInput.value.length} caracteres`;
+        }
+        
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="bi bi-${type === 'success' ? 'check-circle-fill' : 'x-circle-fill'}"></i>
+                ${message}
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideInRight 0.3s ease reverse';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        // Adicionar estilo de animação de spin
+        const style = document.createElement('style');
+        style.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+        document.head.appendChild(style);
+    </script>
+    
+    <!-- Modal Nova Sessão -->
+    <div id="newSessionModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 20px; padding: 32px; width: 90%; max-width: 500px; box-shadow: 0 25px 50px rgba(0,0,0,0.3);">
+            <h2 style="font-size: 24px; font-weight: 700; color: #1f2937; margin-bottom: 8px; display: flex; align-items: center; gap: 12px;">
+                <i class="bi bi-plus-circle" style="color: #22c55e;"></i>
+                Nova Sessão WhatsApp
+            </h2>
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 24px;">Conecte um novo número WhatsApp ao sistema</p>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px; font-size: 14px;">
+                    Nome da Sessão
+                </label>
+                <input 
+                    type="text" 
+                    id="newSessionName" 
+                    placeholder="Ex: WhatsApp Vendas, WhatsApp Suporte..."
+                    style="width: 100%; padding: 14px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 15px;"
+                >
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px; font-size: 14px;">
+                    ID da Sessão (único)
+                </label>
+                <input 
+                    type="text" 
+                    id="newSessionId" 
+                    placeholder="Ex: vendas, suporte, atendimento..."
+                    style="width: 100%; padding: 14px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 15px;"
+                >
+                <small style="color: #6b7280; font-size: 12px; margin-top: 6px; display: block;">
+                    Use apenas letras minúsculas, números e hífen
+                </small>
+            </div>
+            
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button onclick="createNewSession()" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 15px;">
+                    <i class="bi bi-check-circle"></i> Criar Sessão
+                </button>
+                <button onclick="closeNewSessionModal()" style="flex: 1; padding: 14px; background: #f4f4f5; color: #374151; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 15px;">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal QR Code -->
+    <div id="qrModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 20px; padding: 32px; width: 90%; max-width: 600px; box-shadow: 0 25px 50px rgba(0,0,0,0.3);">
+            <h2 style="font-size: 24px; font-weight: 700; color: #1f2937; margin-bottom: 8px; display: flex; align-items: center; gap: 12px;">
+                <i class="bi bi-qr-code-scan" style="color: #22c55e;"></i>
+                Conectar WhatsApp
+            </h2>
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 24px;" id="qrModalSubtitle">Escaneie o QR Code com seu WhatsApp</p>
+            
+            <div style="display: flex; justify-content: center; padding: 20px; background: #f9fafb; border-radius: 16px; margin-bottom: 20px;">
+                <div id="qrCodeContainer" style="width: 300px; height: 300px; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-arrow-repeat" style="font-size: 48px; color: #d1d5db; animation: spin 1s linear infinite;"></i>
+                </div>
+            </div>
+            
+            <div style="background: #dbeafe; border: 2px solid #3b82f6; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 8px; color: #1e40af; font-weight: 700; margin-bottom: 8px; font-size: 14px;">
+                    <i class="bi bi-info-circle-fill"></i>
+                    Como conectar
+                </div>
+                <ol style="color: #1e40af; font-size: 13px; line-height: 1.6; margin-left: 20px;">
+                    <li>Abra o WhatsApp no celular</li>
+                    <li>Toque em Mais opções (⋮) > Aparelhos conectados</li>
+                    <li>Toque em "Conectar um aparelho"</li>
+                    <li>Aponte a câmera para este QR Code</li>
+                </ol>
+            </div>
+            
+            <button onclick="closeQrModal()" style="width: 100%; padding: 14px; background: #f4f4f5; color: #374151; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 15px;">
+                <i class="bi bi-x-circle"></i> Fechar
+            </button>
+        </div>
+    </div>
+</body>
+</html>
