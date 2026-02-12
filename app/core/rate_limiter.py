@@ -148,8 +148,8 @@ class RateLimitConfig:
     """Configuração padrão de rate limits"""
     
     # Endpoints de autenticação
-    LOGIN = {"max_requests": 5, "window_seconds": 900}  # 5 tentativas em 15 min
-    PASSWORD_RESET = {"max_requests": 3, "window_seconds": 3600}  # 3 em 1 hora
+    LOGIN = {"max_requests": 3, "window_seconds": 900}  # 3 tentativas em 15 min (MAIS SEGURO)
+    PASSWORD_RESET = {"max_requests": 2, "window_seconds": 3600}  # 2 em 1 hora
     
     # Endpoints de dados
     API_DEFAULT = {"max_requests": 100, "window_seconds": 60}  # 100 req/min

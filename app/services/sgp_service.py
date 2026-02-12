@@ -17,14 +17,21 @@ class SGPService:
 
     def buscar_cliente_por_cpf(self, cpf):
         """Identifica o cliente e retorna seu status e ID"""
+        from app.core.validators import validar_cpf, formatar_cpf
+        
         try:
-            # Limpa o CPF (deixa apenas números)
-            cpf_limpo = "".join(filter(str.isdigit, cpf))
+            # Validar CPF
+            if not validar_cpf(cpf):
+                logger.warning(f"CPF inválido fornecido")
+                return None
             
-            # Formata CPF: 999.999.999-99
-            cpf_formatado = f"{cpf_limpo[:3]}.{cpf_limpo[3:6]}.{cpf_limpo[6:9]}-{cpf_limpo[9:]}"
+            # Formatar CPF
+            cpf_formatado = formatar_cpf(cpf)
+            if not cpf_formatado:
+                return None
             
             # Payload JSON com usuário e senha
+            # IMPORTANTE: Nunca logar credenciais
             payload = {
                 "app": self.app,
                 "token": self.token,
@@ -33,8 +40,15 @@ class SGPService:
                 "cpfcnpj": cpf_formatado
             }
             
-            # POST request
-            response = requests.post(self.base_url, json=payload, headers=self.headers)
+            logger.info(f"Buscando cliente no SGP: CPF={cpf_formatado[:7]}***")
+            
+            # POST request com timeout
+            response = requests.post(
+                self.base_url, 
+                json=payload, 
+                headers=self.headers,
+                timeout=30  # Timeout de 30 segundos
+            )
             data = response.json()
 
             # A resposta vem em formato: {"clientes": [...]}
@@ -79,8 +93,19 @@ class SGPService:
     def realizar_promessa_pagamento(self, cliente_id):
         """Libera a internet por confiança"""
         try:
-            url = f"{self.base_url}/{cliente_id}/liberar_confianca?token={self.token}"
-            response = requests.post(url, headers=self.headers)
+            # NUNCA colocar token na URL (fica em logs)
+            # Usar header Authorization
+            url = f"{self.base_url}/{cliente_id}/liberar_confianca"
+            headers = {
+                **self.headers,
+                "Authorization": f"Bearer {self.token}"
+            }
+            
+            response = requests.post(
+                url, 
+                headers=headers,
+                timeout=30
+            )
             return response.status_code == 200
         except Exception as e:
             logger.error(f"Erro na promessa de pagamento: {e}")

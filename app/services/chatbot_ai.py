@@ -1214,20 +1214,27 @@ Por favor, aguarde que em breve você será atendido! Obrigado pela paciência."
     
     def extrair_cpf(self, mensagem: str) -> Optional[str]:
         """
-        Extrair CPF de uma mensagem
+        Extrair e validar CPF de uma mensagem
         
         Args:
             mensagem: Mensagem do usuário
         
         Returns:
-            CPF encontrado ou None
+            CPF válido ou None
         """
+        from app.core.validators import validar_cpf, sanitizar_cpf
+        
         # Remover tudo que não é número
         numeros = re.sub(r'\D', '', mensagem)
         
         # CPF tem 11 dígitos
         if len(numeros) == 11:
-            return numeros
+            cpf_validado = sanitizar_cpf(numeros)
+            if cpf_validado:
+                return cpf_validado
+            else:
+                logger.warning("CPF inválido detectado")
+                return None
         
         # Tentar encontrar padrão de CPF formatado (XXX.XXX.XXX-XX)
         cpf_pattern = r'\d{3}\.?\d{3}\.?\d{3}-?\d{2}'
@@ -1236,8 +1243,14 @@ Por favor, aguarde que em breve você será atendido! Obrigado pela paciência."
         if match:
             cpf = re.sub(r'\D', '', match.group())
             if len(cpf) == 11:
-                return cpf
+                cpf_validado = sanitizar_cpf(cpf)
+                if cpf_validado:
+                    return cpf_validado
+                else:
+                    logger.warning("CPF inválido detectado")
+                    return None
         
+        return None
         return None
 
 
