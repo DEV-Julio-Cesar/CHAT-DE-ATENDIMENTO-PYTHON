@@ -556,6 +556,202 @@
             font-size: 14px;
         }
         
+        /* ========== IA CONFIGURATION ========== */
+        .ia-whatsapp-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .ia-whatsapp-item {
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            background: white;
+            transition: all 0.3s;
+        }
+        
+        .ia-whatsapp-item:hover {
+            border-color: #22c55e;
+            background: #f0fdf4;
+        }
+        
+        .ia-whatsapp-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        
+        .ia-whatsapp-info {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        
+        .ia-whatsapp-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .ia-whatsapp-details h4 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #18181b;
+            margin-bottom: 4px;
+        }
+        
+        .ia-whatsapp-details p {
+            font-size: 13px;
+            color: #6b7280;
+        }
+        
+        .ia-toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 32px;
+        }
+        
+        .ia-toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .ia-toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #e5e7eb;
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+        
+        .ia-toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 24px;
+            width: 24px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .ia-toggle-slider {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+        }
+        
+        input:checked + .ia-toggle-slider:before {
+            transform: translateX(28px);
+        }
+        
+        .ia-config-details {
+            display: none;
+            padding-top: 16px;
+            border-top: 1px solid #f3f4f6;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .ia-config-details.active {
+            display: block;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .ia-config-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .ia-config-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .ia-config-field label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .ia-config-field input,
+        .ia-config-field select {
+            padding: 10px 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .ia-config-field input:focus,
+        .ia-config-field select:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+        }
+        
+        .ia-config-field textarea {
+            padding: 12px 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            min-height: 80px;
+            resize: vertical;
+            transition: all 0.3s;
+        }
+        
+        .ia-config-field textarea:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+        }
+        
+        .ia-save-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .ia-save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+        }
+        
         @media (max-width: 1200px) {
             .messages-container {
                 grid-template-columns: 1fr;
@@ -633,6 +829,20 @@
                     <div class="empty-state">
                         <i class="bi bi-person-circle"></i>
                         <h4>Carregando atendentes...</h4>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- IA Configuration -->
+            <div class="user-selector-card" style="margin-top: 24px;">
+                <div class="user-selector-header">
+                    <i class="bi bi-robot"></i>
+                    <h3>Configuração de IA por WhatsApp</h3>
+                </div>
+                <div id="iaConfigSection">
+                    <div class="empty-state">
+                        <i class="bi bi-whatsapp"></i>
+                        <h4>Carregando canais WhatsApp...</h4>
                     </div>
                 </div>
             </div>
@@ -750,6 +960,7 @@
         ];
         
         let selectedUserId = null;
+        let whatsappChannels = [];
         
         // Mensagens padrão
         const defaultMensagens = {
@@ -771,6 +982,166 @@
                     </div>
                 `;
             }).join('');
+        }
+        
+        // Carregar canais WhatsApp
+        async function carregarWhatsAppChannels() {
+            try {
+                const response = await fetch('http://localhost:3001/status');
+                const data = await response.json();
+                
+                whatsappChannels = data.sessions || [];
+                renderWhatsAppChannels();
+            } catch (error) {
+                console.error('Erro ao carregar canais WhatsApp:', error);
+                document.getElementById('iaConfigSection').innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <h4>Erro ao carregar canais</h4>
+                        <p>Verifique se o serviço WhatsApp está rodando</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Renderizar canais WhatsApp
+        function renderWhatsAppChannels() {
+            const section = document.getElementById('iaConfigSection');
+            
+            if (whatsappChannels.length === 0) {
+                section.innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-whatsapp"></i>
+                        <h4>Nenhum canal conectado</h4>
+                        <p>Conecte um WhatsApp para configurar a IA</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            section.innerHTML = `
+                <div class="ia-whatsapp-list">
+                    ${whatsappChannels.map(channel => {
+                        const config = getIAConfig(channel.id);
+                        return `
+                            <div class="ia-whatsapp-item">
+                                <div class="ia-whatsapp-header">
+                                    <div class="ia-whatsapp-info">
+                                        <div class="ia-whatsapp-icon">
+                                            <i class="bi bi-whatsapp"></i>
+                                        </div>
+                                        <div class="ia-whatsapp-details">
+                                            <h4>${channel.name || channel.id}</h4>
+                                            <p>${channel.id}</p>
+                                        </div>
+                                    </div>
+                                    <label class="ia-toggle-switch">
+                                        <input type="checkbox" 
+                                               ${config.iaAtiva ? 'checked' : ''} 
+                                               onchange="toggleIA('${channel.id}', this.checked)">
+                                        <span class="ia-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="ia-config-details ${config.iaAtiva ? 'active' : ''}" id="config-${channel.id}">
+                                    <div class="ia-config-row">
+                                        <div class="ia-config-field">
+                                            <label>Horário de Início</label>
+                                            <input type="time" 
+                                                   value="${config.horarioInicio}" 
+                                                   onchange="updateIAConfig('${channel.id}', 'horarioInicio', this.value)">
+                                        </div>
+                                        <div class="ia-config-field">
+                                            <label>Horário de Fim</label>
+                                            <input type="time" 
+                                                   value="${config.horarioFim}" 
+                                                   onchange="updateIAConfig('${channel.id}', 'horarioFim', this.value)">
+                                        </div>
+                                    </div>
+                                    <div class="ia-config-field">
+                                        <label>Mensagem quando IA está desativada</label>
+                                        <textarea 
+                                            placeholder="Ex: No momento estamos fora do horário de atendimento automático. Um atendente irá responder em breve."
+                                            onchange="updateIAConfig('${channel.id}', 'mensagemDesativada', this.value)">${config.mensagemDesativada}</textarea>
+                                    </div>
+                                    <button class="ia-save-btn" onclick="salvarConfigIA('${channel.id}')">
+                                        <i class="bi bi-check-lg"></i>
+                                        Salvar Configuração
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+        
+        // Obter configuração de IA
+        function getIAConfig(whatsappId) {
+            const key = `config_ia_whatsapp_${whatsappId}`;
+            const saved = localStorage.getItem(key);
+            
+            if (saved) {
+                return JSON.parse(saved);
+            }
+            
+            // Configuração padrão
+            return {
+                iaAtiva: true,
+                horarioInicio: '08:00',
+                horarioFim: '18:00',
+                mensagemDesativada: 'No momento estamos fora do horário de atendimento automático. Um atendente irá responder em breve.'
+            };
+        }
+        
+        // Toggle IA
+        function toggleIA(whatsappId, ativo) {
+            const config = getIAConfig(whatsappId);
+            config.iaAtiva = ativo;
+            
+            const key = `config_ia_whatsapp_${whatsappId}`;
+            localStorage.setItem(key, JSON.stringify(config));
+            
+            // Mostrar/ocultar detalhes
+            const detailsDiv = document.getElementById(`config-${whatsappId}`);
+            if (detailsDiv) {
+                if (ativo) {
+                    detailsDiv.classList.add('active');
+                } else {
+                    detailsDiv.classList.remove('active');
+                }
+            }
+            
+            showToast(
+                ativo ? 'IA Ativada' : 'IA Desativada',
+                `IA ${ativo ? 'ativada' : 'desativada'} para ${whatsappId}`,
+                'success'
+            );
+        }
+        
+        // Atualizar configuração de IA
+        function updateIAConfig(whatsappId, field, value) {
+            const config = getIAConfig(whatsappId);
+            config[field] = value;
+            
+            const key = `config_ia_whatsapp_${whatsappId}`;
+            localStorage.setItem(key, JSON.stringify(config));
+        }
+        
+        // Salvar configuração de IA
+        function salvarConfigIA(whatsappId) {
+            const config = getIAConfig(whatsappId);
+            
+            // Validar horários
+            if (config.horarioInicio >= config.horarioFim) {
+                showToast('Erro', 'Horário de início deve ser menor que horário de fim', 'error');
+                return;
+            }
+            
+            showToast(
+                'Configuração Salva',
+                `Configuração de IA para ${whatsappId} salva com sucesso!`,
+                'success'
+            );
         }
         
         // Selecionar usuário
@@ -943,6 +1314,7 @@
             }
             
             carregarUsuarios();
+            carregarWhatsAppChannels();
             
             // Auto-selecionar usuário logado
             const currentUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');

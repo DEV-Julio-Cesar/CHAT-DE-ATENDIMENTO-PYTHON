@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, func, update
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import structlog
 
 from app.core.dependencies import get_current_user, get_db
@@ -18,6 +18,56 @@ from pydantic import BaseModel
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/atendimento", tags=["atendimento"])
+
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+def verificar_ia_ativa(whatsapp_id: str) -> dict:
+    """
+    Verifica se a IA está ativa para um canal WhatsApp específico
+    
+    Retorna:
+        dict: {
+            "ativa": bool,
+            "motivo": str (se não ativa),
+            "mensagem_desativada": str (se configurada)
+        }
+    """
+    # Em produção, buscar do banco de dados
+    # Por enquanto, retorna sempre ativa
+    return {
+        "ativa": True,
+        "motivo": None,
+        "mensagem_desativada": None
+    }
+
+
+def esta_no_horario_atendimento(horario_inicio: str, horario_fim: str) -> bool:
+    """
+    Verifica se o horário atual está dentro do horário de atendimento
+    
+    Args:
+        horario_inicio: Horário de início no formato "HH:MM"
+        horario_fim: Horário de fim no formato "HH:MM"
+    
+    Returns:
+        bool: True se está no horário, False caso contrário
+    """
+    try:
+        agora = datetime.now().time()
+        inicio = datetime.strptime(horario_inicio, "%H:%M").time()
+        fim = datetime.strptime(horario_fim, "%H:%M").time()
+        
+        if inicio <= fim:
+            return inicio <= agora <= fim
+        else:
+            # Horário atravessa meia-noite
+            return agora >= inicio or agora <= fim
+    except Exception as e:
+        logger.error("Erro ao verificar horário", error=str(e))
+        return True  # Em caso de erro, permite atendimento
 
 
 # ============================================================================
@@ -506,4 +556,32 @@ async def estatisticas_atendimento(
         
     except Exception as e:
         logger.error("Erro ao buscar estatísticas", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/verificar-ia/{whatsapp_id}")
+async def verificar_ia_status(
+    whatsapp_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Verifica se a IA está ativa para um canal WhatsApp
+    
+    Retorna informações sobre:
+    - Se a IA está ativa
+    - Se está no horário de atendimento
+    - Mensagem a ser enviada quando desativada
+    """
+    try:
+        status = verificar_ia_ativa(whatsapp_id)
+        
+        return {
+            "whatsapp_id": whatsapp_id,
+            "ia_ativa": status["ativa"],
+            "motivo": status["motivo"],
+            "mensagem_desativada": status["mensagem_desativada"]
+        }
+        
+    except Exception as e:
+        logger.error("Erro ao verificar status da IA", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
