@@ -23,7 +23,6 @@ from app.core.compression import compression_manager, CompressionMiddleware
 from app.core.rate_limiter import rate_limiter, RateLimitConfig  # SEMANA 1
 from app.core.audit_logger import audit_logger  # SEMANA 1
 from app.core.security_headers import SecurityHeadersMiddleware, SecurityPresets  # SEMANA 1 - Security Headers
-from app.services.whatsapp_enterprise import whatsapp_api
 from app.services.chatbot_ai import chatbot_ai
 from app.services.data_migration import migration_service
 from app.services.performance_optimizer import performance_optimizer
@@ -62,7 +61,6 @@ async def lifespan(app: FastAPI):
     # Flags para rastrear o que foi inicializado
     db_initialized = False
     redis_initialized = False
-    whatsapp_initialized = False
     chatbot_initialized = False
     monitoring_started = False
     
@@ -84,14 +82,6 @@ async def lifespan(app: FastAPI):
         # except Exception as e:
         #     logger.warning("Redis unavailable - running without cache", error=str(e))
         redis_initialized = False  # Redis desabilitado para performance
-        
-        # Inicializar WhatsApp Enterprise API
-        try:
-            await whatsapp_api.initialize()
-            logger.info("WhatsApp Enterprise API initialized")
-            whatsapp_initialized = True
-        except Exception as e:
-            logger.warning("WhatsApp API initialization failed", error=str(e))
         
         # Inicializar Chatbot AI
         try:
@@ -138,7 +128,6 @@ async def lifespan(app: FastAPI):
         logger.info("Application startup completed", 
                    db=db_initialized, 
                    redis=redis_initialized,
-                   whatsapp=whatsapp_initialized,
                    chatbot=chatbot_initialized)
         yield
         
@@ -152,11 +141,6 @@ async def lifespan(app: FastAPI):
         if monitoring_started:
             try:
                 await monitoring.stop()
-            except Exception:
-                pass
-        if whatsapp_initialized:
-            try:
-                await whatsapp_api.close()
             except Exception:
                 pass
         if db_initialized:
@@ -180,12 +164,10 @@ async def check_external_services():
     services_status['database'] = await db_manager.health_check()
     
     # Redis DESABILITADO para performance local
-    services_status['redis'] = False  # Desabilitado
+    services_status['redis'] = False
     
-    # Verificar WhatsApp Business API (se configurado)
-    if settings.WHATSAPP_ACCESS_TOKEN:
-        # TODO: Implementar verificação da API do WhatsApp
-        services_status['whatsapp'] = True
+    # WhatsApp Python (não requer verificação - usa WhatsApp Web)
+    services_status['whatsapp'] = True
     
     # Verificar Gemini AI (se configurado)
     if settings.GEMINI_API_KEY:
@@ -329,27 +311,42 @@ except Exception as e:
 app.add_middleware(CompressionMiddleware)
 
 # Middleware de Security Headers (CSP, HSTS, X-Frame-Options, etc.)
-# DESATIVADO TEMPORARIAMENTE - estava bloqueando estilos inline
-# app.add_middleware(
-#     SecurityHeadersMiddleware,
-#     config=SecurityPresets.telecom_isp()
-# )
+# SEMPRE HABILITADO - Proteção essencial contra XSS, clickjacking, etc.
+app.add_middleware(
+    SecurityHeadersMiddleware,
+    config=SecurityPresets.telecom_isp()
+)
 
 # Middleware de CORS - Configuração segura
-allowed_origins = ["*"] if settings.DEBUG else [
-    "https://yourdomain.com",
-    "https://app.yourdomain.com",
-    "http://localhost:3000",  # Para desenvolvimento local
-    "http://localhost:8080"
-]
+# NUNCA use wildcard (*) com allow_credentials=True
+allowed_origins = []
+
+if settings.DEBUG:
+    # Desenvolvimento: apenas localhost
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://localhost:8080",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8000",
+        "http://127.0.0.1:8080"
+    ]
+else:
+    # Produção: domínios específicos
+    allowed_origins = [
+        "https://yourdomain.com",
+        "https://app.yourdomain.com",
+        "https://admin.yourdomain.com"
+    ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=allowed_origins,  # Lista específica, NUNCA "*"
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["X-Process-Time"]
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
+    expose_headers=["X-Process-Time", "X-RateLimit-Remaining"],
+    max_age=3600  # Cache preflight por 1 hora
 )
 
 # Middleware de segurança
@@ -460,15 +457,6 @@ async def metrics_middleware(request: Request, call_next):
     # Calcular duração
     duration = time.time() - start_time
     
-    # Extrair informações
-    method = request.method
-    endpoint = request.url.path
-    status_code = response.status_code
-    
-    # Atualizar métricas
-    metrics_collector.REQUEST_COUNT.labels(method=method, endpoint=endpoint, status_code=status_code).inc()
-    metrics_collector.REQUEST_DURATION.labels(method=method, endpoint=endpoint).observe(duration)
-    
     # Adicionar headers de resposta
     response.headers["X-Process-Time"] = str(duration)
     
@@ -571,10 +559,12 @@ app.include_router(websocket_router, prefix="/ws")
 from app.api.endpoints.chatbot import router as chatbot_router
 from app.api.endpoints.migration import router as migration_router
 from app.api.endpoints.optimization import router as optimization_router
+from app.api.endpoints.two_factor import router as two_factor_router
 
 app.include_router(chatbot_router, prefix="/api/v1")
 app.include_router(migration_router, prefix="/api/v1")
 app.include_router(optimization_router, prefix="/api/v1")
+app.include_router(two_factor_router, prefix="/api/v1")
 
 # Rotas PWA Mobile (na raiz, sem prefixo)
 from app.api.endpoints.mobile_pwa import router as mobile_pwa_router
@@ -696,17 +686,34 @@ async def root():
 # ============================================================================
 # ROTAS DE PÁGINAS WEB
 # ============================================================================
+<<<<<<< HEAD
+=======
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+
+TEMPLATES_DIR = Path(__file__).parent / "web" / "templates"
+STATIC_DIR = Path(__file__).parent / "web" / "static"
+PWA_STATIC_DIR = Path(__file__).parent / "static"
+
+# Montar arquivos estáticos
+# IMPORTANTE: A ordem importa! Rotas mais específicas devem vir ANTES
+# PWA static files (mobile app) - servidos via rotas customizadas em mobile_pwa.py
+# Web static files (dashboard, login, etc)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+>>>>>>> eeab0819e250285393f0a7d407f52867e300a593
 
 @app.get("/login", include_in_schema=False)
 async def login_page():
-    """Página de login com autenticação JWT v2"""
-    return FileResponse(TEMPLATES_DIR / "login_v2.html", media_type="text/html")
-
-
-@app.get("/login-legacy", include_in_schema=False)
-async def login_legacy_page():
-    """Página de login legada"""
+    """Página de login principal"""
     return FileResponse(TEMPLATES_DIR / "login.html", media_type="text/html")
+
+
+@app.get("/login-v2", include_in_schema=False)
+async def login_v2_page():
+    """Página de login versão 2"""
+    return FileResponse(TEMPLATES_DIR / "login_v2.html", media_type="text/html")
 
 
 @app.get("/dashboard", include_in_schema=False)
@@ -717,8 +724,14 @@ async def dashboard_page():
 
 @app.get("/chat", include_in_schema=False)
 async def chat_page():
-    """Página de chat/atendimento"""
-    return FileResponse(TEMPLATES_DIR / "chat.html", media_type="text/html")
+    """Página de chat/atendimento com dados reais"""
+    return FileResponse(TEMPLATES_DIR / "chat_real.html", media_type="text/html")
+
+
+@app.get("/chat-old", include_in_schema=False)
+async def chat_old_page():
+    """Página de chat antiga (demo)"""
+    return FileResponse(TEMPLATES_DIR / "chat_backup.html", media_type="text/html")
 
 
 @app.get("/chatbot-admin", include_in_schema=False)

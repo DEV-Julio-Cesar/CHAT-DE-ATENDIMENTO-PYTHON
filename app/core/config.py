@@ -1,9 +1,35 @@
 """
 Configurações centralizadas da aplicação
+Suporta carregamento de secrets via Secrets Manager
 """
 from pydantic_settings import BaseSettings
 from typing import Optional, List
 import os
+
+
+def get_secret_or_env(key: str, default: Optional[str] = None) -> Optional[str]:
+    """
+    Buscar secret do Secrets Manager ou variável de ambiente
+    
+    Ordem de prioridade:
+    1. Secrets Manager (se SECRETS_PROVIDER != 'local')
+    2. Variável de ambiente
+    3. Valor default
+    """
+    # Verificar se deve usar Secrets Manager
+    provider = os.getenv('SECRETS_PROVIDER', 'local').lower()
+    
+    if provider != 'local':
+        try:
+            from app.core.secrets_manager import get_secret
+            value = get_secret(key)
+            if value is not None:
+                return value
+        except Exception:
+            pass  # Fallback para env
+    
+    # Fallback para variável de ambiente
+    return os.getenv(key, default)
 
 
 class Settings(BaseSettings):
@@ -12,42 +38,44 @@ class Settings(BaseSettings):
     VERSION: str = "2.0.0"
     DEBUG: bool = False
     
-    # Database MariaDB/MySQL (novo padrão)
+    # Database MariaDB/MySQL (único banco de dados usado)
     # Exemplo: mysql+aiomysql://usuario:senha@localhost:3306/cianet_provedor
     DATABASE_URL: str = "mysql+aiomysql://root:suasenha@localhost:3306/cianet_provedor"
     DATABASE_POOL_SIZE: int = 20
     DATABASE_MAX_OVERFLOW: int = 30
     
-    # SQL Server (autenticação)
-    SQLSERVER_HOST: str = "localhost"
-    SQLSERVER_PORT: int = 1433
-    SQLSERVER_DATABASE: str = "isp_support"
-    SQLSERVER_USER: str = ""
-    SQLSERVER_PASSWORD: str = ""
-    SQLSERVER_DRIVER: str = "ODBC Driver 17 for SQL Server"
-    SQLSERVER_TRUST_CERT: bool = True
-    SQLSERVER_TRUSTED_CONNECTION: bool = True  # Autenticação Windows
-    SQLSERVER_MIN_POOL_SIZE: int = 5
-    SQLSERVER_MAX_POOL_SIZE: int = 20
-    SQLSERVER_CONNECTION_TIMEOUT: int = 30
+    # Security Settings - Password Policy
+    PASSWORD_MIN_LENGTH: int = 12  # Aumentado de 8 para 12
+    PASSWORD_REQUIRE_UPPERCASE: bool = True
+    PASSWORD_REQUIRE_LOWERCASE: bool = True
+    PASSWORD_REQUIRE_NUMBERS: bool = True
+    PASSWORD_REQUIRE_SPECIAL: bool = True
+    PASSWORD_HISTORY_COUNT: int = 5  # Não reutilizar últimas 5 senhas
+    PASSWORD_EXPIRY_DAYS: int = 90  # Expirar senha após 90 dias
     
-    # Security Settings
-    PASSWORD_MIN_LENGTH: int = 8
+    # Security Settings - Authentication
     MAX_LOGIN_ATTEMPTS: int = 5
     LOCKOUT_MINUTES: int = 15
-    SESSION_ABSOLUTE_TIMEOUT_HOURS: int = 24
+    SESSION_ABSOLUTE_TIMEOUT_HOURS: int = 1  # Reduzido de 24 para 1 hora
+    SESSION_IDLE_TIMEOUT_MINUTES: int = 30  # Timeout por inatividade
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    
+    # Security Settings - Encryption
+    MASTER_ENCRYPTION_KEY: Optional[str] = None  # Para criptografia de dados sensíveis
+    ENCRYPTION_SALT: str = "default-salt-change-in-production"
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_CLUSTER_NODES: Optional[List[str]] = None
     
     # JWT
+    # IMPORTANTE: Em produção, armazene no Secrets Manager
     SECRET_KEY: str = "your-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     
     # WhatsApp Business API
+    # IMPORTANTE: Em produção, armazene no Secrets Manager
     WHATSAPP_ACCESS_TOKEN: Optional[str] = None
     WHATSAPP_PHONE_NUMBER_ID: Optional[str] = None
     WHATSAPP_BUSINESS_ACCOUNT_ID: Optional[str] = None
@@ -104,6 +132,7 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: Optional[str] = None
     
     # SGP Integration
+    # IMPORTANTE: Em produção, armazene no Secrets Manager
     SGP_BASE_URL: str = "http://sua-url-sgp.com.br/api/v1"
     SGP_TOKEN: str = ""
     SGP_APP_NAME: str = "Julio Sistem"
@@ -111,6 +140,11 @@ class Settings(BaseSettings):
     SGP_PASSWORD: str = ""
     SGP_TIMEOUT: int = 30
     SGP_MAX_RETRIES: int = 3
+    
+    # Google Gemini AI
+    # IMPORTANTE: Em produção, armazene no Secrets Manager
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-1.5-flash"
     
     class Config:
         env_file = ".env"
@@ -126,20 +160,6 @@ settings = Settings()
 def get_database_url() -> str:
     """Get database URL with proper configuration"""
     return settings.DATABASE_URL
-
-
-# SQL Server connection string
-def get_sqlserver_connection_string() -> str:
-    """Get SQL Server connection string"""
-    return (
-        f"DRIVER={{{settings.SQLSERVER_DRIVER}}};"
-        f"SERVER={settings.SQLSERVER_HOST},{settings.SQLSERVER_PORT};"
-        f"DATABASE={settings.SQLSERVER_DATABASE};"
-        f"UID={settings.SQLSERVER_USER};"
-        f"PWD={settings.SQLSERVER_PASSWORD};"
-        f"TrustServerCertificate={'yes' if settings.SQLSERVER_TRUST_CERT else 'no'};"
-        f"Connection Timeout={settings.SQLSERVER_CONNECTION_TIMEOUT};"
-    )
 
 
 # Redis configuration

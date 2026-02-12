@@ -22,7 +22,8 @@ from pydantic import BaseModel, EmailStr, Field, validator
 
 from app.core.config import settings
 from app.core.auth_manager import auth_manager, get_current_user, require_role
-from app.core.sqlserver_db import sqlserver_manager
+from app.core.database import db_manager
+from app.models.database import Usuario
 from app.core.rate_limiter import rate_limiter, RateLimitConfig
 from app.core.audit_logger import audit_logger, AuditEventTypes
 

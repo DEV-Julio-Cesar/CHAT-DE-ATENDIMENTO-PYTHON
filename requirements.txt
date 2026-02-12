@@ -42,8 +42,20 @@ kombu>=5.3.4
 # ============================================================================
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
+<<<<<<< HEAD
 email-validator>=2.1.0
 cryptography>=42.0.0
+=======
+python-multipart>=0.0.6
+email-validator>=2.1.0
+phonenumbers>=8.13.0
+bleach>=6.1.0
+cryptography>=41.0.0
+pyjwt>=2.8.0
+bcrypt>=4.1.0
+pyotp>=2.9.0
+qrcode[pil]>=7.4.2
+>>>>>>> eeab0819e250285393f0a7d407f52867e300a593
 
 # ============================================================================
 # HTTP CLIENT
@@ -87,6 +99,7 @@ websockets>=12.0
 # Templates
 jinja2>=3.1.3
 
+<<<<<<< HEAD
 # ============================================================================
 # DESENVOLVIMENTO (Opcional - instalar com requirements-dev.txt)
 # ============================================================================
@@ -97,3 +110,17 @@ jinja2>=3.1.3
 # isort>=5.13.2
 # mypy>=1.8.0
 # flake8>=7.0.0
+=======
+# Development
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+pytest-cov>=4.1.0
+black>=23.11.0
+isort>=5.12.0
+mypy>=1.7.1
+
+
+# WhatsApp Python (WhatsApp Web)
+pywhatkit==5.4
+pyautogui==0.9.54
+>>>>>>> eeab0819e250285393f0a7d407f52867e300a593

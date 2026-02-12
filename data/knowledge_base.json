@@ -1,0 +1,286 @@
+{
+  "config": {
+    "company_name": "TelecomISP",
+    "welcome_message": "Olá! 👋 Sou o assistente virtual da {company}. Como posso ajudar?",
+    "fallback_message": "Desculpe, não entendi sua pergunta. Vou transferir para um atendente humano. 🙋",
+    "transfer_message": "Aguarde um momento, estou transferindo para um de nossos atendentes... ⏳",
+    "goodbye_message": "Obrigado pelo contato! Se precisar de mais ajuda, é só chamar. 😊",
+    "business_hours": "Segunda a Sexta: 08h às 18h | Sábado: 08h às 12h"
+  },
+  "intents": [
+    {
+      "id": "saudacao",
+      "name": "Saudação",
+      "patterns": [
+        "oi",
+        "olá",
+        "ola",
+        "bom dia",
+        "boa tarde",
+        "boa noite",
+        "hey",
+        "e aí",
+        "eai",
+        "oie",
+        "opa",
+        "salve"
+      ],
+      "responses": [
+        "Olá! 👋 Bem-vindo à {company}! Como posso ajudar você hoje?",
+        "Oi! 😊 Sou o assistente virtual da {company}. Em que posso ser útil?"
+      ],
+      "category": "geral"
+    },
+    {
+      "id": "despedida",
+      "name": "Despedida",
+      "patterns": [
+        "tchau",
+        "até mais",
+        "ate mais",
+        "adeus",
+        "flw",
+        "falou",
+        "obrigado",
+        "obrigada",
+        "valeu",
+        "thanks"
+      ],
+      "responses": [
+        "Até mais! 👋 Foi um prazer atendê-lo. Qualquer dúvida, estamos aqui!",
+        "Obrigado pelo contato! 😊 Tenha um ótimo dia!"
+      ],
+      "category": "geral"
+    },
+    {
+      "id": "internet_lenta",
+      "name": "Internet Lenta",
+      "patterns": [
+        "internet lenta",
+        "lenta",
+        "devagar",
+        "travando",
+        "internet ruim",
+        "não carrega",
+        "demora para carregar",
+        "velocidade baixa",
+        "ping alto",
+        "lag"
+      ],
+      "responses": [
+        "Entendo que sua internet está lenta. 🔧 Vamos resolver!\n\n**Tente estes passos:**\n1️⃣ Reinicie seu roteador (desligue, aguarde 30 seg, ligue)\n2️⃣ Verifique se há muitos dispositivos conectados\n3️⃣ Faça um teste em speedtest.net\n\nSe o problema persistir, posso abrir um chamado técnico. Deseja?"
+      ],
+      "category": "suporte_tecnico",
+      "tags": [
+        "internet",
+        "lentidao",
+        "velocidade"
+      ]
+    },
+    {
+      "id": "sem_internet",
+      "name": "Sem Internet",
+      "patterns": [
+        "sem internet",
+        "internet caiu",
+        "não tenho internet",
+        "sem conexão",
+        "sem conexao",
+        "caiu a internet",
+        "offline",
+        "não conecta",
+        "wifi não funciona"
+      ],
+      "responses": [
+        "Sem internet? Vamos verificar! 🔍\n\n**Checklist rápido:**\n1️⃣ As luzes do roteador estão acesas?\n2️⃣ O cabo de rede está conectado?\n3️⃣ Já tentou reiniciar o equipamento?\n\n📍 Se as luzes estiverem apagadas ou vermelhas, pode ser um problema na rede. Informo seu endereço para verificar?"
+      ],
+      "category": "suporte_tecnico",
+      "tags": [
+        "internet",
+        "conexao",
+        "offline"
+      ]
+    },
+    {
+      "id": "segunda_via",
+      "name": "Segunda Via de Boleto",
+      "patterns": [
+        "segunda via",
+        "2 via",
+        "boleto",
+        "fatura",
+        "conta",
+        "pagar",
+        "pagamento",
+        "vencimento",
+        "codigo de barras",
+        "pix da fatura"
+      ],
+      "responses": [
+        "Para segunda via do boleto: 📄\n\n**Opções:**\n1️⃣ Acesse nosso portal: portal.telecom.com.br\n2️⃣ Ou informe seu CPF que envio o código PIX aqui mesmo!\n\nQual sua preferência?"
+      ],
+      "category": "financeiro",
+      "tags": [
+        "boleto",
+        "pagamento",
+        "fatura"
+      ]
+    },
+    {
+      "id": "cancelamento",
+      "name": "Cancelamento",
+      "patterns": [
+        "cancelar",
+        "cancela",
+        "cancelamento",
+        "desistir",
+        "encerrar contrato",
+        "não quero mais",
+        "rescindir"
+      ],
+      "responses": [
+        "Que pena que deseja cancelar! 😢\n\nAntes de prosseguir, posso verificar se há algo que possamos fazer para melhorar sua experiência?\n\nSe preferir continuar com o cancelamento, vou transferir para nossa equipe de retenção que poderá apresentar condições especiais."
+      ],
+      "category": "comercial",
+      "tags": [
+        "cancelamento",
+        "retencao"
+      ]
+    },
+    {
+      "id": "upgrade_plano",
+      "name": "Upgrade de Plano",
+      "patterns": [
+        "mudar plano",
+        "upgrade",
+        "aumentar velocidade",
+        "plano melhor",
+        "mais internet",
+        "trocar plano",
+        "planos disponíveis",
+        "quanto custa"
+      ],
+      "responses": [
+        "Ótimo interesse em melhorar seu plano! 🚀\n\n**Nossos planos:**\n📶 100 Mbps - R$ 79,90/mês\n📶 200 Mbps - R$ 99,90/mês\n📶 400 Mbps - R$ 129,90/mês\n📶 600 Mbps - R$ 159,90/mês\n\nQual velocidade te interessa? Posso verificar disponibilidade no seu endereço!"
+      ],
+      "category": "comercial",
+      "tags": [
+        "planos",
+        "upgrade",
+        "vendas"
+      ]
+    },
+    {
+      "id": "horario_atendimento",
+      "name": "Horário de Atendimento",
+      "patterns": [
+        "horário",
+        "horario",
+        "funcionamento",
+        "atendimento",
+        "que horas",
+        "abre",
+        "fecha",
+        "plantão"
+      ],
+      "responses": [
+        "⏰ **Nossos horários:**\n\n📞 Central de Atendimento:\nSeg-Sex: 08h às 22h\nSáb-Dom: 08h às 18h\n\n🔧 Suporte Técnico:\n24 horas, 7 dias por semana\n\n🏢 Loja Física:\nSeg-Sex: 09h às 18h\nSáb: 09h às 13h"
+      ],
+      "category": "geral",
+      "tags": [
+        "horario",
+        "atendimento"
+      ]
+    },
+    {
+      "id": "visita_tecnica",
+      "name": "Visita Técnica",
+      "patterns": [
+        "visita",
+        "técnico",
+        "tecnico",
+        "agendar visita",
+        "mandar alguém",
+        "enviar técnico",
+        "instalação"
+      ],
+      "responses": [
+        "Vou agendar uma visita técnica! 🔧\n\nPara isso, preciso de algumas informações:\n1️⃣ Seu nome completo\n2️⃣ Endereço com número\n3️⃣ Melhor período (manhã/tarde)\n\nPode me informar?"
+      ],
+      "category": "suporte_tecnico",
+      "tags": [
+        "visita",
+        "tecnico",
+        "agendamento"
+      ]
+    },
+    {
+      "id": "atendente_humano",
+      "name": "Falar com Atendente",
+      "patterns": [
+        "atendente",
+        "humano",
+        "pessoa",
+        "falar com alguém",
+        "quero falar",
+        "transferir",
+        "não é robô"
+      ],
+      "responses": [
+        "Claro! 🙋 Vou transferir você para um de nossos atendentes.\n\nPor favor, aguarde um momento enquanto localizo um especialista disponível..."
+      ],
+      "category": "geral",
+      "action": "transfer_to_human",
+      "tags": [
+        "atendente",
+        "humano",
+        "transferir"
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "Como faço para trocar a senha do WiFi?",
+      "answer": "Para trocar a senha do WiFi:\n\n1️⃣ Acesse 192.168.1.1 no navegador\n2️⃣ Login: admin | Senha: admin (ou está na etiqueta do roteador)\n3️⃣ Vá em Wireless > Segurança\n4️⃣ Altere a senha e salve\n\nSe precisar de ajuda, é só chamar!",
+      "category": "suporte_tecnico"
+    },
+    {
+      "question": "Qual o prazo para instalação?",
+      "answer": "O prazo padrão é de até 5 dias úteis após a aprovação do cadastro. Em alguns bairros, conseguimos instalar em até 48 horas! 🚀",
+      "category": "comercial"
+    },
+    {
+      "question": "Vocês têm fidelidade?",
+      "answer": "Nossos planos SEM fidelidade têm um pequeno acréscimo. Planos com fidelidade de 12 meses têm os melhores preços! Qual prefere? 📋",
+      "category": "comercial"
+    }
+  ],
+  "quick_replies": {
+    "menu_principal": [
+      "💰 Segunda via de boleto",
+      "🔧 Suporte técnico",
+      "📦 Mudar de plano",
+      "🙋 Falar com atendente"
+    ],
+    "confirmar": [
+      "✅ Sim",
+      "❌ Não"
+    ],
+    "periodo": [
+      "🌅 Manhã",
+      "🌇 Tarde"
+    ],
+    "satisfacao": [
+      "😊 Satisfeito",
+      "😐 Neutro",
+      "😞 Insatisfeito"
+    ]
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "created_at": "2026-02-09T01:34:11.773670",
+    "last_modified": "2026-02-09T01:34:11.773680",
+    "total_intents": 11,
+    "total_faq": 3
+  }
+}

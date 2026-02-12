@@ -28,7 +28,8 @@ except ImportError:
 
 from app.core.config import settings
 from app.core.redis_client import redis_manager
-from app.core.sqlserver_db import sqlserver_manager
+from app.core.database import db_manager
+from app.models.database import Usuario
 
 logger = logging.getLogger(__name__)
 

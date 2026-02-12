@@ -3,24 +3,32 @@ Rate Limiter com Redis sliding window
 - Proteção contra brute force
 - Proteção contra DDoS
 - Limites por IP, por usuário, por endpoint
+- Fallback seguro em memória quando Redis indisponível
 """
 
 from typing import Optional, Tuple
 import logging
+import time
+from collections import defaultdict
+from threading import Lock
 
 logger = logging.getLogger(__name__)
-
-# Flag para desabilitar Redis quando não está disponível
-REDIS_DISABLED = True  # Desabilitado para performance local
 
 
 class RateLimiter:
     """
     Rate limiting com algoritmo sliding window em Redis
+    Com fallback seguro em memória quando Redis não disponível
     
     Mantém contador de requisições em janela de tempo
     Permite limite configurável de requisições por segundos
     """
+    
+    def __init__(self):
+        # Fallback em memória (thread-safe)
+        self._memory_cache = defaultdict(list)
+        self._lock = Lock()
+        self._redis_available = True
     
     async def is_allowed(
         self,
@@ -39,16 +47,12 @@ class RateLimiter:
         Returns:
             (allowed: bool, remaining: int)
         """
-        # Bypass quando Redis está desabilitado - resposta instantânea
-        if REDIS_DISABLED:
-            return True, max_requests - 1
-        
-        # Importação lazy do redis_manager apenas quando necessário
-        from app.core.redis_client import redis_manager
-        
-        key = f"ratelimit:{identifier}"
-        
         try:
+            # Tentar Redis primeiro
+            from app.core.redis_client import redis_manager
+            
+            key = f"ratelimit:{identifier}"
+            
             # Obter contador atual
             current_str = await redis_manager.get(key)
             current_count = int(current_str or 0)
@@ -75,12 +79,69 @@ class RateLimiter:
                 f"{new_count}/{max_requests} ({remaining} remaining)"
             )
             
+            self._redis_available = True
             return True, remaining
             
         except Exception as e:
-            logger.error(f"Error in rate limit check: {str(e)}")
-            # Em caso de erro, permitir (fail open)
-            return True, max_requests - 1
+            # Fallback SEGURO em memória (não bypass!)
+            if self._redis_available:
+                logger.warning(
+                    f"Redis unavailable for rate limiting, using memory fallback: {e}"
+                )
+                self._redis_available = False
+            
+            return await self._memory_rate_limit(identifier, max_requests, window_seconds)
+    
+    async def _memory_rate_limit(
+        self,
+        identifier: str,
+        max_requests: int,
+        window_seconds: int
+    ) -> Tuple[bool, int]:
+        """
+        Fallback de rate limiting em memória (thread-safe)
+        IMPORTANTE: Não é um bypass, mantém a segurança
+        """
+        now = time.time()
+        key = f"{identifier}:{window_seconds}"
+        
+        with self._lock:
+            # Limpar requisições antigas
+            self._memory_cache[key] = [
+                ts for ts in self._memory_cache[key]
+                if now - ts < window_seconds
+            ]
+            
+            # Verificar limite
+            current_count = len(self._memory_cache[key])
+            
+            if current_count >= max_requests:
+                logger.warning(
+                    f"Rate limit exceeded (memory) for {identifier} "
+                    f"({current_count}/{max_requests})"
+                )
+                return False, 0
+            
+            # Adicionar nova requisição
+            self._memory_cache[key].append(now)
+            remaining = max_requests - len(self._memory_cache[key])
+            
+            return True, remaining
+    
+    async def reset(self, identifier: str):
+        """Resetar contador de rate limit"""
+        try:
+            from app.core.redis_client import redis_manager
+            key = f"ratelimit:{identifier}"
+            await redis_manager.delete(key)
+        except Exception as ex:
+            logger.debug(f"Redis reset failed: {ex}")
+        
+        # Limpar memória também
+        with self._lock:
+            keys_to_remove = [k for k in self._memory_cache.keys() if k.startswith(identifier)]
+            for key in keys_to_remove:
+                del self._memory_cache[key]
 
 
 class RateLimitConfig:
