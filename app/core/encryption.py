@@ -1,276 +1,209 @@
 """
-Criptografia de mensagens em repouso
-- AES-256-CBC para conteúdo
-- PBKDF2 para derivação de chave per-cliente
-- IV aleatório por mensagem
+Criptografia de dados sensíveis em repouso
+Usa AES-256-GCM para criptografia simétrica
 """
-
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import padding, hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.hazmat.backends import default_backend
-from app.core.config import settings
-from typing import Dict
 import os
 import base64
-import json
-import logging
+from typing import Optional
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.backends import default_backend
+import structlog
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
-class MessageEncryption:
+class EncryptionManager:
     """
-    Criptografia de mensagens em repouso com AES-256-CBC
+    Gerenciador de criptografia para dados sensíveis
     
-    Fluxo:
-    1. Gerar IV aleatório (16 bytes)
-    2. Derivar chave específica do cliente via PBKDF2
-    3. Criptografar com AES-256-CBC
-    4. Armazenar IV junto com conteúdo criptografado
-    
-    Fluxo de decriptografia:
-    1. Derivar mesma chave do cliente
-    2. Usar IV armazenado
-    3. Descriptografar com AES-256-CBC
-    4. Remover padding PKCS7
+    Usa AES-256-GCM (Galois/Counter Mode) que fornece:
+    - Confidencialidade (dados criptografados)
+    - Integridade (detecta modificações)
+    - Autenticidade (verifica origem)
     """
     
-    def __init__(self):
-        self.backend = default_backend()
-        self.key_iteration_count = 100_000  # PBKDF2 iterations
-        self.algorithm = "AES-256-CBC"
-    
-    def _derive_key(self, client_id: str) -> bytes:
+    def __init__(self, master_key: Optional[str] = None):
         """
-        Derivar chave criptográfica específica por cliente
-        
-        Usa:
-        - Master key (do settings)
-        - Client ID como salt único
-        - 100k iterações PBKDF2
-        - SHA-256 como função hash
+        Inicializar gerenciador de criptografia
         
         Args:
-            client_id: ID único do cliente
+            master_key: Chave mestra (deve vir do Secrets Manager)
+        """
+        if not master_key:
+            # Usar chave do ambiente ou gerar temporária
+            master_key = os.getenv('MASTER_ENCRYPTION_KEY')
+            if not master_key:
+                logger.warning("MASTER_ENCRYPTION_KEY não configurada, usando chave temporária")
+                master_key = base64.b64encode(os.urandom(32)).decode('utf-8')
         
-        Returns:
-            32 bytes (256 bits) para AES-256
-        """
-        try:
-            # Validar master key
-            if not settings.MASTER_ENCRYPTION_KEY:
-                raise ValueError("MASTER_ENCRYPTION_KEY não configurada")
-            
-            # Salt = "salt_" + client_id (específico por cliente)
-            salt = f"salt_{client_id}".encode("utf-8")
-            
-            # PBKDF2 com SHA-256
-            kdf = PBKDF2HMAC(
-                algorithm=hashes.SHA256(),
-                length=32,  # 256 bits
-                salt=salt,
-                iterations=self.key_iteration_count,
-                backend=self.backend
-            )
-            
-            key = kdf.derive(
-                settings.MASTER_ENCRYPTION_KEY.encode("utf-8")
-            )
-            
-            logger.debug(f"Chave derivada para cliente {client_id}")
-            return key
-            
-        except Exception as e:
-            logger.error(f"Erro ao derivar chave: {str(e)}")
-            raise
+        self.master_key = master_key.encode() if isinstance(master_key, str) else master_key
     
-    async def encrypt_message(
-        self,
-        message_content: str,
-        client_id: str
-    ) -> Dict[str, str]:
+    def _derive_key(self, salt: bytes) -> bytes:
         """
-        Criptografar mensagem antes de salvar no BD
+        Derivar chave de criptografia usando PBKDF2
         
         Args:
-            message_content: Texto da mensagem
-            client_id: ID do cliente (para derivar chave)
-        
+            salt: Salt único para derivação
+            
         Returns:
-            {
-                "encrypted_content": base64 do conteúdo criptografado,
-                "iv": base64 do IV,
-                "algorithm": "AES-256-CBC"
-            }
+            Chave derivada de 32 bytes
         """
-        try:
-            # 1. Gerar IV aleatório (16 bytes para AES)
-            iv = os.urandom(16)
-            
-            # 2. Derivar chave específica do cliente
-            key = self._derive_key(client_id)
-            
-            # 3. Preparar cipher
-            cipher = Cipher(
-                algorithms.AES(key),
-                modes.CBC(iv),
-                backend=self.backend
-            )
-            encryptor = cipher.encryptor()
-            
-            # 4. Adicionar padding PKCS7
-            padder = padding.PKCS7(128).padder()
-            message_bytes = message_content.encode("utf-8")
-            padded_data = padder.update(message_bytes) + padder.finalize()
-            
-            # 5. Encriptar
-            encrypted_content = encryptor.update(padded_data) + encryptor.finalize()
-            
-            # 6. Retornar resultado em base64
-            result = {
-                "encrypted_content": base64.b64encode(encrypted_content).decode("utf-8"),
-                "iv": base64.b64encode(iv).decode("utf-8"),
-                "algorithm": self.algorithm
-            }
-            
-            logger.debug(f"Mensagem criptografada para cliente {client_id}")
-            return result
-            
-        except Exception as e:
-            logger.error(f"Erro ao criptografar mensagem: {str(e)}")
-            raise
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=100000,  # 100k iterações (seguro)
+            backend=default_backend()
+        )
+        return kdf.derive(self.master_key)
     
-    async def decrypt_message(
-        self,
-        encrypted_content: str,
-        iv: str,
-        client_id: str
-    ) -> str:
+    def encrypt(self, plaintext: str, associated_data: Optional[str] = None) -> str:
         """
-        Descriptografar mensagem ao recuperar do BD
+        Criptografar texto
         
         Args:
-            encrypted_content: Base64 do conteúdo criptografado
-            iv: Base64 do IV
-            client_id: ID do cliente (para derivar chave)
-        
+            plaintext: Texto a criptografar
+            associated_data: Dados associados (não criptografados mas autenticados)
+            
         Returns:
-            Texto original da mensagem
+            Texto criptografado em base64 (formato: salt:nonce:ciphertext)
         """
         try:
-            # 1. Derivar chave (mesma do cliente)
-            key = self._derive_key(client_id)
+            # Gerar salt e nonce únicos
+            salt = os.urandom(16)
+            nonce = os.urandom(12)  # 96 bits para GCM
             
-            # 2. Decodificar base64
-            encrypted_bytes = base64.b64decode(encrypted_content)
-            iv_bytes = base64.b64decode(iv)
+            # Derivar chave
+            key = self._derive_key(salt)
             
-            # 3. Preparar cipher
-            cipher = Cipher(
-                algorithms.AES(key),
-                modes.CBC(iv_bytes),
-                backend=self.backend
+            # Criar cipher AES-GCM
+            aesgcm = AESGCM(key)
+            
+            # Preparar dados associados
+            aad = associated_data.encode() if associated_data else b""
+            
+            # Criptografar
+            ciphertext = aesgcm.encrypt(
+                nonce,
+                plaintext.encode('utf-8'),
+                aad
             )
-            decryptor = cipher.decryptor()
             
-            # 4. Descriptografar
-            padded_data = decryptor.update(encrypted_bytes) + decryptor.finalize()
+            # Combinar salt:nonce:ciphertext e codificar em base64
+            encrypted_data = salt + nonce + ciphertext
+            return base64.b64encode(encrypted_data).decode('utf-8')
             
-            # 5. Remover padding PKCS7
-            unpadder = padding.PKCS7(128).unpadder()
-            original_data = unpadder.update(padded_data) + unpadder.finalize()
-            
-            # 6. Retornar texto
-            message = original_data.decode("utf-8")
-            
-            logger.debug(f"Mensagem descriptografada para cliente {client_id}")
-            return message
-            
-        except ValueError as e:
-            logger.error(f"Erro ao descriptografar (padding inválido): {str(e)}")
-            raise ValueError("Falha ao descriptografar: conteúdo corrompido")
         except Exception as e:
-            logger.error(f"Erro ao descriptografar mensagem: {str(e)}")
+            logger.error(f"Encryption failed: {e}")
             raise
-
-
-class SensitiveDataEncryption:
-    """
-    Criptografia genérica de dados sensíveis
     
-    Diferente de MessageEncryption:
-    - Não usa chave per-cliente
-    - Usa master key diretamente
-    - Para dados confidenciais do sistema
-    """
-    
-    def __init__(self):
-        self.backend = default_backend()
-        self.algorithm = "AES-256-CBC"
-    
-    async def encrypt(self, data: str) -> str:
-        """Criptografar dados genéricos"""
+    def decrypt(self, encrypted_text: str, associated_data: Optional[str] = None) -> str:
+        """
+        Descriptografar texto
+        
+        Args:
+            encrypted_text: Texto criptografado em base64
+            associated_data: Dados associados (devem ser os mesmos da criptografia)
+            
+        Returns:
+            Texto descriptografado
+        """
         try:
-            iv = os.urandom(16)
-            key = settings.MASTER_ENCRYPTION_KEY.encode("utf-8")
+            # Decodificar base64
+            encrypted_data = base64.b64decode(encrypted_text)
             
-            # Garantir que a chave tem 32 bytes
-            from hashlib import sha256
-            key = sha256(key).digest()
+            # Extrair salt, nonce e ciphertext
+            salt = encrypted_data[:16]
+            nonce = encrypted_data[16:28]
+            ciphertext = encrypted_data[28:]
             
-            cipher = Cipher(
-                algorithms.AES(key),
-                modes.CBC(iv),
-                backend=self.backend
+            # Derivar chave
+            key = self._derive_key(salt)
+            
+            # Criar cipher AES-GCM
+            aesgcm = AESGCM(key)
+            
+            # Preparar dados associados
+            aad = associated_data.encode() if associated_data else b""
+            
+            # Descriptografar
+            plaintext = aesgcm.decrypt(
+                nonce,
+                ciphertext,
+                aad
             )
-            encryptor = cipher.encryptor()
             
-            padder = padding.PKCS7(128).padder()
-            padded_data = padder.update(data.encode()) + padder.finalize()
-            
-            encrypted = encryptor.update(padded_data) + encryptor.finalize()
-            
-            result = f"{base64.b64encode(iv).decode()}:{base64.b64encode(encrypted).decode()}"
-            return result
+            return plaintext.decode('utf-8')
             
         except Exception as e:
-            logger.error(f"Erro ao criptografar dados: {str(e)}")
+            logger.error(f"Decryption failed: {e}")
             raise
     
-    async def decrypt(self, encrypted_data: str) -> str:
-        """Descriptografar dados genéricos"""
+    def encrypt_field(self, value: Optional[str], field_name: str = "") -> Optional[str]:
+        """
+        Criptografar campo de banco de dados
+        
+        Args:
+            value: Valor a criptografar
+            field_name: Nome do campo (usado como associated data)
+            
+        Returns:
+            Valor criptografado ou None
+        """
+        if value is None or value == "":
+            return None
+        
+        return self.encrypt(value, associated_data=field_name)
+    
+    def decrypt_field(self, encrypted_value: Optional[str], field_name: str = "") -> Optional[str]:
+        """
+        Descriptografar campo de banco de dados
+        
+        Args:
+            encrypted_value: Valor criptografado
+            field_name: Nome do campo (usado como associated data)
+            
+        Returns:
+            Valor descriptografado ou None
+        """
+        if encrypted_value is None or encrypted_value == "":
+            return None
+        
         try:
-            parts = encrypted_data.split(":")
-            if len(parts) != 2:
-                raise ValueError("Formato inválido")
-            
-            iv = base64.b64decode(parts[0])
-            encrypted_bytes = base64.b64decode(parts[1])
-            
-            key = settings.MASTER_ENCRYPTION_KEY.encode("utf-8")
-            from hashlib import sha256
-            key = sha256(key).digest()
-            
-            cipher = Cipher(
-                algorithms.AES(key),
-                modes.CBC(iv),
-                backend=self.backend
-            )
-            decryptor = cipher.decryptor()
-            
-            padded_data = decryptor.update(encrypted_bytes) + decryptor.finalize()
-            
-            unpadder = padding.PKCS7(128).unpadder()
-            original = unpadder.update(padded_data) + unpadder.finalize()
-            
-            return original.decode()
-            
+            return self.decrypt(encrypted_value, associated_data=field_name)
         except Exception as e:
-            logger.error(f"Erro ao descriptografar dados: {str(e)}")
-            raise
+            logger.error(f"Failed to decrypt field '{field_name}': {e}")
+            return None
 
 
-# Instâncias globais
-message_encryption = MessageEncryption()
-sensitive_data_encryption = SensitiveDataEncryption()
+# Instância global
+_encryption_manager: Optional[EncryptionManager] = None
+
+
+def get_encryption_manager() -> EncryptionManager:
+    """
+    Obter instância global do EncryptionManager
+    
+    Returns:
+        EncryptionManager instance
+    """
+    global _encryption_manager
+    
+    if _encryption_manager is None:
+        from app.core.config import settings
+        _encryption_manager = EncryptionManager(settings.MASTER_ENCRYPTION_KEY)
+    
+    return _encryption_manager
+
+
+# Funções de conveniência
+def encrypt_data(plaintext: str, associated_data: Optional[str] = None) -> str:
+    """Atalho para criptografar dados"""
+    return get_encryption_manager().encrypt(plaintext, associated_data)
+
+
+def decrypt_data(encrypted_text: str, associated_data: Optional[str] = None) -> str:
+    """Atalho para descriptografar dados"""
+    return get_encryption_manager().decrypt(encrypted_text, associated_data)

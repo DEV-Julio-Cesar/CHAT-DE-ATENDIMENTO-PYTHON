@@ -11,6 +11,7 @@ from app.api.endpoints.chatbot_admin import router as chatbot_admin_router
 from app.api.endpoints.whatsapp_python import router as whatsapp_python_router
 from app.api.endpoints.mobile_pwa import router as mobile_pwa_router
 from app.api.endpoints.backup import router as backup_router
+from app.api.endpoints.atendimento import router as atendimento_router
 from app.core.security_headers import security_headers_manager
 
 api_router = APIRouter()
@@ -94,6 +95,12 @@ api_router.include_router(
 api_router.include_router(
     backup_router,
     tags=["backup"]
+)
+
+# Atendimento Profissional
+api_router.include_router(
+    atendimento_router,
+    tags=["atendimento"]
 )
 
 # ============================================================================

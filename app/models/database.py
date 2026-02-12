@@ -189,9 +189,9 @@ class Mensagem(Base):
     conteudo = Column(Text, nullable=True)  # Deprecado - usar campos criptografados
     
     # CAMPOS CRIPTOGRAFADOS (SEMANA 1)
-    conteudo_criptografado = Column(Text, nullable=True)  # Base64 do conteúdo AES-256
-    iv = Column(String(255), nullable=True)  # Base64 do IV
-    tipo_criptografia = Column(String(50), default="AES-256-CBC", nullable=True)
+    conteudo_criptografado = Column(Text, nullable=True)  # Base64 do conteúdo AES-256-GCM
+    iv = Column(String(255), nullable=True)  # Deprecado (GCM usa nonce interno)
+    tipo_criptografia = Column(String(50), default="AES-256-GCM", nullable=True)
     
     tipo_mensagem = Column(Enum(MessageType), default=MessageType.TEXTO, nullable=False)
     arquivo_url = Column(String(500), nullable=True)  # URL do arquivo se for mídia
@@ -210,6 +210,43 @@ class Mensagem(Base):
         Index('idx_mensagem_tipo_data', 'tipo_mensagem', 'created_at'),
         Index('idx_mensagem_lida', 'lida', 'created_at'),
     )
+    
+    @property
+    def conteudo_decriptografado(self) -> str:
+        """
+        Obter conteúdo descriptografado
+        
+        Returns:
+            Conteúdo em texto claro
+        """
+        if self.conteudo_criptografado:
+            from app.core.encryption import decrypt_data
+            try:
+                return decrypt_data(
+                    self.conteudo_criptografado,
+                    associated_data=f"mensagem:{self.id}"
+                )
+            except Exception:
+                # Fallback para conteúdo não criptografado (migração)
+                return self.conteudo or ""
+        return self.conteudo or ""
+    
+    def set_conteudo(self, texto: str):
+        """
+        Definir conteúdo com criptografia automática
+        
+        Args:
+            texto: Texto a criptografar
+        """
+        from app.core.encryption import encrypt_data
+        
+        self.conteudo_criptografado = encrypt_data(
+            texto,
+            associated_data=f"mensagem:{self.id}"
+        )
+        self.tipo_criptografia = "AES-256-GCM"
+        # Não salvar em conteudo (deprecado)
+        self.conteudo = None
     
     def __repr__(self):
         return f"<Mensagem(tipo='{self.tipo_mensagem}', remetente='{self.remetente_tipo}')>"

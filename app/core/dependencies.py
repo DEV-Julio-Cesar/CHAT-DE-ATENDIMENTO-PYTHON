@@ -8,6 +8,13 @@ Dependências compartilhadas da aplicação
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
+from jwt.exceptions import (
+    ExpiredSignatureError,
+    InvalidAudienceError,
+    InvalidIssuerError,
+    DecodeError,
+    InvalidTokenError
+)
 from typing import Optional, Dict, Any
 from app.core.config import settings
 from app.core.redis_client import redis_manager
@@ -63,25 +70,25 @@ async def get_current_user(
         logger.debug(f"User {user_id} authenticated successfully")
         return payload
         
-    except jwt.ExpiredSignatureError:
+    except ExpiredSignatureError:
         logger.warning(f"Token expired")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired"
         )
-    except jwt.InvalidAudienceError:
+    except InvalidAudienceError:
         logger.warning(f"Invalid token audience")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token audience"
         )
-    except jwt.InvalidIssuerError:
+    except InvalidIssuerError:
         logger.warning(f"Invalid token issuer")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token issuer"
         )
-    except jwt.JWTError as e:
+    except (DecodeError, InvalidTokenError) as e:
         logger.warning(f"JWT validation failed: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -212,3 +219,20 @@ async def get_optional_user(
     
     # Se credentials informado, validar com get_current_user
     return await get_current_user(credentials)
+
+
+
+async def get_db():
+    """
+    Dependency para obter sessão do banco de dados
+    
+    Uso:
+        @router.get("/users")
+        async def list_users(db: AsyncSession = Depends(get_db)):
+            result = await db.execute(select(Usuario))
+            return result.scalars().all()
+    """
+    from app.core.database import db_manager
+    
+    async with db_manager.get_session() as session:
+        yield session

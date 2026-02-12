@@ -685,23 +685,6 @@ async def root():
 # ============================================================================
 # ROTAS DE PÁGINAS WEB
 # ============================================================================
-<<<<<<< HEAD
-=======
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
-from pathlib import Path
-
-TEMPLATES_DIR = Path(__file__).parent / "web" / "templates"
-STATIC_DIR = Path(__file__).parent / "web" / "static"
-PWA_STATIC_DIR = Path(__file__).parent / "static"
-
-# Montar arquivos estáticos
-# IMPORTANTE: A ordem importa! Rotas mais específicas devem vir ANTES
-# PWA static files (mobile app) - servidos via rotas customizadas em mobile_pwa.py
-# Web static files (dashboard, login, etc)
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
->>>>>>> eeab0819e250285393f0a7d407f52867e300a593
 
 @app.get("/login", include_in_schema=False)
 async def login_page():
@@ -714,6 +697,11 @@ async def login_v2_page():
     """Página de login versão 2"""
     return FileResponse(TEMPLATES_DIR / "login_v2.html", media_type="text/html")
 
+
+@app.get("/atendimento", include_in_schema=False)
+async def atendimento_page():
+    """Página de atendimento profissional com abas"""
+    return FileResponse(TEMPLATES_DIR / "atendimento.html", media_type="text/html")
 
 @app.get("/dashboard", include_in_schema=False)
 async def dashboard_page():
@@ -737,6 +725,12 @@ async def chat_old_page():
 async def chatbot_admin_page():
     """Interface de treinamento do chatbot"""
     return FileResponse(TEMPLATES_DIR / "chatbot_admin.html", media_type="text/html")
+
+
+@app.get("/mensagens", include_in_schema=False)
+async def mensagens_config_page():
+    """Página de configuração de mensagens automáticas"""
+    return FileResponse(TEMPLATES_DIR / "mensagens_config.html", media_type="text/html")
 
 
 @app.get("/customers", include_in_schema=False)

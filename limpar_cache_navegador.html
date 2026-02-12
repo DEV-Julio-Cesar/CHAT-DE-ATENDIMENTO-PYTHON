@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Limpar Cache e Recarregar</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+</head>
+<body>
+    <h1>Limpando cache...</h1>
+    <script>
+        // Limpar cache e redirecionar
+        if ('caches' in window) {
+            caches.keys().then(function(names) {
+                for (let name of names) caches.delete(name);
+            });
+        }
+        
+        // Adicionar timestamp para forçar reload
+        const timestamp = new Date().getTime();
+        setTimeout(() => {
+            window.location.href = `http://127.0.0.1:8000/chat?nocache=${timestamp}`;
+        }, 1000);
+    </script>
+</body>
+</html>

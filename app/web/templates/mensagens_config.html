@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuração de Mensagens - CIANET PROVEDOR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
+            min-height: 100vh;
+        }
+        
+        .layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            background: linear-gradient(180deg, #166534 0%, #22c55e 100%);
+            padding: 32px 24px;
+            color: white;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 40px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .logo i {
+            font-size: 36px;
+        }
+        
+        .logo-text h1 {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .logo-text p {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .nav-menu {
+            list-style: none;
+        }
+        
+        .nav-item {
+            margin-bottom: 8px;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: all 0.3s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+        
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .nav-link i {
+            font-size: 18px;
+        }
+        
+        /* Main Content */
+        .main-content {
+            padding: 40px;
+            overflow-y: auto;
+        }
+        
+        .page-header {
+            margin-bottom: 32px;
+        }
+        
+        .page-header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            color: #18181b;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .page-header p {
+            font-size: 16px;
+            color: #6b7280;
+        }
+        
+        /* User Selector */
+        .user-selector-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 24px;
+        }
+        
+        .user-selector-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .user-selector-header i {
+            font-size: 24px;
+            color: #22c55e;
+        }
+        
+        .user-selector-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #18181b;
+        }
+        
+        .user-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        
+        .user-card {
+            padding: 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .user-card:hover {
+            border-color: #22c55e;
+            background: #f0fdf4;
+            transform: translateY(-2px);
+        }
+        
+        .user-card.selected {
+            border-color: #22c55e;
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+        }
+        
+        .user-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0 auto 12px;
+        }
+        
+        .user-card.selected .user-avatar {
+            background: linear-gradient(135deg, #166534, #22c55e);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        }
+        
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #18181b;
+            margin-bottom: 4px;
+        }
+        
+        .user-role {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        /* Messages Cards */
+        .messages-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .message-card {
+            background: white;
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border-left: 4px solid #22c55e;
+            transition: all 0.3s;
+        }
+        
+        .message-card:hover {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+        
+        .message-card.encerramento {
+            border-left-color: #f59e0b;
+        }
+        
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .message-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            color: #16a34a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .message-card.encerramento .message-icon {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #d97706;
+        }
+        
+        .message-title h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #18181b;
+            margin-bottom: 4px;
+        }
+        
+        .message-title p {
+            font-size: 13px;
+            color: #6b7280;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: inherit;
+            min-height: 140px;
+            resize: vertical;
+            transition: all 0.3s;
+            line-height: 1.6;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+        }
+        
+        .char-count {
+            text-align: right;
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 8px;
+        }
+        
+        .variables-hint {
+            margin-top: 16px;
+            padding: 14px;
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            border-radius: 10px;
+            border-left: 3px solid #22c55e;
+        }
+        
+        .variables-hint-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #166534;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .variables-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .variable-tag {
+            background: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: monospace;
+            color: #16a34a;
+            font-weight: 600;
+            border: 1px solid #bbf7d0;
+        }
+        
+        /* Preview Card */
+        .preview-card {
+            background: white;
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 24px;
+        }
+        
+        .preview-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .preview-header i {
+            font-size: 24px;
+            color: #3b82f6;
+        }
+        
+        .preview-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #18181b;
+        }
+        
+        .preview-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .preview-bubble {
+            padding: 16px 20px;
+            border-radius: 16px;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .preview-bubble.saudacao {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            border-left: 4px solid #22c55e;
+        }
+        
+        .preview-bubble.encerramento {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .preview-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .preview-bubble.saudacao .preview-label {
+            color: #166534;
+        }
+        
+        .preview-bubble.encerramento .preview-label {
+            color: #92400e;
+        }
+        
+        .preview-text {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #374151;
+        }
+        
+        /* Actions */
+        .actions-bar {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            position: sticky;
+            bottom: 20px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.4);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: #f4f4f5;
+            color: #6b7280;
+            border: 2px solid #e5e7eb;
+        }
+        
+        .btn-secondary:hover {
+            background: #e5e7eb;
+            border-color: #d1d5db;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+        }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: white;
+            padding: 20px 24px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transform: translateX(400px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+            min-width: 320px;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+        }
+        
+        .toast.success {
+            border-left: 4px solid #22c55e;
+        }
+        
+        .toast.info {
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .toast.error {
+            border-left: 4px solid #ef4444;
+        }
+        
+        .toast-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .toast.success .toast-icon {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .toast.info .toast-icon {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+        
+        .toast.error .toast-icon {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .toast-content h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #18181b;
+            margin-bottom: 4px;
+        }
+        
+        .toast-content p {
+            font-size: 13px;
+            color: #6b7280;
+            margin: 0;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+        
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        .empty-state h4 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .empty-state p {
+            font-size: 14px;
+        }
+        
+        @media (max-width: 1200px) {
+            .messages-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="bi bi-chat-text-fill"></i>
+                <div class="logo-text">
+                    <h1>CIANET PROVEDOR</h1>
+                    <p>Mensagens Automáticas</p>
+                </div>
+            </div>
+            
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="/dashboard" class="nav-link">
+                        <i class="bi bi-grid-1x2-fill"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/chat" class="nav-link">
+                        <i class="bi bi-chat-dots-fill"></i>
+                        <span>Atendimentos</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/mensagens" class="nav-link active">
+                        <i class="bi bi-chat-text-fill"></i>
+                        <span>Mensagens</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/settings" class="nav-link">
+                        <i class="bi bi-gear-fill"></i>
+                        <span>Configurações</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>
+                    <i class="bi bi-chat-text-fill" style="color: #22c55e;"></i>
+                    Mensagens Automáticas
+                </h1>
+                <p>Configure mensagens personalizadas de saudação e encerramento para cada atendente</p>
+            </div>
+            
+            <!-- User Selector -->
+            <div class="user-selector-card">
+                <div class="user-selector-header">
+                    <i class="bi bi-people-fill"></i>
+                    <h3>Selecione o Atendente</h3>
+                </div>
+                <div class="user-grid" id="userGrid">
+                    <div class="empty-state">
+                        <i class="bi bi-person-circle"></i>
+                        <h4>Carregando atendentes...</h4>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Messages Configuration -->
+            <div id="messagesConfig" style="display: none;">
+                <div class="messages-container">
+                    <!-- Saudação -->
+                    <div class="message-card saudacao">
+                        <div class="message-header">
+                            <div class="message-icon">
+                                <i class="bi bi-hand-thumbs-up-fill"></i>
+                            </div>
+                            <div class="message-title">
+                                <h3>Mensagem de Saudação</h3>
+                                <p>Enviada ao atribuir atendimento</p>
+                            </div>
+                        </div>
+                        <textarea id="mensagemSaudacao" placeholder="Ex: Olá! Meu nome é {atendente} e vou ajudá-lo hoje. Como posso ajudar?"></textarea>
+                        <div class="char-count"><span id="charCountSaudacao">0</span> caracteres</div>
+                        <div class="variables-hint">
+                            <div class="variables-hint-title">Variáveis Disponíveis</div>
+                            <div class="variables-list">
+                                <span class="variable-tag">{atendente}</span>
+                                <span class="variable-tag">{cliente}</span>
+                                <span class="variable-tag">{hora}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Encerramento -->
+                    <div class="message-card encerramento">
+                        <div class="message-header">
+                            <div class="message-icon">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                            <div class="message-title">
+                                <h3>Mensagem de Encerramento</h3>
+                                <p>Enviada ao finalizar atendimento</p>
+                            </div>
+                        </div>
+                        <textarea id="mensagemEncerramento" placeholder="Ex: Obrigado por entrar em contato! Se precisar de algo mais, estamos à disposição."></textarea>
+                        <div class="char-count"><span id="charCountEncerramento">0</span> caracteres</div>
+                        <div class="variables-hint">
+                            <div class="variables-hint-title">Variáveis Disponíveis</div>
+                            <div class="variables-list">
+                                <span class="variable-tag">{atendente}</span>
+                                <span class="variable-tag">{cliente}</span>
+                                <span class="variable-tag">{hora}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Preview -->
+                <div class="preview-card">
+                    <div class="preview-header">
+                        <i class="bi bi-eye-fill"></i>
+                        <h3>Preview das Mensagens</h3>
+                    </div>
+                    <div class="preview-messages">
+                        <div class="preview-bubble saudacao">
+                            <div class="preview-label">
+                                <i class="bi bi-hand-thumbs-up-fill"></i>
+                                Saudação
+                            </div>
+                            <div class="preview-text" id="previewSaudacao">Digite uma mensagem de saudação acima...</div>
+                        </div>
+                        <div class="preview-bubble encerramento">
+                            <div class="preview-label">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Encerramento
+                            </div>
+                            <div class="preview-text" id="previewEncerramento">Digite uma mensagem de encerramento acima...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="actions-bar">
+                    <button class="btn btn-secondary" onclick="restaurarPadrao()">
+                        <i class="bi bi-arrow-clockwise"></i>
+                        Restaurar Padrão
+                    </button>
+                    <button class="btn btn-danger" onclick="limparMensagens()">
+                        <i class="bi bi-trash"></i>
+                        Limpar Tudo
+                    </button>
+                    <button class="btn btn-primary" onclick="salvarMensagens()">
+                        <i class="bi bi-check-lg"></i>
+                        Salvar Configurações
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Toast -->
+    <div id="toast" class="toast">
+        <div class="toast-icon">
+            <i class="bi bi-check-circle-fill"></i>
+        </div>
+        <div class="toast-content">
+            <h4 id="toastTitle">Sucesso</h4>
+            <p id="toastMessage">Mensagem</p>
+        </div>
+    </div>
+    
+    <script>
+        // Usuários demo (em produção, buscar da API)
+        const usuarios = [
+            { id: '1', nome: 'Administrador', role: 'Admin', email: 'admin@empresa.com.br' },
+            { id: '2', nome: 'Atendente Demo', role: 'Atendente', email: 'atendente@empresa.com.br' },
+            { id: '3', nome: 'Supervisor Demo', role: 'Supervisor', email: 'supervisor@empresa.com.br' }
+        ];
+        
+        let selectedUserId = null;
+        
+        // Mensagens padrão
+        const defaultMensagens = {
+            saudacao: 'Olá! Meu nome é {atendente} e vou ajudá-lo hoje. Como posso ajudar?',
+            encerramento: 'Obrigado por entrar em contato com a CIANET PROVEDOR! Se precisar de algo mais, estamos à disposição. Tenha um ótimo dia!'
+        };
+        
+        // Carregar usuários
+        function carregarUsuarios() {
+            const userGrid = document.getElementById('userGrid');
+            
+            userGrid.innerHTML = usuarios.map(user => {
+                const initials = user.nome.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                return `
+                    <div class="user-card" onclick="selecionarUsuario('${user.id}')" data-user-id="${user.id}">
+                        <div class="user-avatar">${initials}</div>
+                        <div class="user-name">${user.nome}</div>
+                        <div class="user-role">${user.role}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Selecionar usuário
+        function selecionarUsuario(userId) {
+            selectedUserId = userId;
+            
+            // Atualizar UI
+            document.querySelectorAll('.user-card').forEach(card => {
+                card.classList.toggle('selected', card.dataset.userId === userId);
+            });
+            
+            // Mostrar configuração de mensagens
+            document.getElementById('messagesConfig').style.display = 'block';
+            
+            // Carregar mensagens do usuário
+            carregarMensagensUsuario(userId);
+            
+            // Scroll suave para as mensagens
+            document.getElementById('messagesConfig').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        // Carregar mensagens do usuário
+        function carregarMensagensUsuario(userId) {
+            const key = `mensagens_usuario_${userId}`;
+            const saved = localStorage.getItem(key);
+            const mensagens = saved ? JSON.parse(saved) : defaultMensagens;
+            
+            document.getElementById('mensagemSaudacao').value = mensagens.saudacao;
+            document.getElementById('mensagemEncerramento').value = mensagens.encerramento;
+            
+            updatePreview();
+            updateCharCount();
+        }
+        
+        // Atualizar preview em tempo real
+        function updatePreview() {
+            const saudacao = document.getElementById('mensagemSaudacao').value;
+            const encerramento = document.getElementById('mensagemEncerramento').value;
+            
+            const user = usuarios.find(u => u.id === selectedUserId);
+            const atendenteNome = user ? user.nome : 'Atendente';
+            
+            const now = new Date();
+            const hora = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            
+            const previewSaudacao = saudacao
+                .replace(/{atendente}/g, atendenteNome)
+                .replace(/{cliente}/g, 'João Silva')
+                .replace(/{hora}/g, hora);
+            
+            const previewEncerramento = encerramento
+                .replace(/{atendente}/g, atendenteNome)
+                .replace(/{cliente}/g, 'João Silva')
+                .replace(/{hora}/g, hora);
+            
+            document.getElementById('previewSaudacao').textContent = previewSaudacao || 'Digite uma mensagem de saudação acima...';
+            document.getElementById('previewEncerramento').textContent = previewEncerramento || 'Digite uma mensagem de encerramento acima...';
+        }
+        
+        // Atualizar contador de caracteres
+        function updateCharCount() {
+            const saudacao = document.getElementById('mensagemSaudacao').value;
+            const encerramento = document.getElementById('mensagemEncerramento').value;
+            
+            document.getElementById('charCountSaudacao').textContent = saudacao.length;
+            document.getElementById('charCountEncerramento').textContent = encerramento.length;
+        }
+        
+        // Salvar mensagens
+        function salvarMensagens() {
+            if (!selectedUserId) {
+                showToast('Atenção', 'Selecione um atendente primeiro.', 'error');
+                return;
+            }
+            
+            const saudacao = document.getElementById('mensagemSaudacao').value.trim();
+            const encerramento = document.getElementById('mensagemEncerramento').value.trim();
+            
+            if (!saudacao || !encerramento) {
+                showToast('Atenção', 'Por favor, preencha ambas as mensagens.', 'error');
+                return;
+            }
+            
+            const mensagens = { saudacao, encerramento };
+            const key = `mensagens_usuario_${selectedUserId}`;
+            localStorage.setItem(key, JSON.stringify(mensagens));
+            
+            const user = usuarios.find(u => u.id === selectedUserId);
+            showToast('Sucesso', `Mensagens de ${user.nome} salvas com sucesso!`, 'success');
+        }
+        
+        // Restaurar padrão
+        function restaurarPadrao() {
+            if (!selectedUserId) {
+                showToast('Atenção', 'Selecione um atendente primeiro.', 'error');
+                return;
+            }
+            
+            if (!confirm('Deseja restaurar as mensagens padrão? As configurações atuais serão perdidas.')) return;
+            
+            const key = `mensagens_usuario_${selectedUserId}`;
+            localStorage.removeItem(key);
+            carregarMensagensUsuario(selectedUserId);
+            
+            showToast('Restaurado', 'Mensagens padrão restauradas!', 'info');
+        }
+        
+        // Limpar mensagens
+        function limparMensagens() {
+            if (!selectedUserId) {
+                showToast('Atenção', 'Selecione um atendente primeiro.', 'error');
+                return;
+            }
+            
+            if (!confirm('Deseja limpar todas as mensagens? Esta ação não pode ser desfeita.')) return;
+            
+            document.getElementById('mensagemSaudacao').value = '';
+            document.getElementById('mensagemEncerramento').value = '';
+            updatePreview();
+            updateCharCount();
+            
+            showToast('Limpo', 'Mensagens limpas. Não esqueça de salvar!', 'info');
+        }
+        
+        // Mostrar toast
+        function showToast(title, message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastTitle = document.getElementById('toastTitle');
+            const toastMessage = document.getElementById('toastMessage');
+            const icon = toast.querySelector('.toast-icon i');
+            
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            
+            toast.className = `toast ${type}`;
+            
+            if (type === 'success') {
+                icon.className = 'bi bi-check-circle-fill';
+            } else if (type === 'error') {
+                icon.className = 'bi bi-exclamation-circle-fill';
+            } else {
+                icon.className = 'bi bi-info-circle-fill';
+            }
+            
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Event listeners
+        document.getElementById('mensagemSaudacao').addEventListener('input', () => {
+            updatePreview();
+            updateCharCount();
+        });
+        
+        document.getElementById('mensagemEncerramento').addEventListener('input', () => {
+            updatePreview();
+            updateCharCount();
+        });
+        
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            // Verificar autenticação
+            const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            carregarUsuarios();
+            
+            // Auto-selecionar usuário logado
+            const currentUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
+            if (currentUser.id) {
+                setTimeout(() => {
+                    selecionarUsuario(currentUser.id);
+                }, 300);
+            }
+        });
+    </script>
+</body>
+</html>

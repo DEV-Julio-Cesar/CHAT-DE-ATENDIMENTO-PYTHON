@@ -7,6 +7,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta, timezone
 import jwt
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 import logging
 
 from app.core.config import settings
@@ -347,7 +348,7 @@ async def logout(
                 algorithms=[settings.ALGORITHM]
             )
             user_id = payload.get("sub")
-        except jwt.JWTError:
+        except InvalidTokenError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token"
@@ -422,16 +423,35 @@ async def validate_token(
             "expires_at": datetime.fromtimestamp(payload.get("exp")).isoformat()
         }
         
-    except jwt.ExpiredSignatureError:
+    except ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired"
         )
-    except jwt.JWTError:
+    except InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
         )
+
+
+@router.post("/reset-rate-limit")
+async def reset_rate_limit(request: Request):
+    """
+    Resetar rate limiter para o IP atual (apenas desenvolvimento)
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    identifier = f"login:{client_ip}"
+    
+    await rate_limiter.reset(identifier)
+    
+    logger.info(f"Rate limit reset for {identifier}")
+    
+    return {
+        "status": "success",
+        "message": f"Rate limit reset for IP {client_ip}",
+        "identifier": identifier
+    }
 
 # Função utilitária para buscar usuário por e-mail
 async def get_user_by_email(email: str):
