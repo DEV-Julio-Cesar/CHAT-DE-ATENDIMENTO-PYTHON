@@ -73,15 +73,14 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning("Database unavailable - running in limited mode", error=str(e))
         
-        # Inicializar Redis (DESABILITADO - para performance local)
-        # Para habilitar Redis: remover comentário abaixo e instalar Redis
-        # try:
-        #     await redis_manager.initialize()
-        #     logger.info("Redis initialized")
-        #     redis_initialized = True
-        # except Exception as e:
-        #     logger.warning("Redis unavailable - running without cache", error=str(e))
-        redis_initialized = False  # Redis desabilitado para performance
+        # Inicializar Redis
+        try:
+            await redis_manager.initialize()
+            logger.info("Redis initialized")
+            redis_initialized = True
+        except Exception as e:
+            logger.warning("Redis unavailable - running without cache", error=str(e))
+            redis_initialized = False
         
         # Inicializar Chatbot AI
         try:
